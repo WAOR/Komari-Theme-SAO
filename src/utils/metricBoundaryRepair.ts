@@ -103,6 +103,18 @@ function aggregateRawPoints(
   if (valid.length === 0) return null;
 
   const values = valid.map((item) => item.point.value ?? 0);
+  // 旧后端的 raw 点可能不带 count，按单样本计；新后端的混合结果
+  // 可包含 count > 1 的 rollup 点，必须保留真实样本数。
+  const count = valid.reduce(
+    (sum, item) => sum + (item.point.count > 0 ? item.point.count : 1),
+    0,
+  );
+  const weightedValueSum = valid.reduce(
+    (sum, item) =>
+      sum +
+      (item.point.value ?? 0) * (item.point.count > 0 ? item.point.count : 1),
+    0,
+  );
   const value =
     aggregation === "last"
       ? values[values.length - 1]
@@ -110,11 +122,11 @@ function aggregateRawPoints(
         ? values.reduce((sum, current) => sum + current, 0)
         : aggregation === "max"
           ? Math.max(...values)
-          : values.reduce((sum, current) => sum + current, 0) / values.length;
+          : weightedValueSum / count;
   return {
     time: valid[0].point.time,
     value,
-    count: valid.length,
+    count,
   };
 }
 

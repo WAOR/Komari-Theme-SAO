@@ -1,12 +1,29 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { rpcCallMock } = vi.hoisted(() => ({ rpcCallMock: vi.fn() }));
+const { rpcCallMock, MockRpcResponseError } = vi.hoisted(() => ({
+  rpcCallMock: vi.fn(),
+  MockRpcResponseError: class MockRpcResponseError extends Error {
+    constructor(
+      message: string,
+      public readonly code?: number,
+    ) {
+      super(message);
+    }
+  },
+}));
 
 vi.mock("@/services/rpc2Client", () => ({
   getRpc2Client: () => ({ call: rpcCallMock }),
+  RpcResponseError: MockRpcResponseError,
 }));
 
-import { getLoadRecords, getPingOverview, getPingRecords } from "@/services/api";
+import {
+  getLoadRecords,
+  getPingOverview,
+  getPingOverviewStats,
+  getPingRecords,
+  getTodayTrafficMetrics,
+} from "@/services/api";
 
 const START = "2026-07-15T03:00:00Z";
 const END = "2026-07-15T04:00:00Z";
@@ -51,7 +68,15 @@ function aggregatePayload(hasGap: boolean) {
   };
 }
 
-function installRpcResponses({ hasGap, rawFails = false }: { hasGap: boolean; rawFails?: boolean }) {
+function installRpcResponses({
+  hasGap,
+  rawFails = false,
+  rawCount,
+}: {
+  hasGap: boolean;
+  rawFails?: boolean;
+  rawCount?: number;
+}) {
   rpcCallMock.mockImplementation((method: string, params: Record<string, unknown>) => {
     if (method === "public:getPingMetricStats") {
       return Promise.resolve({
@@ -87,10 +112,18 @@ function installRpcResponses({ hasGap, rawFails = false }: { hasGap: boolean; ra
         end: "2026-07-15T03:46:00Z",
         series: [
           metricSeries("ping.latency_ms", [
-            { time: "2026-07-15T03:44:15Z", value: 50 },
+            {
+              time: "2026-07-15T03:44:15Z",
+              value: 50,
+              ...(rawCount == null ? {} : { count: rawCount }),
+            },
           ]),
           metricSeries("ping.loss", [
-            { time: "2026-07-15T03:44:15Z", value: 0 },
+            {
+              time: "2026-07-15T03:44:15Z",
+              value: 0,
+              ...(rawCount == null ? {} : { count: rawCount }),
+            },
           ]),
         ],
       });
@@ -100,6 +133,15 @@ function installRpcResponses({ hasGap, rawFails = false }: { hasGap: boolean; ra
     }
     return Promise.reject(new Error(`Unexpected RPC method: ${method}`));
   });
+}
+
+function metricDataCalls() {
+  return rpcCallMock.mock.calls.filter(
+    ([method, params]) =>
+      method === "public:queryMetrics" &&
+      Array.isArray((params as Record<string, unknown>)?.metric_keys) &&
+      ((params as Record<string, unknown>).metric_keys as unknown[]).length > 0,
+  );
 }
 
 describe("metric boundary repair in the API adapter", () => {
@@ -112,9 +154,7 @@ describe("metric boundary repair in the API adapter", () => {
     const result = await getPingOverview(1, 7, { entityIds: ["node-a"] });
 
     expect(result.records).toHaveLength(3);
-    const metricCalls = rpcCallMock.mock.calls.filter(
-      ([method]) => method === "public:queryMetrics",
-    );
+    const metricCalls = metricDataCalls();
     expect(metricCalls).toHaveLength(1);
   });
 
@@ -127,9 +167,7 @@ describe("metric boundary repair in the API adapter", () => {
       .toMatchObject({ value: 50, count: 1, loss: 0 });
     expect(result.stats?.[0]).toMatchObject({ total: 3, valid: 3, loss: 0 });
 
-    const metricCalls = rpcCallMock.mock.calls.filter(
-      ([method]) => method === "public:queryMetrics",
-    );
+    const metricCalls = metricDataCalls();
     expect(metricCalls).toHaveLength(2);
     expect(metricCalls[1][1]).toMatchObject({
       entity_ids: ["node-a"],
@@ -150,6 +188,15 @@ describe("metric boundary repair in the API adapter", () => {
     );
   });
 
+  it("preserves hybrid rollup counts without requesting a backend version", async () => {
+    installRpcResponses({ hasGap: true, rawCount: 4 });
+    const result = await getPingOverview(1, 7, { entityIds: ["node-a"] });
+
+    expect(result.records.find((record) => record.time === "2026-07-15T03:44:00Z"))
+      .toMatchObject({ value: 50, count: 4, loss: 0 });
+    expect(rpcCallMock.mock.calls.some(([method]) => method === "public:getVersion")).toBe(false);
+  });
+
   it("fetches stats in the same call chain on the ping detail path, without boundary repair", async () => {
     installRpcResponses({ hasGap: true });
 
@@ -158,9 +205,7 @@ describe("metric boundary repair in the API adapter", () => {
     expect(result.records).toHaveLength(2);
     expect(result.stats).toHaveLength(1);
     expect(result.stats?.[0]).toMatchObject({ total: 2, valid: 2 });
-    const metricCalls = rpcCallMock.mock.calls.filter(
-      ([method]) => method === "public:queryMetrics",
-    );
+    const metricCalls = metricDataCalls();
     expect(metricCalls).toHaveLength(1);
     expect(metricCalls[0][1]).toMatchObject({
       entity_ids: ["node-a"],
@@ -169,6 +214,36 @@ describe("metric boundary repair in the API adapter", () => {
     expect(rpcCallMock).toHaveBeenCalledWith(
       "public:getPingMetricStats",
       expect.objectContaining({ entity_ids: ["node-a"], hours: 24 }),
+      expect.anything(),
+    );
+  });
+
+  it("batches homepage Ping statistics by task id", async () => {
+    rpcCallMock.mockImplementation((method: string) => {
+      if (method === "public:queryMetrics") {
+        return Promise.reject(new MockRpcResponseError("metric_keys is required", -32602));
+      }
+      if (method === "public:getPingMetricStats") {
+        return Promise.resolve({ stats: [] });
+      }
+      return Promise.reject(new Error(`Unexpected RPC method: ${method}`));
+    });
+
+    await getPingOverviewStats(1, [9, 7, 9], {
+      entityIds: ["node-a", "node-b"],
+    });
+
+    const statsCalls = rpcCallMock.mock.calls.filter(
+      ([method]) => method === "public:getPingMetricStats",
+    );
+    expect(statsCalls).toHaveLength(1);
+    expect(rpcCallMock).toHaveBeenCalledWith(
+      "public:getPingMetricStats",
+      expect.objectContaining({
+        hours: 1,
+        task_ids: [7, 9],
+        entity_ids: ["node-a", "node-b"],
+      }),
       expect.anything(),
     );
   });
@@ -183,6 +258,7 @@ describe("metric boundary repair in the API adapter", () => {
 
     expect(result.records).toEqual([]);
     expect(rpcCallMock).toHaveBeenCalledTimes(1);
+    expect(metricDataCalls()).toHaveLength(0);
     expect(rpcCallMock).toHaveBeenCalledWith(
       "common:getRecords",
       expect.objectContaining({ uuid: "node-a", hours: 24, type: "load" }),
@@ -191,21 +267,23 @@ describe("metric boundary repair in the API adapter", () => {
   });
 
   it("does not send removed Komari 1.3.0 total metrics in load queries", async () => {
-    rpcCallMock.mockResolvedValue({
-      start: START,
-      end: END,
-      series: [
-        metricSeries("memory.used", [
-          { time: "2026-07-15T03:30:00Z", value: 512, count: 1 },
-        ]),
-      ],
+    rpcCallMock.mockImplementation(() => {
+      return Promise.resolve({
+        start: START,
+        end: END,
+        series: [
+          metricSeries("memory.used", [
+            { time: "2026-07-15T03:30:00Z", value: 512, count: 1 },
+          ]),
+        ],
+      });
     });
 
     const result = await getLoadRecords("node-a", 1);
 
     expect(result.records).toHaveLength(1);
     expect(result.records[0]).toMatchObject({ client: "node-a", ram: 512 });
-    expect(rpcCallMock).toHaveBeenCalledTimes(1);
+    expect(metricDataCalls()).toHaveLength(1);
     expect(rpcCallMock).toHaveBeenCalledWith(
       "public:queryMetrics",
       expect.objectContaining({
@@ -215,6 +293,30 @@ describe("metric boundary repair in the API adapter", () => {
           "swap.total",
           "disk.total",
         ]),
+      }),
+      expect.anything(),
+    );
+  });
+
+  it("uses a small point budget for traffic totals while preserving rate chart detail", async () => {
+    rpcCallMock.mockResolvedValue({ start: START, end: END, series: [] });
+
+    await getTodayTrafficMetrics(
+      ["node-a"],
+      Date.parse("2026-07-15T00:00:00Z"),
+      Date.parse("2026-07-15T12:00:00Z"),
+    );
+
+    expect(rpcCallMock).toHaveBeenCalledWith(
+      "public:queryMetrics",
+      expect.objectContaining({
+        max_points: 144,
+        max_points_by_metric: {
+          "traffic.up": 12,
+          "traffic.down": 12,
+          "net.out.rate": 144,
+          "net.in.rate": 144,
+        },
       }),
       expect.anything(),
     );

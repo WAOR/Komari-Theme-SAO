@@ -1,5 +1,10 @@
 import { queryOptions, useQuery, type QueryClient } from "@tanstack/react-query";
-import { getLoadRecords, getTodayTrafficMetrics, warnDegradedOnce } from "@/services/api";
+import {
+  getLoadRecords,
+  getTodayTrafficMetrics,
+  MetricApiUnavailableError,
+  warnDegradedOnce,
+} from "@/services/api";
 import {
   buildTodayTrafficMetricSamples,
   buildTodayTrafficRecordSamples,
@@ -108,7 +113,12 @@ function getTodayTrafficQueryOptions(uuids: string[], now: number) {
         };
       } catch (error) {
         if (signal.aborted) throw error;
-        warnDegradedOnce("today-traffic", "今日流量 metrics 查询失败,已回退逐节点 records 统计");
+        warnDegradedOnce(
+          "today-traffic",
+          error instanceof MetricApiUnavailableError
+            ? "检测到旧版后端,今日流量已使用逐节点 records 统计"
+            : "今日流量 metrics 查询异常,已回退逐节点 records 统计",
+        );
         const fallback = await loadRecordFallback(stableUuids, startMs, endMs, signal);
         return {
           ...fallback,

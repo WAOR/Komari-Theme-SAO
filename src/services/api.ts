@@ -41,8 +41,12 @@ import {
   type MetricBoundarySeries,
 } from "@/utils/metricBoundaryRepair";
 import {
+  RATE_DOWN_METRIC,
+  RATE_UP_METRIC,
   TODAY_TRAFFIC_AGGREGATION,
   TODAY_TRAFFIC_METRIC_KEYS,
+  TRAFFIC_DOWN_METRIC,
+  TRAFFIC_UP_METRIC,
   type TrafficMetricSeries,
 } from "@/utils/trafficStats";
 
@@ -121,6 +125,8 @@ const MAX_RPC_RECORDS = 20_000;
 const OVERVIEW_PING_MAX_COUNT = 4_000;
 const OVERVIEW_METRIC_MAX_POINTS = 24;
 const DETAIL_METRIC_MAX_POINTS = 500;
+const TODAY_TRAFFIC_TOTAL_MAX_POINTS = 12;
+const BACKEND_CAPABILITY_TIMEOUT_MS = 5_000;
 // 普通 HTTP GET(/api/nodes、/api/public、load/ping 兜底)自身没有传输超时,
 // 在这里统一兜底,half-open socket 能快速失败而不是无限挂住调用方。
 const DEFAULT_API_TIMEOUT_MS = 12_000;
@@ -164,6 +170,13 @@ export class ApiRequestError extends Error {
   ) {
     super(message);
     this.name = "ApiRequestError";
+  }
+}
+
+export class MetricApiUnavailableError extends Error {
+  constructor() {
+    super("Metric API is unavailable on this server");
+    this.name = "MetricApiUnavailableError";
   }
 }
 
@@ -348,7 +361,9 @@ function normalizeRpcPingOverview(
   };
 }
 
-let metricQueryApiUnavailable = false;
+let metricQueryApiAvailable: boolean | null = null;
+let metricQueryProbeRequest: Promise<boolean> | null = null;
+let pingMetricStatsApiAvailable: boolean | null = null;
 let publicPingTasksCache: PingTask[] | null = null;
 let publicPingTasksCachedAt = 0;
 let publicPingTasksRequest: Promise<PingTask[]> | null = null;
@@ -370,13 +385,135 @@ function isMissingMetricMethod(error: unknown) {
   );
 }
 
+function requestDeadline(timeout?: number) {
+  return typeof timeout === "number" && Number.isFinite(timeout)
+    ? Date.now() + Math.max(0, timeout)
+    : null;
+}
+
+function remainingRequestTimeout(deadline: number | null) {
+  return deadline == null ? undefined : Math.max(0, deadline - Date.now());
+}
+
+function waitForSharedRequest<T>(
+  request: Promise<T>,
+  signal?: AbortSignal,
+  timeout?: number,
+): Promise<T> {
+  if (signal?.aborted) {
+    return Promise.reject(signal.reason ?? new DOMException("Aborted", "AbortError"));
+  }
+  if (timeout !== undefined && timeout <= 0) {
+    return Promise.reject(new DOMException("Request timed out", "TimeoutError"));
+  }
+  if (!signal && timeout === undefined) return request;
+
+  return new Promise<T>((resolve, reject) => {
+    let timer: ReturnType<typeof globalThis.setTimeout> | undefined;
+    const cleanup = () => {
+      if (timer !== undefined) globalThis.clearTimeout(timer);
+      signal?.removeEventListener("abort", onAbort);
+    };
+    const onAbort = () => {
+      cleanup();
+      reject(signal?.reason ?? new DOMException("Aborted", "AbortError"));
+    };
+
+    signal?.addEventListener("abort", onAbort, { once: true });
+    if (timeout !== undefined) {
+      timer = globalThis.setTimeout(() => {
+        cleanup();
+        reject(new DOMException("Request timed out", "TimeoutError"));
+      }, timeout);
+    }
+    request.then(
+      (value) => {
+        cleanup();
+        resolve(value);
+      },
+      (error) => {
+        cleanup();
+        reject(error);
+      },
+    );
+  });
+}
+
+async function probeMetricQueryApi() {
+  try {
+    // 空参数只触发参数校验，不读取指标数据；除 Method not found 外的 RPC 错误均说明方法存在。
+    await getRpc2Client().call("public:queryMetrics", {}, {
+      timeout: BACKEND_CAPABILITY_TIMEOUT_MS,
+    });
+    return true;
+  } catch (error) {
+    if (isMissingMetricMethod(error)) return false;
+    if (error instanceof RpcResponseError) return true;
+    throw error;
+  }
+}
+
+function loadMetricQueryCapability() {
+  if (metricQueryApiAvailable != null) return Promise.resolve(metricQueryApiAvailable);
+  if (metricQueryProbeRequest) return metricQueryProbeRequest;
+
+  metricQueryProbeRequest = probeMetricQueryApi()
+    .then((available) => {
+      metricQueryApiAvailable = available;
+      return available;
+    })
+    .finally(() => {
+      metricQueryProbeRequest = null;
+    });
+  return metricQueryProbeRequest;
+}
+
+function waitForMetricQueryCapability(options?: ApiCallOptions) {
+  return waitForSharedRequest(
+    loadMetricQueryCapability(),
+    options?.signal,
+    options?.timeout,
+  );
+}
+
+async function queryPingMetricStatsPayload(
+  params: Record<string, unknown>,
+  options?: ApiCallOptions,
+): Promise<z.output<typeof PingMetricStatsResponseSchema> | null> {
+  const deadline = requestDeadline(options?.timeout);
+  const metricQueryAvailable = await waitForMetricQueryCapability({
+    signal: options?.signal,
+    timeout: remainingRequestTimeout(deadline),
+  });
+  if (!metricQueryAvailable || pingMetricStatsApiAvailable === false) return null;
+
+  try {
+    return (await rpcCall(
+      "public:getPingMetricStats",
+      params,
+      PingMetricStatsResponseSchema,
+      { signal: options?.signal, timeout: remainingRequestTimeout(deadline) },
+    )) as z.output<typeof PingMetricStatsResponseSchema>;
+  } catch (error) {
+    if (options?.signal?.aborted) throw error;
+    if (isMissingMetricMethod(error)) pingMetricStatsApiAvailable = false;
+    warnDegradedOnce("ping-stats", "Ping 统计接口失败,已由 records 本地兜底计算");
+    return null;
+  }
+}
+
 async function queryMetricPayload(
   params: Record<string, unknown>,
   signal?: AbortSignal,
   timeout?: number,
 ): Promise<z.output<typeof MetricQueryResponseSchema>> {
-  if (metricQueryApiUnavailable) {
-    throw new Error("Metric query API is unavailable on this server");
+  const deadline = requestDeadline(timeout);
+  const available = await waitForMetricQueryCapability({
+    signal,
+    timeout: remainingRequestTimeout(deadline),
+  });
+  if (!available) {
+    throw new MetricApiUnavailableError();
   }
 
   try {
@@ -384,17 +521,14 @@ async function queryMetricPayload(
       "public:queryMetrics",
       params,
       MetricQueryResponseSchema,
-      { signal, timeout },
+      { signal, timeout: remainingRequestTimeout(deadline) },
     );
     return payload as z.output<typeof MetricQueryResponseSchema>;
   } catch (error) {
     if (signal?.aborted) throw error;
     if (isMissingMetricMethod(error)) {
-      metricQueryApiUnavailable = true;
-      warnDegradedOnce(
-        "metric-api",
-        "public:queryMetrics 不可用(旧版后端?),本次会话所有 metrics 查询将走兼容记录接口",
-      );
+      metricQueryApiAvailable = false;
+      throw new MetricApiUnavailableError();
     }
     throw error;
   }
@@ -457,7 +591,9 @@ type MetricPayloadSeries = z.output<typeof MetricSeriesSchema>;
 function rawMetricPoints(item: MetricPayloadSeries) {
   return item.points.map((point) => ({
     ...point,
-    count: point.value == null ? 0 : 1,
+    // 支持混合查询的后端可在边界小窗口同时返回 raw 与 rollup；
+    // rollup 的 count 是真实样本数，不能强制改成 1。旧后端 raw 点未返回 count 时才回退为 1。
+    count: point.count > 0 ? point.count : point.value == null ? 0 : 1,
   }));
 }
 
@@ -480,6 +616,7 @@ async function repairMetricBoundary<T extends MetricBoundarySeries>(
     return aggregateSeries;
   }
 
+  const deadline = requestDeadline(timeout);
   try {
     const rawPayload = await queryMetricPayload(
       {
@@ -490,7 +627,7 @@ async function repairMetricBoundary<T extends MetricBoundarySeries>(
         fill_empty: false,
       },
       signal,
-      timeout,
+      remainingRequestTimeout(deadline),
     );
     const fallbackInterval = Math.max(
       0,
@@ -569,8 +706,13 @@ async function getPingMetricData({
   signal?: AbortSignal;
   timeout?: number;
 }): Promise<PingRecordsResponse> {
-  if (metricQueryApiUnavailable) {
-    throw new Error("Metric query API is unavailable on this server");
+  const deadline = requestDeadline(timeout);
+  const metricQueryAvailable = await waitForMetricQueryCapability({
+    signal,
+    timeout: remainingRequestTimeout(deadline),
+  });
+  if (!metricQueryAvailable) {
+    throw new MetricApiUnavailableError();
   }
 
   const requestRange = createRequestRange(hours);
@@ -582,18 +724,10 @@ async function getPingMetricData({
   };
 
   const statsRequest = includeStats
-    ? rpcCall(
-        "public:getPingMetricStats",
-        commonParams,
-        PingMetricStatsResponseSchema,
-        { signal, timeout },
-      )
-        .then((payload) => payload as z.output<typeof PingMetricStatsResponseSchema>)
-        .catch((error: unknown) => {
-          if (signal?.aborted) throw error;
-          warnDegradedOnce("ping-stats", "Ping 统计接口失败,已由 records 本地兜底计算");
-          return null;
-        })
+    ? queryPingMetricStatsPayload(commonParams, {
+        signal,
+        timeout: remainingRequestTimeout(deadline),
+      })
     : Promise.resolve(null);
   const [metricPayload, statsPayload, publicTasks] = await Promise.all([
     queryMetricPayload(
@@ -605,7 +739,7 @@ async function getPingMetricData({
         fill_empty: false,
       },
       signal,
-      timeout,
+      remainingRequestTimeout(deadline),
     ),
     statsRequest,
     loadPublicPingTasks().catch(() => {
@@ -639,6 +773,7 @@ async function getPingMetricData({
       }),
       {},
       signal,
+      remainingRequestTimeout(deadline),
     );
   }
   const records = mergePingMetricSeries(series);
@@ -734,7 +869,12 @@ export async function getLoadRecords(
     } catch (error) {
       if (options?.signal?.aborted) throw error;
       // 旧版后端没有 public metric API，或新接口暂时失败时回退兼容记录接口。
-      warnDegradedOnce("load-records", "负载 metrics 查询失败,已回退兼容记录接口");
+      warnDegradedOnce(
+        "load-records",
+        error instanceof MetricApiUnavailableError
+          ? "检测到旧版后端,负载数据已使用兼容 records 接口"
+          : "负载 metrics 查询异常,已回退兼容 records 接口",
+      );
     }
   }
 
@@ -792,7 +932,9 @@ export async function getTodayTrafficMetrics(
   }
 
   const fiveMinutesMs = 5 * 60 * 1000;
+  const deadline = requestDeadline(options?.timeout);
   const maxPoints = Math.max(1, Math.ceil((endMs - startMs) / fiveMinutesMs));
+  const totalMaxPoints = Math.min(TODAY_TRAFFIC_TOTAL_MAX_POINTS, maxPoints);
   const requestRange = { rangeStartMs: startMs, rangeEndMs: endMs };
   const metricPayload = await queryMetricPayload(
     {
@@ -801,11 +943,17 @@ export async function getTodayTrafficMetrics(
       entity_ids: entityIds,
       metric_keys: TODAY_TRAFFIC_METRIC_KEYS,
       max_points: maxPoints,
+      max_points_by_metric: {
+        [TRAFFIC_UP_METRIC]: totalMaxPoints,
+        [TRAFFIC_DOWN_METRIC]: totalMaxPoints,
+        [RATE_UP_METRIC]: maxPoints,
+        [RATE_DOWN_METRIC]: maxPoints,
+      },
       aggregation_by_metric: TODAY_TRAFFIC_AGGREGATION,
       fill_empty: false,
     },
     options?.signal,
-    options?.timeout,
+    remainingRequestTimeout(deadline),
   );
   let series: TrafficMetricSeries[] = metricPayload.series.map((item) => ({
     metricKey: item.metric_key,
@@ -829,7 +977,7 @@ export async function getTodayTrafficMetrics(
     }),
     TODAY_TRAFFIC_AGGREGATION,
     options?.signal,
-    options?.timeout,
+    remainingRequestTimeout(deadline),
   );
   const intervalSeconds = Math.max(0, ...series.map((item) => item.intervalSeconds ?? 0));
   return {
@@ -859,7 +1007,12 @@ export async function getPingRecords(
   } catch (error) {
     if (options?.signal?.aborted) throw error;
     // 旧版后端没有 public metric API，或新版接口暂时失败时回退兼容记录接口。
-    warnDegradedOnce("ping-records", "Ping metrics 查询失败,已回退兼容记录接口");
+    warnDegradedOnce(
+      "ping-records",
+      error instanceof MetricApiUnavailableError
+        ? "检测到旧版后端,Ping 数据已使用兼容 records 接口"
+        : "Ping metrics 查询异常,已回退兼容 records 接口",
+    );
   }
 
   try {
@@ -930,10 +1083,32 @@ export async function saveThemeSettings(
   }
 }
 
+export async function getPingOverviewStats(
+  hours: number,
+  taskIds: number[],
+  options?: ApiCallOptions & { entityIds?: string[] },
+): Promise<PingTaskStats[]> {
+  const normalizedTaskIds = Array.from(
+    new Set(taskIds.filter((taskId) => Number.isInteger(taskId) && taskId > 0)),
+  ).sort((left, right) => left - right);
+  if (normalizedTaskIds.length === 0) return [];
+
+  const payload = await queryPingMetricStatsPayload(
+    {
+      hours,
+      task_ids: normalizedTaskIds,
+      ...(options?.entityIds?.length ? { entity_ids: options.entityIds } : {}),
+      max_points: OVERVIEW_METRIC_MAX_POINTS,
+    },
+    { signal: options?.signal, timeout: options?.timeout },
+  );
+  return payload ? normalizePingMetricStats(payload) : [];
+}
+
 export async function getPingOverview(
   hours = 1,
   taskId?: number,
-  options?: { signal?: AbortSignal; entityIds?: string[] },
+  options?: { signal?: AbortSignal; entityIds?: string[]; includeStats?: boolean },
 ): Promise<PingOverviewResponse> {
   const requestRange = createRequestRange(hours);
   try {
@@ -942,14 +1117,19 @@ export async function getPingOverview(
       entityIds: options?.entityIds,
       taskId,
       maxPoints: OVERVIEW_METRIC_MAX_POINTS,
-      includeStats: true,
+      includeStats: options?.includeStats ?? true,
       repairBoundary: true,
       signal: options?.signal,
     });
   } catch (error) {
     if (options?.signal?.aborted) throw error;
     // 旧版后端没有 public metric API 时继续走原有记录接口。
-    warnDegradedOnce("ping-overview", "Ping overview metrics 查询失败,已回退兼容记录接口");
+    warnDegradedOnce(
+      "ping-overview",
+      error instanceof MetricApiUnavailableError
+        ? "检测到旧版后端,Ping 概览已使用兼容 records 接口"
+        : "Ping overview metrics 查询异常,已回退兼容 records 接口",
+    );
   }
 
   try {

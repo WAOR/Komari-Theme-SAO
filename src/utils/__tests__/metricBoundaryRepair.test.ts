@@ -124,4 +124,22 @@ describe("metric boundary repair", () => {
     expect(fillMetricBoundaryGaps([], [raw], { "ping.latency_ms": "max" }).series[0].points[0])
       .toMatchObject({ value: 40, count: 2 });
   });
+
+  it("weights hybrid average values by their server sample counts", () => {
+    const aggregate = series([
+      { time: "2026-07-15T03:44:00Z", value: null, count: 0 },
+    ]);
+    const hybrid = series([
+      { time: "2026-07-15T03:44:10Z", value: 20, count: 5 },
+      { time: "2026-07-15T03:44:40Z", value: 100, count: 1 },
+    ]);
+
+    const repaired = fillMetricBoundaryGaps([aggregate], [hybrid]);
+    expect(repaired.repairedSamples).toBe(6);
+    expect(repaired.series[0].points[0]).toMatchObject({
+      time: "2026-07-15T03:44:00Z",
+      count: 6,
+    });
+    expect(repaired.series[0].points[0]?.value).toBeCloseTo(200 / 6);
+  });
 });

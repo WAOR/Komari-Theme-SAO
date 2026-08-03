@@ -4,7 +4,7 @@ import { useMinuteClock } from "@/hooks/useClock";
 import { useVisibleNodeUuids } from "@/hooks/useNode";
 import { useHiddenNodeUuids } from "@/hooks/useVisibleNodes";
 import { useThemeSettings } from "@/hooks/useThemeSettings";
-import { getPingOverview } from "@/services/api";
+import { getPingOverview, getPingOverviewStats } from "@/services/api";
 import type {
   HomepagePingLine,
   PingOverviewBucket,
@@ -260,6 +260,28 @@ function assignedEmptyLine(
   };
 }
 
+function mergePingOverviewStats(
+  taskId: number,
+  entityIds: string[],
+  localStats: PingTaskStats[] | undefined,
+  batchedStats: PingTaskStats[],
+) {
+  const allowedClients = new Set(entityIds);
+  const merged = new Map<string, PingTaskStats>();
+  for (const stat of localStats ?? []) {
+    if (stat.taskId === taskId && allowedClients.has(stat.client)) {
+      merged.set(stat.client, stat);
+    }
+  }
+  // 批量接口包含更完整的分位数与标准差，应覆盖 records 本地推导出的同节点统计。
+  for (const stat of batchedStats) {
+    if (stat.taskId === taskId && allowedClients.has(stat.client)) {
+      merged.set(stat.client, stat);
+    }
+  }
+  return [...merged.values()];
+}
+
 export async function buildPingOverviewMap(
   hours: number,
   clientUuids: string[],
@@ -268,6 +290,7 @@ export async function buildPingOverviewMap(
   signal?: AbortSignal,
   previous?: PreviousPingOverview,
   loadOverview: typeof getPingOverview = getPingOverview,
+  loadStats?: typeof getPingOverviewStats,
 ): Promise<PingOverviewMapResult> {
   const normalizedUuids = normalizeVisibleUuids(clientUuids);
   if (normalizedUuids.length === 0) {
@@ -305,7 +328,20 @@ export async function buildPingOverviewMap(
     };
   }
 
-  const overviewResults = await Promise.allSettled(
+  const batchStatsLoader =
+    loadStats ?? (loadOverview === getPingOverview ? getPingOverviewStats : null);
+  const batchStatsRequest = batchStatsLoader
+    ? withTimeoutSignal(
+        (requestSignal) =>
+          batchStatsLoader(hours, selectedTaskIds, {
+            signal: requestSignal,
+            entityIds: normalizedUuids,
+          }),
+        PING_REQUEST_TIMEOUT_MS,
+        signal,
+      ).catch(() => [])
+    : Promise.resolve([] as PingTaskStats[]);
+  const overviewRequest = Promise.allSettled(
     selectedTaskIds.map((taskId) =>
       withTimeoutSignal(
         async (requestSignal) => {
@@ -314,9 +350,11 @@ export async function buildPingOverviewMap(
           );
           return {
             taskId,
+            entityIds,
             overview: await loadOverview(hours, taskId, {
               signal: requestSignal,
               entityIds,
+              includeStats: batchStatsLoader == null,
             }),
           };
         },
@@ -325,6 +363,10 @@ export async function buildPingOverviewMap(
       ),
     ),
   );
+  const [batchedStats, overviewResults] = await Promise.all([
+    batchStatsRequest,
+    overviewRequest,
+  ]);
 
   const itemsByTask = new Map<number, Map<string, PingOverviewItem>>();
   const taskNames = new Map<number, string>();
@@ -338,19 +380,28 @@ export async function buildPingOverviewMap(
 
     const {
       taskId,
+      entityIds,
       overview: { records, tasks, stats, intervalSeconds },
     } = result.value;
+    const effectiveStats = mergePingOverviewStats(
+      taskId,
+      entityIds,
+      stats,
+      batchedStats,
+    );
     successfulTaskIds.add(taskId);
     const taskName =
       tasks.find((task) => task.id === taskId)?.name ||
-      stats?.find((stat) => stat.taskId === taskId)?.name;
+      effectiveStats.find((stat) => stat.taskId === taskId)?.name;
     if (taskName) taskNames.set(taskId, taskName);
     itemsByTask.set(
       taskId,
-      buildPingOverviewItems(taskId, records, stats, intervalSeconds),
+      buildPingOverviewItems(taskId, records, effectiveStats, intervalSeconds),
     );
 
-    const taskInterval = tasks.find((task) => task.id === taskId)?.interval;
+    const taskInterval =
+      tasks.find((task) => task.id === taskId)?.interval ??
+      effectiveStats.find((stat) => stat.taskId === taskId)?.interval;
     refreshIntervals.push(normalizeRefreshInterval(taskInterval));
   }
 

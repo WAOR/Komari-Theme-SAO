@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   buildPingOverviewMap,
   buildPingBuckets,
@@ -179,6 +179,69 @@ describe("homepage ping polling selection", () => {
       130,
     ]);
     expect(second.multiLines.get("node-a")?.[1]?.taskName).toBe("Task 2");
+  });
+
+  it("loads all selected task stats once and reuses them across task series", async () => {
+    const loadOverview = vi.fn(
+      async (
+        _hours?: number,
+        taskId?: number,
+        _options?: {
+          signal?: AbortSignal;
+          entityIds?: string[];
+          includeStats?: boolean;
+        },
+      ) => {
+        void _hours;
+        void _options;
+        return pingOverviewResponse(taskId ?? 0, (taskId ?? 0) * 10);
+      },
+    );
+    const loadStats = vi.fn(async (_hours: number, taskIds: number[]) =>
+      taskIds.map((taskId) => ({
+        client: "node-a",
+        taskId,
+        name: `Server Task ${taskId}`,
+        type: "icmp",
+        interval: 60,
+        total: 10,
+        valid: 10,
+        loss: 0,
+        min: 10,
+        max: 200 + taskId,
+        avg: 50,
+        latest: 100 + taskId,
+        p50: 40,
+        p99: 80,
+        stddev: 5,
+        p99P50Ratio: 1,
+      })),
+    );
+
+    const result = await buildPingOverviewMap(
+      1,
+      ["node-a"],
+      {},
+      [1, 2, 3],
+      undefined,
+      undefined,
+      loadOverview,
+      loadStats,
+    );
+
+    expect(loadStats).toHaveBeenCalledTimes(1);
+    expect(loadStats).toHaveBeenCalledWith(
+      1,
+      [1, 2, 3],
+      expect.objectContaining({ entityIds: ["node-a"] }),
+    );
+    expect(loadOverview).toHaveBeenCalledTimes(3);
+    expect(loadOverview.mock.calls.every((call) => call[2]?.includeStats === false)).toBe(true);
+    expect(result.multiLines.get("node-a")?.map((line) => line.lastValue)).toEqual([
+      101,
+      102,
+      103,
+    ]);
   });
 
   it("propagates polling cancellation to an in-flight request", async () => {

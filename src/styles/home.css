@@ -81,7 +81,6 @@
       color-mix(in srgb, var(--surface-elev-a) 96%, white 4%) 0%,
       var(--surface-a) 100%
   );
-  box-shadow: var(--shadow-card);
   padding: 14px 16px;
 }
 
@@ -114,16 +113,6 @@
   text-transform: uppercase;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.overview-card-site-name {
-  margin: 0;
-  color: var(--text-secondary);
-  font-size: 13px;
-  font-weight: 760;
-  letter-spacing: -0.01em;
-  line-height: 1.2;
-  text-transform: none;
 }
 
 .overview-card-action {
@@ -1042,11 +1031,6 @@
 .home-overview.is-dense .overview-card-label {
   font-size: 10px;
   letter-spacing: 0.1em;
-}
-
-.home-overview.is-dense .overview-card-site-name {
-  font-size: 12px;
-  letter-spacing: -0.01em;
 }
 
 .home-overview.is-dense .overview-card-value {

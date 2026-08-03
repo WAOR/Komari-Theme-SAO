@@ -15,7 +15,6 @@
   border: 1px solid var(--hairline);
   border-radius: 18px;
   background: var(--surface-a);
-  box-shadow: var(--shadow-card);
   padding: 22px 24px;
 }
 
@@ -270,17 +269,12 @@
 .traffic-rate-chart-canvas .uplot {
   color: var(--text-secondary);
   font-family: var(--font-sans);
-  animation: traffic-chart-reveal 420ms ease-out;
+  animation: chart-reveal 420ms ease-out;
 }
 
 .traffic-rate-chart-canvas .u-title,
 .traffic-rate-chart-canvas .u-legend {
   display: none;
-}
-
-@keyframes traffic-chart-reveal {
-  from { clip-path: inset(0 100% 0 0); }
-  to { clip-path: inset(0); }
 }
 
 .traffic-table tbody tr[data-empty="true"] td {
@@ -330,7 +324,6 @@
   border: 1px solid var(--hairline);
   border-radius: 13px;
   background: var(--surface-a);
-  box-shadow: var(--shadow-card);
   padding: 12px 13px;
 }
 
@@ -497,10 +490,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .traffic-page .cost-summary-action.is-spinning svg {
-    animation: none;
-  }
-
   .traffic-rate-chart-canvas .uplot {
     animation: none;
   }

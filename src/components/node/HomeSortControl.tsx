@@ -62,7 +62,7 @@ export function HomeSortControl({ state }: { state: HomeSortControlState }) {
         onClick={() => setOpen((value) => !value)}
       >
         <SortIcon direction={direction} />
-        <span className="home-sort-trigger-label">{HOME_SORT_FIELD_LABELS[field]}</span>
+        <span>{HOME_SORT_FIELD_LABELS[field]}</span>
       </button>
       {open && (
         <div id={panelId} className="home-sort-panel" role="group" aria-label="排序方式">

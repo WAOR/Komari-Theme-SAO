@@ -65,15 +65,16 @@ export function TrafficRateChart({ samples }: { samples: TodayTrafficSample[] })
       }),
     [],
   );
-  const options = useMemo<uPlot.Options>(() => {
+  // base options 只随断点/主题变化;宽度变化时嵌套引用保持稳定,uplot-react 才会走
+  // setSize 而不是整图销毁重建(与 LoadChart/PingChart 同一模式)。
+  const compact = w < 560;
+  const baseOptions = useMemo<Omit<uPlot.Options, "width" | "height">>(() => {
     const isDark = resolvedAppearance === "dark";
     const { grid, text } = getAxisColors(isDark);
     return {
-      width: w,
-      height,
       // uPlot 会把首尾刻度居中绘制在分割线上。给左右两端留出独立安全区，
       // 避免较长的速率标签和最后一个时间刻度被容器裁掉。
-      padding: [8, w < 560 ? 18 : 28, 8, w < 560 ? 4 : 6],
+      padding: [8, compact ? 18 : 28, 8, compact ? 4 : 6],
       cursor: { drag: { x: false, y: false } },
       legend: { show: false },
       scales: {
@@ -92,7 +93,7 @@ export function TrafficRateChart({ samples }: { samples: TodayTrafficSample[] })
           stroke: text,
           grid: { stroke: grid, width: 1 },
           ticks: { stroke: grid },
-          size: w < 560 ? 70 : 82,
+          size: compact ? 70 : 82,
           values: (_self, splits) => splits.map(axisRate),
         },
       ],
@@ -124,7 +125,11 @@ export function TrafficRateChart({ samples }: { samples: TodayTrafficSample[] })
         setCursor: [tooltipHooks.onSetCursor],
       },
     };
-  }, [height, resolvedAppearance, tooltipHooks, w]);
+  }, [compact, resolvedAppearance, tooltipHooks]);
+  const options = useMemo<uPlot.Options>(
+    () => ({ ...baseOptions, width: w, height }) as uPlot.Options,
+    [baseOptions, height, w],
+  );
 
   return (
     <div className="traffic-rate-chart">

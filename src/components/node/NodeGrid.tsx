@@ -20,7 +20,7 @@ import {
   formatByteRateLabel,
 } from "@/utils/format";
 import { calculateCostSummary, formatCnyMoney, getExchangeRates } from "@/utils/cost";
-import { collectMatchingNodeUuids } from "@/utils/nodeIdentity";
+import { useHiddenNodeUuids } from "@/hooks/useVisibleNodes";
 import { speedRateColor } from "@/utils/metricTone";
 import {
   getHomeGroupLabel,
@@ -383,10 +383,7 @@ export function NodeGrid() {
   useHomepagePingOverview(mode);
 
   // 摘要不含名称，先从完整 meta 解析主题隐藏列表，再统一过滤各类数据。
-  const hiddenUuids = useMemo(
-    () => collectMatchingNodeUuids(allMeta, themeSettings.hiddenNodes),
-    [allMeta, themeSettings.hiddenNodes],
-  );
+  const hiddenUuids = useHiddenNodeUuids();
   const visibleNodes = useMemo(
     () =>
       nodes.filter(
@@ -632,7 +629,9 @@ export function NodeGrid() {
     ? "grid gap-3 home-controls-bar mb-4"
     : `${gridWrapClassName} home-controls-bar mb-4`;
   const controlsStyle = borrowControlsGrid
-    ? { gridTemplateColumns: `repeat(auto-fill, minmax(min(100%, 340px), 1fr))` }
+    ? {
+        gridTemplateColumns: `repeat(auto-fill, minmax(min(100%, ${GRID_LAYOUT.compact.minColumnWidth}px), 1fr))`,
+      }
     : gridStyle;
 
   if (!themeSettings.isReady || !storeHydrated) {

@@ -36,6 +36,15 @@ describe("formatBillingCycle", () => {
     expect(formatBillingCycle("lifetime")).toBe("永久");
   });
 
+  it("maps Chinese payment-cycle idioms (regression)", () => {
+    expect(formatBillingCycle("月付")).toBe("月");
+    expect(formatBillingCycle("季付")).toBe("季");
+    expect(formatBillingCycle("半年付")).toBe("半年");
+    expect(formatBillingCycle("年付")).toBe("年");
+    expect(formatBillingCycle("Semi-Annually")).toBe("半年");
+    expect(formatBillingCycle("semiannually")).toBe("半年");
+  });
+
   it("falls back to a day-count for arbitrary positive numbers", () => {
     expect(formatBillingCycle(45)).toBe("45天");
   });

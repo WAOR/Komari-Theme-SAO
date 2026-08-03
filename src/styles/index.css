@@ -51,15 +51,14 @@ body {
    body::before 上,而 CSS 绘制顺序里 body 自身背景在负 z 子元素之后绘制 —— 所以若
    把 --bg-0 放到 <body> 会盖住背景图。保持 <body> 透明让图显示;未配置背景图时,
    <html> 仍提供纯色 --bg-0 兜底。
-   氛围层(顶光 --canvas-glow / 颗粒 --canvas-noise)也画在 <html> 背景上,天然只在
-   纯色模式出现——透明模式的 body::before 图片盖在其上,所以两者互不干扰。变量未定义时
-   回退为 none,该层不绘制。 */
+   氛围层(顶光 --canvas-glow)也画在 <html> 背景上,天然只在纯色模式出现——透明模式的
+   body::before 图片盖在其上,所以两者互不干扰。变量未定义时回退为 none,该层不绘制。 */
 html {
   background-color: var(--bg-0);
-  background-image: var(--canvas-noise, none), var(--canvas-glow, none);
-  background-repeat: repeat, no-repeat;
-  background-size: 140px 140px, 100% 100vh;
-  background-position: 0 0, center top;
+  background-image: var(--canvas-glow, none);
+  background-repeat: no-repeat;
+  background-size: 100% 100vh;
+  background-position: center top;
 }
 
 * {
@@ -84,10 +83,6 @@ input,
 button,
 select,
 textarea {
-  font-variant-numeric: tabular-nums;
-}
-
-.tabular {
   font-variant-numeric: tabular-nums;
 }
 

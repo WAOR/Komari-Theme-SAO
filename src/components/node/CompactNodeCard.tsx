@@ -21,18 +21,15 @@ import { OsLogo } from "@/components/ui/OsLogo";
 import { useNodeCardModel } from "@/hooks/useNodeCardModel";
 import { useThemeSettings } from "@/hooks/useThemeSettings";
 import { formatBytes } from "@/utils/format";
-import {
-  latencyHeatColor,
-  lossHeatColor,
-  speedRateColor,
-  speedRateColorFromBytes,
-} from "@/utils/metricTone";
+import { HOMEPAGE_MULTI_PING_TASK_COUNT } from "@/utils/pingTasks";
+import { speedRateColor, speedRateColorFromBytes } from "@/utils/metricTone";
 import { formatHealthBucketTooltip } from "./pingBucketText";
 import { MultiPingStatus } from "./MultiPingStatus";
 import {
   formatCompactExpire,
   formatCompactPercent,
   formatCompactUptime,
+  healthBarSlotModel,
   joinTagTitle,
   nodeDetailLinkLabels,
   pingEmptyLabels,
@@ -204,7 +201,6 @@ function HealthBars({
   max: number;
   kind: "latency" | "loss";
 }) {
-  const safeMax = Math.max(1, max);
   const bars = buckets.slice(-HEALTH_BAR_COUNT);
   const containerRef = useRef<HTMLDivElement>(null);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
@@ -254,23 +250,11 @@ function HealthBars({
         </span>
       )}
       {bars.map((bucket, index) => {
-        const hasSamples = bucket.total > 0;
-        const latencyValue = bucket.value ?? 0;
-        const lossValue = bucket.loss ?? 0;
-        const active = kind === "latency" ? bucket.value != null : hasSamples;
-        const height =
-          kind === "latency"
-            ? `${active ? Math.max(26, Math.min(100, (latencyValue / safeMax) * 100)) : 24}%`
-            : `${active ? Math.max(38, Math.min(100, 84 - Math.min(lossValue, 45))) : 24}%`;
-        const color = active
-          ? kind === "latency"
-            ? latencyHeatColor(latencyValue)
-            : lossHeatColor(lossValue)
-          : "var(--progress-bg)";
+        const slot = healthBarSlotModel(bucket, kind, max);
         const style = {
-          "--compact-health-height": height,
-          "--compact-health-color": color,
-          opacity: active ? 0.94 : 0.42,
+          "--compact-health-height": `${slot.heightFraction * 100}%`,
+          "--compact-health-color": slot.color,
+          opacity: slot.alpha,
         } as CSSProperties;
         const tooltip = formatHealthBucketTooltip(bucket, kind);
 
@@ -717,7 +701,7 @@ export const CompactNodeCard = memo(function CompactNodeCard({
         renewalPrice={renewalPrice}
       />
       <CompactTrafficBar traffic={traffic} uptimeLabel={uptimeLabel} />
-      {homepagePingLines.length === 3 ? (
+      {homepagePingLines.length === HOMEPAGE_MULTI_PING_TASK_COUNT ? (
         <MultiPingStatus
           lines={homepagePingLines}
           density="compact"

@@ -216,9 +216,10 @@ export function useMetricColorsEditor() {
   const hasQueuedRef = useRef(false);
   const queuedPaletteRef = useRef<PaletteDraft>({ colors: {}, darkDepth: DEFAULT_DARK_DEPTH });
 
-  // 非编辑状态才接受服务端回流。
+  // 非编辑状态才接受服务端回流;refetch 每次给新引用,同内容不重置以免多余渲染。
   useEffect(() => {
     if (metricColorEditing) return;
+    if (JSON.stringify(serverPaletteRef.current) === JSON.stringify(serverPalette)) return;
     serverPaletteRef.current = serverPalette;
     draftRef.current = serverPalette;
     setDraft(serverPalette);

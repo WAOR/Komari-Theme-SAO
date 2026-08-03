@@ -21,6 +21,7 @@ import { usePreferences } from "@/hooks/usePreferences";
 import { useMetricColorsVersion } from "@/hooks/useMetricColors";
 import { useThemeSettings } from "@/hooks/useThemeSettings";
 import { formatBytes } from "@/utils/format";
+import { HOMEPAGE_MULTI_PING_TASK_COUNT } from "@/utils/pingTasks";
 import {
   speedRateColor,
   trafficQuotaSegmentColor,
@@ -60,16 +61,6 @@ export const NodeCard = memo(function NodeCard({
   const redrawKey = `${resolvedAppearance}:${colorsVersion}`;
   const themeSettings = useThemeSettings();
   const model = useNodeCardModel(uuid, { includeMultiPing: true });
-  const [hoveredLatencyIndex, setHoveredLatencyIndex] = useState<number | null>(null);
-  const [hoveredLossIndex, setHoveredLossIndex] = useState<number | null>(null);
-  const handleLatencyHover = useCallback((index: number | null) => {
-    setHoveredLatencyIndex(index);
-    if (index != null) setHoveredLossIndex(null);
-  }, []);
-  const handleLossHover = useCallback((index: number | null) => {
-    setHoveredLossIndex(index);
-    if (index != null) setHoveredLatencyIndex(null);
-  }, []);
 
   if (!model.node) {
     return (
@@ -137,7 +128,7 @@ export const NodeCard = memo(function NodeCard({
           />
 
           {showConnections && (
-            <div className="card-metric-section card-metric-divided server-card-meta-grid">
+            <div className="card-metric-section server-card-meta-grid">
               <FooterStat
                 icon={<Network size={13} strokeWidth={2} />}
                 label="TCP 连接"
@@ -153,11 +144,11 @@ export const NodeCard = memo(function NodeCard({
             </div>
           )}
 
-          {homepagePingLines.length === 3 ? (
+          {homepagePingLines.length === HOMEPAGE_MULTI_PING_TASK_COUNT ? (
             <MultiPingStatus
               lines={homepagePingLines}
               density="large"
-              className="card-metric-section card-metric-divided"
+              className="card-metric-section"
             />
           ) : (
             <NodeHealthSection
@@ -167,10 +158,6 @@ export const NodeCard = memo(function NodeCard({
               hasHomepagePingBinding={hasHomepagePingBinding}
               latencyColor={latencyColor}
               lossColor={lossColor}
-              hoveredLatencyIndex={hoveredLatencyIndex}
-              hoveredLossIndex={hoveredLossIndex}
-              onLatencyHover={handleLatencyHover}
-              onLossHover={handleLossHover}
             />
           )}
         </div>
@@ -404,8 +391,8 @@ const NodeTrafficQuota = memo(function NodeTrafficQuota({
 });
 
 // memo:父卡片每 ~1s 指标 tick 重渲染时,这里每个 prop 都是引用稳定的 —— ping 数据
-// ~60s 才刷新一次,hover 状态只在指针交互时变,onHover 是稳定的 setState 引用 ——
-// 所以 latency/loss 柱子这棵子树能跳过每个 tick 的工作。
+// ~60s 才刷新一次 —— 所以 latency/loss 柱子这棵子树能跳过每个 tick 的工作。
+// hover 状态收在本段内(两图互斥),悬停时不再重渲整张卡。
 const NodeHealthSection = memo(function NodeHealthSection({
   ping,
   pingBuckets,
@@ -413,10 +400,6 @@ const NodeHealthSection = memo(function NodeHealthSection({
   hasHomepagePingBinding,
   latencyColor,
   lossColor,
-  hoveredLatencyIndex,
-  hoveredLossIndex,
-  onLatencyHover,
-  onLossHover,
 }: {
   ping: PingOverviewItem;
   pingBuckets: PingOverviewBucket[];
@@ -424,11 +407,17 @@ const NodeHealthSection = memo(function NodeHealthSection({
   hasHomepagePingBinding: boolean;
   latencyColor: string;
   lossColor: string;
-  hoveredLatencyIndex: number | null;
-  hoveredLossIndex: number | null;
-  onLatencyHover: (index: number | null) => void;
-  onLossHover: (index: number | null) => void;
 }) {
+  const [hoveredLatencyIndex, setHoveredLatencyIndex] = useState<number | null>(null);
+  const [hoveredLossIndex, setHoveredLossIndex] = useState<number | null>(null);
+  const onLatencyHover = useCallback((index: number | null) => {
+    setHoveredLatencyIndex(index);
+    if (index != null) setHoveredLossIndex(null);
+  }, []);
+  const onLossHover = useCallback((index: number | null) => {
+    setHoveredLossIndex(index);
+    if (index != null) setHoveredLatencyIndex(null);
+  }, []);
   const { title: emptyTitle, text: emptyText } = pingEmptyLabels(hasHomepagePingBinding);
   const hoveredLatencyBucket =
     hoveredLatencyIndex == null ? null : (pingBuckets[hoveredLatencyIndex] ?? null);
@@ -442,7 +431,7 @@ const NodeHealthSection = memo(function NodeHealthSection({
     : null;
 
   return (
-    <div className="card-metric-section card-metric-divided server-health-grid">
+    <div className="card-metric-section server-health-grid">
       <div className="server-health-block">
         <div className="server-health-head">
           <div className="server-health-label">

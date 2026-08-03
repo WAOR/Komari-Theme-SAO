@@ -68,11 +68,7 @@
   opacity: 0.5;
 }
 
-/* 表头:无边框/背景,只做列标签。 */
 .node-list-head {
-  position: sticky;
-  top: 0;
-  z-index: 2;
   min-height: 38px;
   border-bottom: 1px solid var(--border);
   background: var(--surface-elev-a);

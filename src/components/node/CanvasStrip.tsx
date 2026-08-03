@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type PointerEvent } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type PointerEvent } from "react";
 
 interface CanvasStripProps {
   className?: string;
@@ -118,27 +118,29 @@ const CANVAS_COLOR_FALLBACKS = {
     "--status-offline": "#dc2626",
     "--text-tertiary": "#71717a",
   },
+  // 与 tokens.css 深色 token 保持同值(color-mix 变量取 depth=0 的基色),只在首帧/样式
+  // 未就绪时命中,避免回退色与 DOM 侧漂移。
   dark: {
-    "--progress-bg": "#26262a",
-    "--progress-cpu": "#5d88ff",
-    "--progress-memory": "#a35cf5",
-    "--progress-disk": "#f1873d",
-    "--progress-network": "#5bbb8a",
-    "--progress-load": "#f472b6",
+    "--progress-bg": "#343b45",
+    "--progress-cpu": "#539bf5",
+    "--progress-memory": "#b083f0",
+    "--progress-disk": "#e0823d",
+    "--progress-network": "#57ab5a",
+    "--progress-load": "#e275ad",
     "--progress-swap": "#986ee2",
     "--traffic-up": "#539bf5",
     "--traffic-down": "#57ab5a",
-    "--speed-idle": "#61c08f",
-    "--speed-low": "#e0b34f",
-    "--speed-high": "#ef8f55",
-    "--speed-max": "#ec6a5e",
-    "--status-success": "#61c08f",
-    "--status-warning": "#d4a54a",
-    "--status-error": "#d84e45",
-    "--status-info": "#5d88ff",
-    "--status-online": "#61c08f",
-    "--status-offline": "#d84e45",
-    "--text-tertiary": "#76767c",
+    "--speed-idle": "#57ab5a",
+    "--speed-low": "#daaa3f",
+    "--speed-high": "#e0823d",
+    "--speed-max": "#f47067",
+    "--status-success": "#57ab5a",
+    "--status-warning": "#daaa3f",
+    "--status-error": "#f47067",
+    "--status-info": "#539bf5",
+    "--status-online": "#57ab5a",
+    "--status-offline": "#f47067",
+    "--text-tertiary": "#9198a1",
   },
 } as const;
 
@@ -177,6 +179,29 @@ function resolveCssColor(color: string): string {
   // 首帧空值不缓存，样式就绪后可重新解析。
   if (resolved) cssColorCache.set(varName, resolved);
   return resolved || color;
+}
+
+// canvas 的颜色解析器不认 color-mix()/calc()(如深色 --progress-bg 随 --dark-depth 混色),
+// 借 DOM 的 color 属性让 CSS 引擎算成 rgb。键含替换后的变量值,深度/配色一变即天然失效。
+let cssEngineProbe: HTMLElement | null = null;
+const cssEngineColorCache = new Map<string, string | null>();
+
+function resolveWithCssEngine(value: string): string | null {
+  if (typeof document === "undefined") return null;
+  const cached = cssEngineColorCache.get(value);
+  if (cached !== undefined) return cached;
+  if (!cssEngineProbe) {
+    cssEngineProbe = document.createElement("span");
+    cssEngineProbe.style.display = "none";
+    document.documentElement.appendChild(cssEngineProbe);
+  }
+  cssEngineProbe.style.color = "";
+  cssEngineProbe.style.color = value;
+  const resolved = cssEngineProbe.style.color
+    ? getComputedStyle(cssEngineProbe).color.trim() || null
+    : null;
+  cssEngineColorCache.set(value, resolved);
+  return resolved;
 }
 
 function canUseCanvasColor(color: string): boolean {
@@ -256,9 +281,14 @@ function hslToRgb(h: number, s: number, l: number): { r: number; g: number; b: n
 // 统一解析并校验 Canvas 颜色，不支持时回退到主题色。
 export function safeCanvasColor(color: string): string {
   const varName = extractCssVarName(color);
-  const value = (varName ? resolveCssColor(color) : color).trim();
-  if (!value || /^var\(/i.test(value) || /^color-mix\(/i.test(value)) {
+  let value = (varName ? resolveCssColor(color) : color).trim();
+  if (!value || /^var\(/i.test(value)) {
     return fallbackCanvasColor(varName);
+  }
+  if (/color-mix\(|calc\(/i.test(value)) {
+    const resolved = resolveWithCssEngine(value);
+    if (!resolved) return fallbackCanvasColor(varName);
+    value = resolved;
   }
 
   const hsl = /^hsla?\(([^)]+)\)$/i.exec(value);
@@ -300,6 +330,41 @@ export function fillRoundedRect(
   ctx.fill();
 }
 
+// 拖到不同缩放比的显示器时 DPR 会在 CSS 宽度不变的情况下变化,位图必须按新 DPR 重建,
+// 否则整条发虚。matchMedia 的 resolution 查询只在离开当前值时触发一次,变化后要重新
+// 绑定新值的查询;所有 CanvasStrip 共享一个监听。
+const dprListeners = new Set<() => void>();
+let dprQuery: MediaQueryList | null = null;
+
+function currentDpr() {
+  if (typeof window === "undefined") return 1;
+  const value = window.devicePixelRatio;
+  return Number.isFinite(value) && value > 0 ? value : 1;
+}
+
+function handleDprChange() {
+  dprQuery?.removeEventListener("change", handleDprChange);
+  bindDprQuery();
+  for (const listener of dprListeners) listener();
+}
+
+function bindDprQuery() {
+  dprQuery = window.matchMedia(`(resolution: ${currentDpr()}dppx)`);
+  dprQuery.addEventListener("change", handleDprChange);
+}
+
+function subscribeToDpr(listener: () => void) {
+  dprListeners.add(listener);
+  if (dprListeners.size === 1) bindDprQuery();
+  return () => {
+    dprListeners.delete(listener);
+    if (dprListeners.size === 0) {
+      dprQuery?.removeEventListener("change", handleDprChange);
+      dprQuery = null;
+    }
+  };
+}
+
 export function CanvasStrip({
   className,
   height,
@@ -312,6 +377,7 @@ export function CanvasStrip({
   const lastHoverIndexRef = useRef<number | null>(null);
   const [width, setWidth] = useState(0);
   const [visible, setVisible] = useState(() => typeof IntersectionObserver === "undefined");
+  const dpr = useSyncExternalStore(subscribeToDpr, currentDpr, () => 1);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -335,10 +401,6 @@ export function CanvasStrip({
     const canvas = canvasRef.current;
     if (!canvas || !visible || width <= 0) return;
 
-    const devicePixelRatio = window.devicePixelRatio;
-    const dpr = Number.isFinite(devicePixelRatio) && devicePixelRatio > 0
-      ? devicePixelRatio
-      : 1;
     const pixelWidth = Math.max(1, Math.round(width * dpr));
     const pixelHeight = Math.max(1, Math.round(height * dpr));
 
@@ -353,7 +415,7 @@ export function CanvasStrip({
     ctx.globalAlpha = 1;
     ctx.clearRect(0, 0, width, height);
     draw(ctx, width, height);
-  }, [draw, height, redrawKey, visible, width]);
+  }, [dpr, draw, height, redrawKey, visible, width]);
 
   const handlePointerMove = (event: PointerEvent<HTMLCanvasElement>) => {
     if (!getHoverIndex || !onHoverIndex || width <= 0) return;

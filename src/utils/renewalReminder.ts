@@ -77,7 +77,7 @@ export function getRenewalReminders(
     reminders.push({
       uuid: node.uuid,
       name: node.name?.trim() || node.uuid,
-      cycleKey: `${node.uuid}:${expiresAt}`,
+      cycleKey: renewalCycleKey(node, expiresAt) ?? `${node.uuid}:${expiresAt}`,
       expiresAt,
       daysRemaining,
       priceLabel:

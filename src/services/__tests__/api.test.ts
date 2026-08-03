@@ -150,12 +150,14 @@ describe("metric boundary repair in the API adapter", () => {
     );
   });
 
-  it("does not run stats or boundary repair on the ping detail path", async () => {
+  it("fetches stats in the same call chain on the ping detail path, without boundary repair", async () => {
     installRpcResponses({ hasGap: true });
 
     const result = await getPingRecords("node-a", 24);
 
     expect(result.records).toHaveLength(2);
+    expect(result.stats).toHaveLength(1);
+    expect(result.stats?.[0]).toMatchObject({ total: 2, valid: 2 });
     const metricCalls = rpcCallMock.mock.calls.filter(
       ([method]) => method === "public:queryMetrics",
     );
@@ -164,10 +166,9 @@ describe("metric boundary repair in the API adapter", () => {
       entity_ids: ["node-a"],
       fill_empty: false,
     });
-    expect(rpcCallMock).not.toHaveBeenCalledWith(
+    expect(rpcCallMock).toHaveBeenCalledWith(
       "public:getPingMetricStats",
-      expect.anything(),
-      expect.anything(),
+      expect.objectContaining({ entity_ids: ["node-a"], hours: 24 }),
       expect.anything(),
     );
   });

@@ -75,8 +75,6 @@
   --tag-gray-bg: #e5e5e5;
   --tag-gray-fg: #3f3f46;
 
-  --shadow-card: none;
-
   --ring: rgba(59, 130, 246, 0.35);
 
   /* 画布氛围层(只在纯色模式可见——透明模式的 body::before 图片会盖住 <html> 背景)。
@@ -118,19 +116,7 @@
   --progress-disk: #e0823d;
   --progress-network: #57ab5a;
   --progress-load: #e275ad;
-  /* 与 light 模式相同的 OKLCH heat 曲线(在 dark 的 #343b45 轨道上也清晰)。
-     与 trafficQuotaSegmentColor() 一致,详见上方说明。 */
-  --traffic-heat-spectrum: linear-gradient(
-    to right in oklch,
-    oklch(0.72 0.16 150) 0%,
-    oklch(0.72 0.16 150) 10%,
-    oklch(0.8 0.18 128) 28%,
-    oklch(0.86 0.18 110) 44%,
-    oklch(0.8 0.18 85) 58%,
-    oklch(0.72 0.19 62) 72%,
-    oklch(0.65 0.21 40) 86%,
-    oklch(0.6 0.22 27) 100%
-  );
+  /* --traffic-heat-spectrum 不重定义,继承 :root 的 OKLCH heat 曲线(dark 轨道上同样清晰)。 */
 
   --status-success: #57ab5a;
   --status-warning: #daaa3f;
@@ -153,12 +139,9 @@
   --tag-gray-bg: rgba(145, 152, 161, 0.18);
   --tag-gray-fg: #d1d7e0;
 
-  --shadow-card: none;
-
   --ring: rgba(83, 155, 245, 0.5);
 
   --canvas-glow: none;
-  --canvas-noise: none;
 }
 
 /* 标签配色 — DStatus 风格 pill,按标签颜色名取色 */

@@ -210,7 +210,7 @@ function latestStatus() {
   const now = Date.now();
   return Object.fromEntries(
     nodes.map((node, index) => {
-      const [cpu, load, swapPct, diskPct, ping, up, down, totalUp, totalDown, online] =
+      const [cpu, load, swapPct, diskPct, , up, down, totalUp, totalDown, online] =
         statusProfiles[index];
       if (!online) return [node.uuid, { online: false }];
       const memoryPct = index === 2 ? 88 : 36 + index * 7;
@@ -237,7 +237,6 @@ function latestStatus() {
           connections: 180 + index * 44,
           connections_udp: 12 + index * 3,
           updated_at: now,
-          mock_ping: ping,
         },
       ];
     }),
@@ -323,6 +322,104 @@ function trafficMetricPayload(params: {
   };
 }
 
+// queryMetrics 的 ping 路径:latency/loss 双序列,tags 携带 task_id;丢包桶 latency 为
+// null、loss 为 1,与真实后端聚合语义一致(mergePingMetricSeries 会还原成 -1 记录)。
+function pingMetricPayload(params: {
+  metric_keys?: string[];
+  entity_ids?: string[];
+  hours?: number;
+  tags?: { task_id?: string };
+}) {
+  const end = Date.now();
+  const hours = typeof params.hours === "number" && params.hours > 0 ? params.hours : 6;
+  const intervalMs = 60_000;
+  const pointCount = Math.min(360, Math.max(12, Math.round((hours * 3_600_000) / intervalMs)));
+  const start = end - pointCount * intervalMs;
+  const entityIds = params.entity_ids?.length ? params.entity_ids : nodes.map((node) => node.uuid);
+  const requestedTask = Number(params.tags?.task_id);
+  const tasks =
+    Number.isFinite(requestedTask) && requestedTask > 0
+      ? pingTasks.filter((task) => task.id === requestedTask)
+      : pingTasks;
+  const metricKeys = (params.metric_keys ?? []).filter((key) => key.startsWith("ping."));
+  const series = entityIds.flatMap((uuid) => {
+    const index = nodes.findIndex((node) => node.uuid === uuid);
+    if (index < 0) return [];
+    return tasks.flatMap((task) =>
+      metricKeys.map((metricKey) => ({
+        metric_key: metricKey,
+        entity_id: uuid,
+        tags: { task_id: String(task.id) },
+        interval_seconds: intervalMs / 1000,
+        points: Array.from({ length: pointCount }, (_, pointIndex) => {
+          const time = new Date(start + (pointIndex + 1) * intervalMs).toISOString();
+          const lost = index === 2 && pointIndex % 17 === 0;
+          if (metricKey === "ping.loss") {
+            return { time, value: lost ? 1 : 0, count: 1 };
+          }
+          const baseline = statusProfiles[index][4] + (task.id - 1) * 18;
+          return {
+            time,
+            value: lost
+              ? null
+              : Math.max(1, baseline + Math.round(Math.sin(pointIndex / 5 + index) * 9)),
+            count: 1,
+          };
+        }),
+      })),
+    );
+  });
+  return {
+    start: new Date(start).toISOString(),
+    end: new Date(end).toISOString(),
+    series,
+    count: series.length,
+  };
+}
+
+// queryMetrics 的负载路径:直接把 loadRecords 的字段转成对应 metric 序列。
+const LOAD_METRIC_RECORD_FIELD = {
+  "cpu.usage": "cpu",
+  "memory.used": "ram",
+  "swap.used": "swap",
+  "load.average": "load",
+  "disk.used": "disk",
+  "net.in.rate": "net_in",
+  "net.out.rate": "net_out",
+  "net.total.up": "net_total_up",
+  "net.total.down": "net_total_down",
+  "process.count": "process",
+  "connections.tcp": "connections",
+  "connections.udp": "connections_udp",
+} as const;
+
+function loadMetricPayload(params: { metric_keys?: string[]; entity_ids?: string[] }) {
+  const entityIds = params.entity_ids?.length ? params.entity_ids : [nodes[0].uuid];
+  const metricKeys = (params.metric_keys ?? []).filter(
+    (key): key is keyof typeof LOAD_METRIC_RECORD_FIELD => key in LOAD_METRIC_RECORD_FIELD,
+  );
+  const series = entityIds.flatMap((uuid) => {
+    const records = loadRecords(uuid);
+    return metricKeys.map((metricKey) => ({
+      metric_key: metricKey,
+      entity_id: uuid,
+      interval_seconds: 300,
+      points: records.map((record) => ({
+        time: new Date(record.time).toISOString(),
+        value: record[LOAD_METRIC_RECORD_FIELD[metricKey]],
+        count: 1,
+      })),
+    }));
+  });
+  const now = Date.now();
+  return {
+    start: new Date(now - 72 * 300_000).toISOString(),
+    end: new Date(now).toISOString(),
+    series,
+    count: series.length,
+  };
+}
+
 function pingRecords(uuid?: string, taskId = 1) {
   const clients = uuid ? [uuid] : nodes.map((node) => node.uuid);
   const now = Date.now();
@@ -364,6 +461,10 @@ function json(data: unknown, init?: ResponseInit) {
 
 export function installDevMockApi() {
   const nativeFetch = window.fetch.bind(window);
+  // ?mock=1&admin=1 模拟已登录管理员,连带放开 /api/admin/*,ThemeManage 才可在 dev 调试。
+  const adminMode = new URLSearchParams(window.location.search).get("admin") === "1";
+  // 保存后的主题设置驻留内存,让「保存 → /api/public refetch」链路在 dev 里闭环。
+  let savedThemeSettings: Record<string, unknown> | null = null;
 
   window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     const request = new Request(input, init);
@@ -382,7 +483,35 @@ export function installDevMockApi() {
     }
 
     if (url.pathname === "/api/me") {
-      return json({ logged_in: false, username: "", uuid: "" });
+      return json(
+        adminMode
+          ? { logged_in: true, username: "mock-admin", uuid: "mock-admin-uuid" }
+          : { logged_in: false, username: "", uuid: "" },
+      );
+    }
+
+    if (url.pathname === "/api/admin/client/list") {
+      if (!adminMode) return json({ message: "unauthorized" }, { status: 401 });
+      return json(
+        nodes.map(({ uuid, name, group, region, weight }) => ({
+          uuid,
+          name,
+          group,
+          region,
+          weight,
+        })),
+      );
+    }
+
+    if (url.pathname === "/api/admin/ping") {
+      if (!adminMode) return json({ message: "unauthorized" }, { status: 401 });
+      return json(pingTasks);
+    }
+
+    if (url.pathname === "/api/admin/theme/settings") {
+      if (!adminMode) return json({ message: "unauthorized" }, { status: 401 });
+      savedThemeSettings = (await request.json()) as Record<string, unknown>;
+      return json({ status: "success" });
     }
 
     if (url.pathname === "/api/public") {
@@ -400,7 +529,7 @@ export function installDevMockApi() {
         metric_retention_days: 90,
         custom_head: "",
         custom_body: "",
-        theme_settings: {
+        theme_settings: savedThemeSettings ?? {
           desktopNodeViewMode: "compact",
           mobileNodeViewMode: "compact",
           showHomeOverview: true,
@@ -436,47 +565,55 @@ export function installDevMockApi() {
           uuid?: string;
           type?: string;
           task_id?: number;
+          hours?: number;
           metric_keys?: string[];
           entity_ids?: string[];
+          tags?: { task_id?: string };
           start?: string;
           end?: string;
         };
       };
-      let result: unknown = {};
-      if (payload.method === "public:queryMetrics") {
-        const metricKeys = payload.params?.metric_keys ?? [];
-        if (metricKeys.some((key) => key === "traffic.up" || key === "traffic.down")) {
-          result = trafficMetricPayload(payload.params ?? {});
-        } else {
-          return json({
-            jsonrpc: "2.0",
-            id: payload.id,
-            error: { code: -32601, message: `Method not found: ${payload.method}` },
-          });
-        }
-      } else if (payload.method === "public:getPingMetricStats") {
-        // mock 数据仍由兼容 records 接口提供；明确返回 Method not found 才会触发
-        // api.ts 的旧接口回退，不能用空对象伪装成功（那会得到空图表）。
-        return json({
+      const reply = (result: unknown) => json({ jsonrpc: "2.0", id: payload.id, result });
+      const methodNotFound = () =>
+        json({
           jsonrpc: "2.0",
           id: payload.id,
           error: { code: -32601, message: `Method not found: ${payload.method}` },
         });
+
+      switch (payload.method) {
+        case "public:queryMetrics": {
+          // 各类 metric key 都要有响应:任何一类返回 Method not found 都会置位全局
+          // 降级标志,把其余 metrics 路径一并拖下水(dev 与真实后端行为背离)。
+          const metricKeys = payload.params?.metric_keys ?? [];
+          if (metricKeys.some((key) => key.startsWith("ping."))) {
+            return reply(pingMetricPayload(payload.params ?? {}));
+          }
+          if (metricKeys.some((key) => key === "traffic.up" || key === "traffic.down")) {
+            return reply(trafficMetricPayload(payload.params ?? {}));
+          }
+          return reply(loadMetricPayload(payload.params ?? {}));
+        }
+        case "public:getPingMetricStats":
+          // 统计接口不实现:api.ts 对它单独 catch 后会用 records 本地计算,足够 dev 用。
+          return methodNotFound();
+        case "public:getPublicPingTasks":
+          return reply(pingTasks);
+        case "common:getNodes":
+          return reply(Object.fromEntries(nodes.map((node) => [node.uuid, node])));
+        case "common:getNodesLatestStatus":
+          return reply(latestStatus());
+        case "common:getRecords": {
+          const isPing = payload.params?.type === "ping";
+          const records = isPing
+            ? pingRecords(payload.params?.uuid, payload.params?.task_id)
+            : loadRecords(payload.params?.uuid ?? nodes[0].uuid);
+          return reply({ count: records.length, records, tasks: isPing ? pingTasks : [] });
+        }
+        default:
+          // 未实现的方法返回标准错误,与真实后端一致——空对象伪装成功会让 dev 测不出接口缺失。
+          return methodNotFound();
       }
-      if (payload.method === "public:getPublicPingTasks") {
-        result = pingTasks;
-      } else if (payload.method === "common:getNodes") {
-        result = Object.fromEntries(nodes.map((node) => [node.uuid, node]));
-      } else if (payload.method === "common:getNodesLatestStatus") {
-        result = latestStatus();
-      } else if (payload.method === "common:getRecords") {
-        const isPing = payload.params?.type === "ping";
-        const records = isPing
-          ? pingRecords(payload.params?.uuid, payload.params?.task_id)
-          : loadRecords(payload.params?.uuid ?? nodes[0].uuid);
-        result = { count: records.length, records, tasks: isPing ? pingTasks : [] };
-      }
-      return json({ jsonrpc: "2.0", id: payload.id, result });
     }
 
     return json({ message: `No mock for ${url.pathname}` }, { status: 404 });

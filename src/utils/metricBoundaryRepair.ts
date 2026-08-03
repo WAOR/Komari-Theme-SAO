@@ -172,11 +172,14 @@ export function fillMetricBoundaryGaps<T extends MetricBoundarySeries>(
       repairedSamples += repaired.count;
     }
 
-    points.sort((left, right) => pointTimeMs(left) - pointTimeMs(right));
+    const orderedPoints = points
+      .map((point) => ({ point, timeMs: pointTimeMs(point) }))
+      .sort((left, right) => left.timeMs - right.timeMs)
+      .map(({ point }) => point);
     return {
       ...(aggregate ?? raw),
       intervalSeconds,
-      points,
+      points: orderedPoints,
     } as T;
   };
 

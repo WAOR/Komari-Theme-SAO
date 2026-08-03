@@ -46,7 +46,8 @@ const RECONNECT_INTERVAL_MS = 3_000;
 const MAX_RECONNECT_INTERVAL_MS = 30_000;
 
 // 服务端 RPC 错误不可再用 HTTP 重试，否则可能重复处理请求。
-class RpcResponseError extends Error {
+// 注意:WS 超时(结果未知)也会自动用 HTTP 重放同一调用,因此本客户端只可用于幂等的只读方法。
+export class RpcResponseError extends Error {
   constructor(
     message: string,
     public readonly code?: number,

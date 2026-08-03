@@ -26,6 +26,7 @@ import {
 } from "./chartShared";
 import { ChartTooltip, SwitchToggle } from "./ChartParts";
 import {
+  downsampleAligned,
   fillMissingMetricPoints,
   interpolateMetricGaps,
 } from "./chartData";
@@ -90,22 +91,33 @@ function getHistoryRenderLimit(hours: number) {
   return LOAD_HISTORY_RENDER_LIMIT;
 }
 
+const DOWNSAMPLE_KEYS = [
+  "cpu",
+  "ram",
+  "swap",
+  "disk",
+  "netIn",
+  "netOut",
+  "connections",
+  "udp",
+  "process",
+] as const;
+
+// 走与 Ping 图同一套时间分桶保峰降采样:抽点式降采样会随机丢掉桶内尖峰,
+// 而负载/网速的瞬时突刺正是最需要保留的信息。
 function downsamplePoints(points: ChartPoint[], limit: number) {
   if (points.length <= limit || limit < 2) return points;
 
-  const result: ChartPoint[] = [];
-  const lastIndex = points.length - 1;
-  const step = lastIndex / (limit - 1);
-  let previousIndex = -1;
-
-  for (let index = 0; index < limit; index += 1) {
-    const sourceIndex = Math.min(lastIndex, Math.round(index * step));
-    if (sourceIndex === previousIndex) continue;
-    result.push(points[sourceIndex]);
-    previousIndex = sourceIndex;
-  }
-
-  return result;
+  const times = points.map((point) => point.time);
+  const perKey = DOWNSAMPLE_KEYS.map((key) => points.map((point) => point[key]));
+  const reduced = downsampleAligned(times, perKey, limit, true);
+  return reduced.times.map((time, index) => {
+    const point: ChartPoint = { time };
+    DOWNSAMPLE_KEYS.forEach((key, keyIndex) => {
+      point[key] = reduced.perTask[keyIndex][index] ?? null;
+    });
+    return point;
+  });
 }
 
 function formatRangeSummary(hours: number) {
@@ -122,9 +134,10 @@ function pointFromNode(node: NodeMetrics): ChartPoint {
   return {
     time: node.updatedAt > 0 ? node.updatedAt / 1000 : Date.now() / 1000,
     cpu: node.cpuPct,
-    ram: node.ramTotal > 0 ? (node.ramUsed / node.ramTotal) * 100 : 0,
-    swap: node.swapTotal > 0 ? (node.swapUsed / node.swapTotal) * 100 : 0,
-    disk: node.diskTotal > 0 ? (node.diskUsed / node.diskTotal) * 100 : 0,
+    // total 为 0 表示该指标不存在(如无 Swap),填 null 让 uPlot 不画线,而不是画一条假的 0%。
+    ram: node.ramTotal > 0 ? (node.ramUsed / node.ramTotal) * 100 : null,
+    swap: node.swapTotal > 0 ? (node.swapUsed / node.swapTotal) * 100 : null,
+    disk: node.diskTotal > 0 ? (node.diskUsed / node.diskTotal) * 100 : null,
     netIn: node.netDown,
     netOut: node.netUp,
     connections: node.connectionsTcp,
@@ -166,22 +179,20 @@ function buildBaseOptions({
   title,
   keys,
   colors,
-  unit,
   resolvedAppearance,
   rangeHours,
   spanGaps,
-  axisKind = "default",
+  axisKind,
   axisSize = 52,
   xRange,
 }: {
   title: string;
   keys: string[];
   colors: string[];
-  unit: string;
   resolvedAppearance: "light" | "dark";
   rangeHours: number;
   spanGaps?: boolean;
-  axisKind?: "default" | "percent" | "network" | "count";
+  axisKind: "percent" | "network" | "count";
   axisSize?: number;
   xRange?: [number, number] | null;
 }): Omit<uPlot.Options, "width" | "height"> {
@@ -216,8 +227,7 @@ function buildBaseOptions({
             if (value === 0 && axisKind !== "percent") return "";
             if (axisKind === "network") return formatNetworkAxisValue(value);
             if (axisKind === "percent") return formatPercentAxisValue(value, min, max);
-            if (axisKind === "count") return formatCountAxisValue(value, min, max);
-            return value === 0 ? "" : `${Math.round(value)}${unit}`;
+            return formatCountAxisValue(value, min, max);
           });
         },
       },
@@ -273,7 +283,7 @@ const ChartCard = memo(function ChartCard({
   rangeHours: number;
   unit?: string;
   spanGaps?: boolean;
-  axisKind?: "default" | "percent" | "network" | "count";
+  axisKind: "percent" | "network" | "count";
   axisSize?: number;
   xRange?: [number, number] | null;
 }) {
@@ -296,7 +306,6 @@ const ChartCard = memo(function ChartCard({
         title,
         keys,
         colors,
-        unit,
         resolvedAppearance,
         rangeHours,
         spanGaps,
@@ -304,7 +313,7 @@ const ChartCard = memo(function ChartCard({
         axisSize,
         xRange,
       }),
-    [axisKind, axisSize, colors, keys, rangeHours, resolvedAppearance, spanGaps, title, unit, xRange],
+    [axisKind, axisSize, colors, keys, rangeHours, resolvedAppearance, spanGaps, title, xRange],
   );
 
   const enhancedOptions = useMemo<Omit<uPlot.Options, "width" | "height">>(() => {
@@ -427,9 +436,9 @@ export function LoadChart({
       return {
         time,
         cpu: record.cpu,
-        ram: totals.ramTotal > 0 ? (record.ram / totals.ramTotal) * 100 : 0,
-        swap: totals.swapTotal > 0 ? (record.swap / totals.swapTotal) * 100 : 0,
-        disk: totals.diskTotal > 0 ? (record.disk / totals.diskTotal) * 100 : 0,
+        ram: totals.ramTotal > 0 ? (record.ram / totals.ramTotal) * 100 : null,
+        swap: totals.swapTotal > 0 ? (record.swap / totals.swapTotal) * 100 : null,
+        disk: totals.diskTotal > 0 ? (record.disk / totals.diskTotal) * 100 : null,
         netIn: record.net_in,
         netOut: record.net_out,
         connections: record.connections,
@@ -456,7 +465,8 @@ export function LoadChart({
   }, [historyPoints, isRealtime, realtimePoints]);
 
   const rangeSummary = formatRangeSummary(hours);
-  const latestHistoryRecord = data?.records[data.records.length - 1];
+  // API 各回退路径不保证返回顺序,最新值必须取自按时间排好序的 historyRecords。
+  const latestHistoryRecord = historyRecords[historyRecords.length - 1]?.record;
   const latestHistoryTotals = latestHistoryRecord
     ? resolveLoadRecordTotals(latestHistoryRecord, totalFallbacks)
     : null;
@@ -626,14 +636,14 @@ export function LoadChart({
           value={
             isRealtime && node
               ? `${formatTrafficRateLabel(node.netDown)} / ${formatTrafficRateLabel(node.netUp)}`
-              : data?.records.length
-                ? `${formatTrafficRateLabel(data.records[data.records.length - 1]?.net_in ?? 0)} / ${formatTrafficRateLabel(data.records[data.records.length - 1]?.net_out ?? 0)}`
+              : latestHistoryRecord
+                ? `${formatTrafficRateLabel(latestHistoryRecord.net_in ?? 0)} / ${formatTrafficRateLabel(latestHistoryRecord.net_out ?? 0)}`
                 : "—"
           }
           note={
             <span className="instance-overview-multi">
-              <span className="inline-flex items-center gap-1"><ArrowDown size={11} />{isRealtime && node ? formatBytes(node.trafficDown) : data?.records.length ? formatBytes(data.records[data.records.length - 1]?.net_total_down ?? 0) : "—"}</span>
-              <span className="inline-flex items-center gap-1"><ArrowUp size={11} />{isRealtime && node ? formatBytes(node.trafficUp) : data?.records.length ? formatBytes(data.records[data.records.length - 1]?.net_total_up ?? 0) : "—"}</span>
+              <span className="inline-flex items-center gap-1"><ArrowDown size={11} />{isRealtime && node ? formatBytes(node.trafficDown) : latestHistoryRecord ? formatBytes(latestHistoryRecord.net_total_down ?? 0) : "—"}</span>
+              <span className="inline-flex items-center gap-1"><ArrowUp size={11} />{isRealtime && node ? formatBytes(node.trafficUp) : latestHistoryRecord ? formatBytes(latestHistoryRecord.net_total_up ?? 0) : "—"}</span>
             </span>
           }
           points={points}
@@ -653,8 +663,8 @@ export function LoadChart({
           value={
             isRealtime && node
               ? `TCP ${node.connectionsTcp} / UDP ${node.connectionsUdp}`
-              : data?.records.length
-                ? `TCP ${Math.round(data.records[data.records.length - 1]?.connections ?? 0)} / UDP ${Math.round(data.records[data.records.length - 1]?.connections_udp ?? 0)}`
+              : latestHistoryRecord
+                ? `TCP ${Math.round(latestHistoryRecord.connections ?? 0)} / UDP ${Math.round(latestHistoryRecord.connections_udp ?? 0)}`
                 : "—"
           }
           note="连接"
@@ -674,15 +684,15 @@ export function LoadChart({
           value={
             isRealtime && node
               ? node.process.toString()
-              : data?.records.length
-                ? Math.round(data.records[data.records.length - 1]?.process ?? 0).toString()
+              : latestHistoryRecord
+                ? Math.round(latestHistoryRecord.process ?? 0).toString()
                 : "—"
           }
           note={
             isRealtime && node
               ? `负载 ${node.load1.toFixed(2)} | ${node.load5.toFixed(2)} | ${node.load15.toFixed(2)}`
-              : data?.records.length
-                ? `负载 ${(data.records[data.records.length - 1]?.load ?? 0).toFixed(2)}`
+              : latestHistoryRecord
+                ? `负载 ${(latestHistoryRecord.load ?? 0).toFixed(2)}`
                 : "—"
           }
           points={points}

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { useAllNodeMeta, useVisibleNodeUuids } from "@/hooks/useNode";
+import { useMinuteClock } from "@/hooks/useClock";
+import { useVisibleNodeUuids } from "@/hooks/useNode";
+import { useHiddenNodeUuids } from "@/hooks/useVisibleNodes";
 import { useThemeSettings } from "@/hooks/useThemeSettings";
 import { getPingOverview } from "@/services/api";
 import type {
@@ -11,7 +13,6 @@ import type {
   PingTaskStats,
 } from "@/types/komari";
 import { withTimeoutSignal } from "@/utils/abort";
-import { collectMatchingNodeUuids } from "@/utils/nodeIdentity";
 import { resolvePingSampleCounts } from "@/utils/pingMetrics";
 import {
   HOMEPAGE_MULTI_PING_TASK_COUNT,
@@ -40,7 +41,7 @@ const EMPTY_PING_BUCKETS: PingOverviewBucket[] = [];
 const EMPTY_TASK_IDS: number[] = [];
 const EMPTY_BINDINGS: HomepagePingTaskBindings = {};
 
-export type HomepagePingRequestMode = "single" | "multi";
+type HomepagePingRequestMode = "single" | "multi";
 
 export function resolveHomepagePingRequestMode(
   viewMode: NodeViewMode,
@@ -422,6 +423,8 @@ let pingRefreshInFlight = false;
 let pingRefreshTimer: number | null = null;
 let pingAbortController: AbortController | null = null;
 let activeConsumers = 0;
+// HMR dispose 后置真:阻止 in-flight 请求的 finally 恢复逻辑在旧模块实例上复活轮询。
+let pingPollingDisposed = false;
 const pingListeners = new Map<string, Set<Listener>>();
 
 function schedulePingRefresh(intervalMs: number) {
@@ -431,7 +434,7 @@ function schedulePingRefresh(intervalMs: number) {
   }
   // 没有组件消费 overview 时就停止轮询。等有消费者再次挂载时，
   // 由 ensurePingOverviewStarted 重新启动整条链路。
-  if (activeConsumers <= 0) return;
+  if (pingPollingDisposed || activeConsumers <= 0) return;
   pingRefreshTimer = window.setTimeout(() => {
     pingRefreshTimer = null;
     void refreshPingOverview();
@@ -538,7 +541,7 @@ function commitPingOverview(
 }
 
 async function refreshPingOverview() {
-  if (pingRefreshInFlight) return;
+  if (pingPollingDisposed || pingRefreshInFlight) return;
 
   pingRefreshInFlight = true;
   const visibleKey = scheduledVisibleKey;
@@ -669,15 +672,11 @@ function getPingLinesSnapshot(uuid: string) {
 export function useHomepagePingOverview(viewMode: NodeViewMode) {
   const { data: me } = useAuth();
   const visibleUuids = useVisibleNodeUuids(me?.logged_in === true);
-  const allMeta = useAllNodeMeta();
   const themeSettings = useThemeSettings();
 
   // 主题级隐藏节点首页已不渲染,这里也从 overview 拉取里剔除——否则仍会为其绑定的
-  // ping 任务发请求、做聚合,纯属无效网络/计算开销。名称匹配需要完整 meta。
-  const hiddenUuids = useMemo(
-    () => collectMatchingNodeUuids(allMeta, themeSettings.hiddenNodes),
-    [allMeta, themeSettings.hiddenNodes],
-  );
+  // ping 任务发请求、做聚合,纯属无效网络/计算开销。
+  const hiddenUuids = useHiddenNodeUuids();
   const effectiveUuids = useMemo(
     () =>
       hiddenUuids.size > 0
@@ -857,11 +856,24 @@ export function usePingBuckets(
   enabled = true,
 ): PingOverviewBucket[] {
   const { samples, metricIntervalMs } = ping;
+  // 轮询返回同引用数据时窗口也要随时间前移,否则时间轴最多滞后约 2 个桶;分钟粒度足够
+  // (桶宽 ≥150s),也避免每个 ws tick 都重算。
+  const now = useMinuteClock(enabled);
   return useMemo(
     () =>
       enabled
-        ? buildPingBuckets({ samples, metricIntervalMs }, count)
+        ? buildPingBuckets({ samples, metricIntervalMs }, count, now)
         : EMPTY_PING_BUCKETS,
-    [count, enabled, metricIntervalMs, samples],
+    [count, enabled, metricIntervalMs, now, samples],
   );
+}
+
+// 模块级定时器/请求在热更新时必须停掉,否则新旧两个模块实例会并行轮询。
+// disposed 标志 + 清零消费者计数:in-flight 请求的 finally 恢复逻辑不会再重启旧模块的轮询。
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    pingPollingDisposed = true;
+    activeConsumers = 0;
+    stopPingPolling();
+  });
 }

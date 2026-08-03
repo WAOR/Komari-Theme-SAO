@@ -135,8 +135,9 @@ function clearMediaSubscription() {
   subscribedMediaQuery = null;
 }
 
-// 跨标签页同步 override。整个模块只注册一次（在第一个订阅者时），而不是每个 hook
-// 实例都注册——所有消费者共享同一份全局状态，否则 N 个组件会装 N 个一样的 listener。
+// override 存 sessionStorage(按标签页隔离),storage 事件只覆盖共享同一 session 的
+// window.open/iframe 场景,普通独立标签页之间不同步。整个模块只注册一次(在第一个
+// 订阅者时),所有消费者共享同一份全局状态,否则 N 个组件会装 N 个一样的 listener。
 const handleStorage = (event: StorageEvent) => {
   if (event.key === DESKTOP_OVERRIDE_KEY || event.key === MOBILE_OVERRIDE_KEY) {
     refreshSnapshot();

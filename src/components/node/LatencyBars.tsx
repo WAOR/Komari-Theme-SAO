@@ -1,7 +1,6 @@
 import { useCallback, useMemo } from "react";
 import { CanvasStrip, fillRoundedRect, safeCanvasColor } from "./CanvasStrip";
-import { getBarGeometry, getBarSlot } from "./nodeCardShared";
-import { latencyHeatColor } from "@/utils/metricTone";
+import { getBarGeometry, getBarSlot, healthBarSlotModel } from "./nodeCardShared";
 import type { PingOverviewBucket } from "@/types/komari";
 
 interface LatencyBarsProps {
@@ -17,42 +16,36 @@ export function LatencyBars({ buckets, max, redrawKey, height = 16, onHoverIndex
     () => {
       // CSS 色变化时需要重新解析预计算的 canvas 色值。
       void redrawKey;
-      return buckets.map((bucket) => ({
-        value: bucket.value ?? 0,
-        has: bucket.value != null,
-        tone: safeCanvasColor(latencyHeatColor(bucket.value)),
-      }));
+      return buckets.map((bucket) => {
+        const slot = healthBarSlotModel(bucket, "latency", max);
+        return { ...slot, tone: safeCanvasColor(slot.color) };
+      });
     },
-    [buckets, redrawKey],
+    [buckets, max, redrawKey],
   );
 
   const getHoverIndex = useCallback(
-    (offsetX: number, width: number) => {
-      const slot = getBarSlot(offsetX, width, bars.length);
-      return slot == null ? null : slot;
-    },
+    (offsetX: number, width: number) => getBarSlot(offsetX, width, bars.length),
     [bars],
   );
 
   const draw = useCallback(
     (ctx: CanvasRenderingContext2D, width: number, height: number) => {
-      const inactiveColor = safeCanvasColor("var(--progress-bg)");
       const { gap, barWidth } = getBarGeometry(width, bars.length);
-      const safeMax = max > 0 ? max : 1;
 
-      bars.forEach(({ value, has, tone }, index) => {
-        const barHeight = height * (has ? Math.max(0.2, Math.min(1, value / safeMax)) : 0.25);
+      bars.forEach(({ heightFraction, alpha, tone }, index) => {
+        const barHeight = height * heightFraction;
         const x = index * (barWidth + gap);
         const y = height - barHeight;
 
-        ctx.globalAlpha = has ? 0.92 : 0.55;
-        ctx.fillStyle = has ? tone : inactiveColor;
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = tone;
         fillRoundedRect(ctx, x, y, barWidth, barHeight, 2);
       });
 
       ctx.globalAlpha = 1;
     },
-    [bars, max],
+    [bars],
   );
 
   return (

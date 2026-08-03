@@ -1,5 +1,5 @@
 import { queryOptions, useQuery, type QueryClient } from "@tanstack/react-query";
-import { getLoadRecords, getTodayTrafficMetrics } from "@/services/api";
+import { getLoadRecords, getTodayTrafficMetrics, warnDegradedOnce } from "@/services/api";
 import {
   buildTodayTrafficMetricSamples,
   buildTodayTrafficRecordSamples,
@@ -23,7 +23,7 @@ export interface TodayTrafficStatsResponse {
   source: "metrics" | "records";
 }
 
-export function localDayStartMs(now: number) {
+function localDayStartMs(now: number) {
   const start = new Date(now);
   start.setHours(0, 0, 0, 0);
   return start.getTime();
@@ -37,9 +37,11 @@ async function loadRecordFallback(
 ): Promise<Pick<TodayTrafficStatsResponse, "rows" | "samplesByUuid">> {
   const rows: TodayTrafficStat[] = [];
   const samplesByUuid: Record<string, TodayTrafficSample[]> = {};
+  let failureCount = 0;
+  let firstFailure: unknown = null;
   for (let index = 0; index < uuids.length; index += FALLBACK_CONCURRENCY) {
     const batch = uuids.slice(index, index + FALLBACK_CONCURRENCY);
-    const responses = await Promise.all(
+    const responses = await Promise.allSettled(
       batch.map(async (uuid) => {
         const data = await getLoadRecords(uuid, 24, {
           signal,
@@ -57,9 +59,22 @@ async function loadRecordFallback(
       const uuid = batch[offset];
       const response = responses[offset];
       if (!uuid || !response) continue;
-      rows.push(response.row);
-      samplesByUuid[uuid] = response.samples;
+      // 单节点失败按空数据占位,不拖垮整页;全军覆没才让整页进入错误态。
+      if (response.status === "rejected") {
+        failureCount += 1;
+        firstFailure ??= response.reason;
+        rows.push(summarizeTodayTrafficRecords(uuid, [], startMs, endMs));
+        samplesByUuid[uuid] = [];
+        continue;
+      }
+      rows.push(response.value.row);
+      samplesByUuid[uuid] = response.value.samples;
     }
+  }
+  if (failureCount > 0 && failureCount === uuids.length) {
+    throw firstFailure instanceof Error
+      ? firstFailure
+      : new Error("today traffic fallback failed for all nodes");
   }
   return { rows, samplesByUuid };
 }
@@ -93,6 +108,7 @@ function getTodayTrafficQueryOptions(uuids: string[], now: number) {
         };
       } catch (error) {
         if (signal.aborted) throw error;
+        warnDegradedOnce("today-traffic", "今日流量 metrics 查询失败,已回退逐节点 records 统计");
         const fallback = await loadRecordFallback(stableUuids, startMs, endMs, signal);
         return {
           ...fallback,

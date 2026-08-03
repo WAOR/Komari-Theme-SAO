@@ -303,7 +303,7 @@ export function interpolateMetricGaps(
   return out;
 }
 
-export function cutPeakValues<T extends { [key: string]: any }>(
+export function cutPeakValues<T extends { [key: string]: number | null | undefined }>(
   data: T[],
   keys: string[],
   alpha = 0.1,

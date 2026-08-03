@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import UplotReact from "uplot-react";
 import type uPlot from "uplot";
 import { Eye, EyeOff, RefreshCw } from "lucide-react";
-import { usePingRecords, usePingStats } from "@/hooks/useRecords";
+import { usePingRecords } from "@/hooks/useRecords";
 import { InstancePanel, InstanceChartLoading } from "./InstancePanel";
 import {
   buildChartTooltipHooks,
@@ -25,7 +25,7 @@ import { latencyHeatColor, lossHeatColor } from "@/utils/metricTone";
 import { historyChartRangeSeconds, historyCoverageLabel } from "@/utils/historyRange";
 import { resolvePingChartInterval, resolvePingSampleCounts } from "@/utils/pingMetrics";
 import { usePreferences } from "@/hooks/usePreferences";
-import type { PingRecord } from "@/types/komari";
+import type { PingRecord, PingTaskStats } from "@/types/komari";
 import type { TimedMetricPoint } from "./chartData";
 
 interface WeightedLatency {
@@ -69,10 +69,17 @@ export function summarizePingRecords(records: PingRecord[]) {
   const lost = samples.reduce((sum, sample) => sum + sample.lost, 0);
   const validCount = valid.reduce((sum, sample) => sum + sample.weight, 0);
 
+  let latest: number | null = null;
+  for (let index = samples.length - 1; index >= 0; index -= 1) {
+    const { record, valid: count } = samples[index];
+    if (record.value >= 0 && count > 0) {
+      latest = record.value;
+      break;
+    }
+  }
+
   return {
-    latest:
-      [...samples].reverse().find(({ record, valid: count }) => record.value >= 0 && count > 0)
-        ?.record.value ?? null,
+    latest,
     avg:
       validCount > 0
         ? valid.reduce((sum, sample) => sum + sample.value * sample.weight, 0) / validCount
@@ -87,7 +94,9 @@ export function summarizePingRecords(records: PingRecord[]) {
   };
 }
 
+const EMPTY_PING_STATS: PingTaskStats[] = [];
 const MAX_RENDER_POINTS = 160;
+// 1 即关闭平滑(smoothByCount 对 <=1 原样返回);保留常量便于调参,非削峰模式当前不平滑。
 const SMOOTH_WINDOW_POINTS = 1;
 const SMOOTH_WINDOW_POINTS_PEAK = 13;
 
@@ -107,11 +116,8 @@ export function PingChart({
     isLoading,
     refetch: refetchRecords,
   } = usePingRecords(uuid, hours, active);
-  const { data: pingStats = [], refetch: refetchStats } = usePingStats(
-    uuid,
-    hours,
-    active && Boolean(data?.records.length),
-  );
+  // stats 随 records 同一次请求返回(getPingRecords includeStats),不再单独发起查询。
+  const pingStats = data?.stats ?? EMPTY_PING_STATS;
   const { resolvedAppearance } = usePreferences();
   const { w, h, ref: chartSizeRef } = useResponsiveChartSize("wide");
   const [hiddenTasks, setHiddenTasks] = useState<Set<number>>(new Set());
@@ -173,16 +179,22 @@ export function PingChart({
     });
   }, [tasks]);
 
+  // 只依赖 data:切换削峰等开关时不重跑解析/排序。
+  const sortedRecords = useMemo(
+    () =>
+      (data?.records ?? [])
+        .map((record) => ({
+          record,
+          time: toChartSeconds(record.time),
+        }))
+        .filter(({ time }) => time > 0)
+        .sort((left, right) => left.time - right.time),
+    [data],
+  );
+
   const chart = useMemo(() => {
     if (!data?.records.length || !tasks.length) return null;
     const pointMap = new Map<number, TimedMetricPoint>();
-    const sortedRecords = data.records
-      .map((record) => ({
-        record,
-        time: toChartSeconds(record.time),
-      }))
-      .filter(({ time }) => time > 0)
-      .sort((left, right) => left.time - right.time);
     const taskIntervals = tasks
       .map((task) => task.interval)
       .filter((value): value is number => typeof value === "number" && value > 0);
@@ -236,7 +248,7 @@ export function PingChart({
     );
 
     return [reduced.times, ...smoothed] as uPlot.AlignedData;
-  }, [cutPeak, data, taskKeySet, taskKeys, tasks]);
+  }, [cutPeak, data, sortedRecords, taskKeySet, taskKeys, tasks]);
 
   useEffect(() => {
     if (chart) chartRef.current = chart;
@@ -374,14 +386,11 @@ export function PingChart({
 
   const taskStats = useMemo(() => {
     const grouped = new Map<number, PingRecord[]>();
-    for (const record of data?.records ?? []) {
+    // 复用已按时间升序的 sortedRecords,分组后桶内天然有序,免去逐桶重排序和重复 Date.parse。
+    for (const { record } of sortedRecords) {
       const bucket = grouped.get(record.task_id);
       if (bucket) bucket.push(record);
       else grouped.set(record.task_id, [record]);
-    }
-
-    for (const records of grouped.values()) {
-      records.sort((a, b) => toChartSeconds(a.time) - toChartSeconds(b.time));
     }
 
     const serverStats = new Map(
@@ -393,13 +402,14 @@ export function PingChart({
     return tasks.map((task, index) => {
       const records = grouped.get(task.id) ?? [];
       const server = serverStats.get(task.id);
-      const fallback = summarizePingRecords(records);
-      const latest = server ? server.latest : fallback.latest;
-      const avg = server ? server.avg : fallback.avg;
-      const min = server ? server.min : fallback.min;
-      const max = server ? server.max : fallback.max;
-      const p50 = server ? server.p50 : fallback.p50;
-      const p99 = server ? server.p99 : fallback.p99;
+      // server stats 命中时跳过本地全量统计(排序/分位数不便宜)。
+      const fallback = server ? null : summarizePingRecords(records);
+      const latest = server ? server.latest : fallback?.latest ?? null;
+      const avg = server ? server.avg : fallback?.avg ?? null;
+      const min = server ? server.min : fallback?.min ?? null;
+      const max = server ? server.max : fallback?.max ?? null;
+      const p50 = server ? server.p50 : fallback?.p50 ?? null;
+      const p99 = server ? server.p99 : fallback?.p99 ?? null;
       const fallbackVolatility =
         p50 != null && p99 != null
           ? Math.max(0, p99 - p50) / Math.min(50, Math.max(10, p50))
@@ -408,11 +418,11 @@ export function PingChart({
         server && Number.isFinite(server.p99P50Ratio)
           ? server.p99P50Ratio
           : fallbackVolatility;
-      const total = server?.total ?? fallback.total;
+      const total = server?.total ?? fallback?.total ?? 0;
       const lost = server
         ? Math.max(0, server.total - server.valid)
-        : fallback.lost;
-      const loss = server?.loss ?? (total > 0 ? fallback.loss : task.loss);
+        : fallback?.lost ?? 0;
+      const loss = server?.loss ?? (total > 0 ? fallback?.loss ?? 0 : task.loss);
       return {
         ...task,
         latest,
@@ -428,11 +438,10 @@ export function PingChart({
         color: taskColors.get(task.id) ?? colorForSeries(index, tasks.length),
       };
     });
-  }, [data, pingStats, taskColors, tasks, uuid]);
+  }, [pingStats, sortedRecords, taskColors, tasks, uuid]);
 
   const refetchAll = () => {
     void refetchRecords();
-    void refetchStats();
   };
 
   const toggleTask = (taskId: number) => {
@@ -560,7 +569,6 @@ export function PingChart({
               key={`${uuid}-${hours}-${cutPeak ? "smooth" : "raw"}-${connectNulls ? "span" : "gap"}`}
               options={options}
               data={chart}
-              resetScales={false}
             />
             <ChartTooltip tooltip={tooltip} />
           </>

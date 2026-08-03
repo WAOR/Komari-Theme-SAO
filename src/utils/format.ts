@@ -103,8 +103,9 @@ export function formatUptimeDays(seconds: number): { value: string; unit: string
   if (days >= 1) return { value: Math.floor(days).toString(), unit: "天" };
   const hours = seconds / 3600;
   if (hours >= 1) return { value: Math.floor(hours).toString(), unit: "小时" };
-  const minutes = seconds / 60;
-  return { value: Math.floor(minutes).toString(), unit: "分钟" };
+  // 不足 1 分钟向上取整,避免刚上线显示成「0 分钟」而 <=0 又显示「—」的口径分裂。
+  const minutes = Math.max(1, Math.floor(seconds / 60));
+  return { value: minutes.toString(), unit: "分钟" };
 }
 
 // 将 `expired_at` 解析为毫秒；空值、Go 零时和 0/-1 哨兵均表示无到期。
@@ -149,7 +150,6 @@ export function formatExpireDays(
   const tone = resolveExpireTone(days);
   if (days == null) return { value: "—", unit: "", tone };
   if (tone === "long") return { value: "长期", unit: "", tone };
-  if (tone === "ok" || tone === "warn") return { value: days.toString(), unit: "天", tone };
   if (days > 0) return { value: days.toString(), unit: "天", tone };
   if (days === 0) return { value: "今日", unit: "", tone };
   return { value: "已过期", unit: "", tone };

@@ -1,5 +1,5 @@
 import type { NodeInfo } from "@/types/komari";
-import { classifyBillingCycleWord } from "@/utils/billing";
+import { normalizeBillingCycle } from "@/utils/billing";
 import { fetchWithTimeout } from "@/utils/abort";
 import { resolveExpireTimestamp } from "@/utils/format";
 import { buildNodeIdentitySet, nodeMatchesIdentitySet, normalizeNodeIdentityList } from "@/utils/nodeIdentity";
@@ -60,7 +60,6 @@ const CURRENCY_ALIASES: Record<string, string> = {
 };
 
 interface CostSummary {
-  nodeCount: number;
   totalCny: number;
   monthlyCny: number;
   remainingCny: number;
@@ -274,34 +273,9 @@ function currencyCode(value: unknown) {
   return CURRENCY_ALIASES[key] || (/^[A-Z]{3}$/.test(key) ? key : "");
 }
 
-// 只有正天数或永久哨兵值(-1)才有意义;其他数字(0、负数、NaN)都视为"未设置",回退到年付周期,
-// 免得悄悄扭曲月度/年度总额。
-function normalizeCycleNumeric(value: number): number {
-  return value > 0 || value === -1 ? value : 365;
-}
-
+// 周期档位政策统一在 billing.normalizeBillingCycle;这里只取摊销天数(lifetime 为 -1)。
 function billingCycleDays(value: unknown): number {
-  if (typeof value === "number" && Number.isFinite(value)) return normalizeCycleNumeric(value);
-
-  const raw = String(value ?? "").trim();
-  if (!raw) return 365;
-
-  const numeric = Number(raw);
-  if (Number.isFinite(numeric)) return normalizeCycleNumeric(numeric);
-
-  switch (classifyBillingCycleWord(raw.toLowerCase())) {
-    case "month":
-      return 30;
-    case "quarter":
-      return 90;
-    case "halfYear":
-      return 180;
-    case "lifetime":
-      return -1;
-    case "year":
-    default:
-      return 365;
-  }
+  return normalizeBillingCycle(value as string | number | null | undefined).days;
 }
 
 function cycleMonths(days: number) {
@@ -566,7 +540,6 @@ export function calculateCostSummary(
   }
 
   return {
-    nodeCount: nodes.length,
     totalCny,
     monthlyCny,
     remainingCny,

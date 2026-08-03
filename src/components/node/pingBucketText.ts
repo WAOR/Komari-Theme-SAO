@@ -1,7 +1,7 @@
 import type { PingOverviewBucket } from "@/types/komari";
 import { trimFixed } from "@/utils/format";
 
-export function formatPingBucketWindow(bucket: PingOverviewBucket | null) {
+function formatPingBucketWindow(bucket: PingOverviewBucket | null) {
   if (!bucket || bucket.startAt == null || bucket.endAt == null) {
     return null;
   }
@@ -19,13 +19,13 @@ export function formatPingBucketWindow(bucket: PingOverviewBucket | null) {
   return `${startText} - ${endText}`;
 }
 
-export function formatLatencyBucketSummary(bucket: PingOverviewBucket | null) {
+function formatLatencyBucketSummary(bucket: PingOverviewBucket | null) {
   if (!bucket) return "—";
   if (bucket.value != null) return `${trimFixed(bucket.value, 1)} ms`;
   return bucket.total > 0 ? "失败" : "无样本";
 }
 
-export function formatLossBucketSummary(
+function formatLossBucketSummary(
   bucket: PingOverviewBucket | null,
   separator = " ",
 ) {

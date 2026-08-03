@@ -3,13 +3,11 @@ import { Link } from "react-router-dom";
 import { ArrowDown, ArrowUp, ChevronDown, ChevronLeft, RefreshCw } from "lucide-react";
 import { Flag } from "@/components/ui/Flag";
 import { Spinner } from "@/components/ui/Spinner";
-import { useAuth } from "@/hooks/useAuth";
 import { useMinuteClock } from "@/hooks/useClock";
-import { useAllNodeMeta } from "@/hooks/useNode";
-import { useThemeSettings } from "@/hooks/useThemeSettings";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useTodayTrafficStats } from "@/hooks/useTodayTrafficStats";
+import { useVisibleNodes } from "@/hooks/useVisibleNodes";
 import { formatByteRateLabel, formatBytes } from "@/utils/format";
-import { collectMatchingNodeUuids } from "@/utils/nodeIdentity";
 import type { NodeInfo } from "@/types/komari";
 import type { TodayTrafficSample, TodayTrafficStat } from "@/utils/trafficStats";
 
@@ -23,6 +21,9 @@ const TIME_FORMATTER = new Intl.DateTimeFormat("zh-CN", {
   minute: "2-digit",
   hour12: false,
 });
+// 与 traffic-stats.css 的表格/卡片切换断点保持一致。
+const TRAFFIC_MOBILE_QUERY = "(max-width: 720px)";
+
 const TrafficRateChart = lazy(() =>
   import("@/components/traffic/TrafficRateChart").then((module) => ({
     default: module.TrafficRateChart,
@@ -131,20 +132,8 @@ function TrafficSampleChart({
 export function Traffic() {
   const [expandedUuid, setExpandedUuid] = useState<string | null>(null);
   const now = useMinuteClock();
-  const allNodes = useAllNodeMeta();
-  const { data: me } = useAuth();
-  const themeSettings = useThemeSettings();
-  const hiddenUuids = useMemo(
-    () => collectMatchingNodeUuids(allNodes, themeSettings.hiddenNodes),
-    [allNodes, themeSettings.hiddenNodes],
-  );
-  const nodes = useMemo(
-    () =>
-      allNodes.filter(
-        (node) => (me?.logged_in === true || !node.hidden) && !hiddenUuids.has(node.uuid),
-      ),
-    [allNodes, hiddenUuids, me?.logged_in],
-  );
+  const isMobileLayout = useMediaQuery(TRAFFIC_MOBILE_QUERY);
+  const nodes = useVisibleNodes();
   const uuids = useMemo(() => nodes.map((node) => node.uuid), [nodes]);
   const trafficQuery = useTodayTrafficStats(uuids, now);
   const details = useMemo<TrafficDetail[]>(() => {
@@ -171,17 +160,22 @@ export function Traffic() {
           left.node.weight - right.node.weight,
       );
   }, [nodes, trafficQuery.data?.rows]);
-  const sampledDetails = details.filter((detail) => detail.stat.hasSamples);
-  const totalUp = sampledDetails.reduce((sum, detail) => sum + detail.stat.trafficUp, 0);
-  const totalDown = sampledDetails.reduce((sum, detail) => sum + detail.stat.trafficDown, 0);
-  const peakUp = sampledDetails.reduce<TrafficDetail | null>(
-    (best, detail) => (!best || detail.stat.peakUp > best.stat.peakUp ? detail : best),
-    null,
-  );
-  const peakDown = sampledDetails.reduce<TrafficDetail | null>(
-    (best, detail) => (!best || detail.stat.peakDown > best.stat.peakDown ? detail : best),
-    null,
-  );
+  const { sampledDetails, totalUp, totalDown, peakUp, peakDown } = useMemo(() => {
+    const sampled = details.filter((detail) => detail.stat.hasSamples);
+    return {
+      sampledDetails: sampled,
+      totalUp: sampled.reduce((sum, detail) => sum + detail.stat.trafficUp, 0),
+      totalDown: sampled.reduce((sum, detail) => sum + detail.stat.trafficDown, 0),
+      peakUp: sampled.reduce<TrafficDetail | null>(
+        (best, detail) => (!best || detail.stat.peakUp > best.stat.peakUp ? detail : best),
+        null,
+      ),
+      peakDown: sampled.reduce<TrafficDetail | null>(
+        (best, detail) => (!best || detail.stat.peakDown > best.stat.peakDown ? detail : best),
+        null,
+      ),
+    };
+  }, [details]);
   const updatedAt = trafficQuery.data?.rangeEndMs ?? now;
 
   return (
@@ -238,7 +232,7 @@ export function Traffic() {
               </div>
             </article>
 
-            <article className="traffic-summary-card is-peak">
+            <article className="traffic-summary-card">
               <div className="traffic-summary-head">
                 <span className="assets-eyebrow">今日采样峰值</span>
                 <span>统计至 {TIME_FORMATTER.format(updatedAt)}</span>
@@ -256,6 +250,9 @@ export function Traffic() {
             <span className="traffic-sample-note">峰值按历史采样计算</span>
           </div>
 
+          {/* 桌面表格与移动卡片按 JS 媒体查询二选一渲染(与 Assets 同方案),
+              避免双树同时挂载、展开时 uPlot 图表建两份。 */}
+          {!isMobileLayout && (
           <div className="assets-table-wrap traffic-table-wrap">
             <table className="assets-table traffic-table">
               <thead>
@@ -322,7 +319,9 @@ export function Traffic() {
               </tbody>
             </table>
           </div>
+          )}
 
+          {isMobileLayout && (
           <div className="assets-card-list traffic-card-list">
             {details.map(({ node, stat, total }) => {
               const expanded = expandedUuid === node.uuid;
@@ -367,6 +366,7 @@ export function Traffic() {
               );
             })}
           </div>
+          )}
         </>
       )}
     </div>

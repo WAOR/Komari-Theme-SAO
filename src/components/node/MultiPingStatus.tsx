@@ -9,7 +9,7 @@ import { LatencyBars } from "./LatencyBars";
 import { QualityBars } from "./QualityBars";
 import { formatHealthBucketTooltip } from "./pingBucketText";
 
-export type MultiPingStatusDensity = "large" | "compact";
+type MultiPingStatusDensity = "large" | "compact";
 type MultiPingMetric = "latency" | "loss";
 
 const MultiPingMetricRow = memo(function MultiPingMetricRow({

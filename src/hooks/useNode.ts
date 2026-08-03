@@ -62,13 +62,6 @@ function useNodeMetricsSnapshot(uuid: string, enabled = true): NodeMetrics | und
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
 
-export function useNodeTrafficTrend(
-  uuid: string,
-): { up: TrafficTrendSample[]; down: TrafficTrendSample[] } {
-  useEnsured();
-  return useNodeTrafficTrendSnapshot(uuid);
-}
-
 function useNodeTrafficTrendSnapshot(
   uuid: string,
 ): { up: TrafficTrendSample[]; down: TrafficTrendSample[] } {

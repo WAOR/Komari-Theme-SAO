@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { getRpc2Client } from "@/services/rpc2Client";
+import { getRpc2Client, RpcResponseError } from "@/services/rpc2Client";
 import {
   MeSchema,
   NodeInfoSchema,
@@ -148,6 +148,11 @@ interface RequestRange {
 interface ApiCallOptions {
   signal?: AbortSignal;
   timeout?: number;
+}
+
+// skipMetricQuery 只有 getLoadRecords 实现(跳过 metric 探测直读 records),
+// 不放进通用选项,避免"写了但不生效"的签名。
+interface LoadRecordsOptions extends ApiCallOptions {
   skipMetricQuery?: boolean;
 }
 
@@ -348,7 +353,17 @@ let publicPingTasksCache: PingTask[] | null = null;
 let publicPingTasksCachedAt = 0;
 let publicPingTasksRequest: Promise<PingTask[]> | null = null;
 
+// 降级链全程静默会让「长期走兼容路径」与「一切正常」无法区分,每类降级警告一次。
+const degradeWarned = new Set<string>();
+export function warnDegradedOnce(key: string, message: string) {
+  if (degradeWarned.has(key)) return;
+  degradeWarned.add(key);
+  console.warn(`[LuminaPlus] ${message}`);
+}
+
 function isMissingMetricMethod(error: unknown) {
+  // JSON-RPC 标准的 Method not found 是 -32601；文本匹配只兜底非标准实现。
+  if (error instanceof RpcResponseError && error.code === -32601) return true;
   if (!(error instanceof Error)) return false;
   return /method.*(?:not found|unknown|registered)|(?:not found|unknown).*method/i.test(
     error.message,
@@ -374,7 +389,13 @@ async function queryMetricPayload(
     return payload as z.output<typeof MetricQueryResponseSchema>;
   } catch (error) {
     if (signal?.aborted) throw error;
-    if (isMissingMetricMethod(error)) metricQueryApiUnavailable = true;
+    if (isMissingMetricMethod(error)) {
+      metricQueryApiUnavailable = true;
+      warnDegradedOnce(
+        "metric-api",
+        "public:queryMetrics 不可用(旧版后端?),本次会话所有 metrics 查询将走兼容记录接口",
+      );
+    }
     throw error;
   }
 }
@@ -485,6 +506,7 @@ async function repairMetricBoundary<T extends MetricBoundarySeries>(
     ).series;
   } catch (error) {
     if (signal?.aborted) throw error;
+    warnDegradedOnce("boundary-repair", "边界补点查询失败,保留聚合序列(尾部可能缺最新桶)");
     return aggregateSeries;
   }
 }
@@ -493,6 +515,7 @@ async function getLoadMetricData(
   uuid: string,
   hours: number,
   signal?: AbortSignal,
+  timeout?: number,
 ): Promise<LoadRecordsResponse> {
   const requestRange = createRequestRange(hours);
   const metricPayload = await queryMetricPayload(
@@ -506,6 +529,7 @@ async function getLoadMetricData(
       fill_empty: false,
     },
     signal,
+    timeout,
   );
   const series: LoadMetricSeries[] = metricPayload.series.map((item) => ({
     metricKey: item.metric_key,
@@ -534,6 +558,7 @@ async function getPingMetricData({
   includeStats = false,
   repairBoundary = false,
   signal,
+  timeout,
 }: {
   hours: number;
   entityIds?: string[];
@@ -542,6 +567,7 @@ async function getPingMetricData({
   includeStats?: boolean;
   repairBoundary?: boolean;
   signal?: AbortSignal;
+  timeout?: number;
 }): Promise<PingRecordsResponse> {
   if (metricQueryApiUnavailable) {
     throw new Error("Metric query API is unavailable on this server");
@@ -560,11 +586,12 @@ async function getPingMetricData({
         "public:getPingMetricStats",
         commonParams,
         PingMetricStatsResponseSchema,
-        { signal },
+        { signal, timeout },
       )
         .then((payload) => payload as z.output<typeof PingMetricStatsResponseSchema>)
         .catch((error: unknown) => {
           if (signal?.aborted) throw error;
+          warnDegradedOnce("ping-stats", "Ping 统计接口失败,已由 records 本地兜底计算");
           return null;
         })
     : Promise.resolve(null);
@@ -578,9 +605,13 @@ async function getPingMetricData({
         fill_empty: false,
       },
       signal,
+      timeout,
     ),
     statsRequest,
-    loadPublicPingTasks().catch(() => null),
+    loadPublicPingTasks().catch(() => {
+      warnDegradedOnce("public-ping-tasks", "公开 Ping 任务列表获取失败,任务名将按 records 推导");
+      return null;
+    }),
   ]);
   let series: PingMetricSeries[] = metricPayload.series.map((item) => ({
     metricKey: item.metric_key,
@@ -694,15 +725,16 @@ export async function getAdminClients(options?: ApiCallOptions): Promise<AdminCl
 export async function getLoadRecords(
   uuid: string,
   hours = 6,
-  options?: ApiCallOptions,
+  options?: LoadRecordsOptions,
 ): Promise<LoadRecordsResponse> {
   const requestRange = createRequestRange(hours);
   if (!options?.skipMetricQuery) {
     try {
-      return await getLoadMetricData(uuid, hours, options?.signal);
+      return await getLoadMetricData(uuid, hours, options?.signal, options?.timeout);
     } catch (error) {
       if (options?.signal?.aborted) throw error;
       // 旧版后端没有 public metric API，或新接口暂时失败时回退兼容记录接口。
+      warnDegradedOnce("load-records", "负载 metrics 查询失败,已回退兼容记录接口");
     }
   }
 
@@ -814,15 +846,20 @@ export async function getPingRecords(
 ): Promise<PingRecordsResponse> {
   const requestRange = createRequestRange(hours);
   try {
+    // includeStats:records 与 stats 并行走同一次调用链,省掉实例页单独的 stats 往返;
+    // stats 子请求失败会被内部吞掉,由 records 本地兜底,不影响图表主路径。
     return await getPingMetricData({
       hours,
       entityIds: [uuid],
       maxPoints: DETAIL_METRIC_MAX_POINTS,
+      includeStats: true,
       signal: options?.signal,
+      timeout: options?.timeout,
     });
   } catch (error) {
     if (options?.signal?.aborted) throw error;
     // 旧版后端没有 public metric API，或新版接口暂时失败时回退兼容记录接口。
+    warnDegradedOnce("ping-records", "Ping metrics 查询失败,已回退兼容记录接口");
   }
 
   try {
@@ -855,29 +892,6 @@ export async function getPingRecords(
       ...requestRange,
     };
   }
-}
-
-export async function getPingMetricStats(
-  uuid: string,
-  hours = 6,
-  options?: ApiCallOptions,
-): Promise<PingTaskStats[]> {
-  if (metricQueryApiUnavailable) {
-    throw new Error("Metric query API is unavailable on this server");
-  }
-  const payload = await rpcCall(
-    "public:getPingMetricStats",
-    {
-      hours,
-      entity_ids: [uuid],
-      max_points: DETAIL_METRIC_MAX_POINTS,
-    },
-    PingMetricStatsResponseSchema,
-    options,
-  );
-  return normalizePingMetricStats(
-    payload as z.output<typeof PingMetricStatsResponseSchema>,
-  );
 }
 
 export async function getAdminPingTasks(options?: ApiCallOptions): Promise<PingTask[]> {
@@ -935,6 +949,7 @@ export async function getPingOverview(
   } catch (error) {
     if (options?.signal?.aborted) throw error;
     // 旧版后端没有 public metric API 时继续走原有记录接口。
+    warnDegradedOnce("ping-overview", "Ping overview metrics 查询失败,已回退兼容记录接口");
   }
 
   try {
@@ -951,11 +966,12 @@ export async function getPingOverview(
     );
     return normalizeRpcPingOverview(payload, requestRange);
   } catch {
-    if (taskId == null) {
-      throw new Error("Ping overview fallback requires a concrete task_id");
-    }
+    // 先判取消再判参数,避免把 abort 误报成缺 task_id。
     if (options?.signal?.aborted) {
       throw options.signal.reason ?? new DOMException("Aborted", "AbortError");
+    }
+    if (taskId == null) {
+      throw new Error("Ping overview fallback requires a concrete task_id");
     }
 
     const data = await apiGet(

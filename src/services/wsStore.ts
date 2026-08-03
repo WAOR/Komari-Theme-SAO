@@ -827,12 +827,23 @@ async function refreshLatestStatus() {
   }
 }
 
+// 连续失败时按 tick 数指数退避(2s→4s→…→30s),避免后端不可用期间每 2 秒打注定失败的请求。
+const BOOTSTRAP_MAX_BACKOFF_TICKS = 15;
+let bootstrapBackoffTicks = 0;
+let bootstrapSkipTicks = 0;
+
 async function bootstrap() {
   try {
     await syncNodeInfo();
     await refreshLatestStatus();
+    bootstrapBackoffTicks = 0;
+    bootstrapSkipTicks = 0;
   } catch {
-    // 下一个调度 tick 再重试。
+    bootstrapBackoffTicks = Math.min(
+      bootstrapBackoffTicks > 0 ? bootstrapBackoffTicks * 2 : 1,
+      BOOTSTRAP_MAX_BACKOFF_TICKS,
+    );
+    bootstrapSkipTicks = bootstrapBackoffTicks;
   }
 }
 
@@ -851,6 +862,10 @@ function ensureStarted() {
   // 实时指标与节点信息使用独立轮询节奏。
   liveStatusTimer = window.setInterval(() => {
     if (!hydrated) {
+      if (bootstrapSkipTicks > 0) {
+        bootstrapSkipTicks -= 1;
+        return;
+      }
       void bootstrap();
       return;
     }
@@ -912,6 +927,8 @@ function stopStore() {
   hydrated = false;
   nodeInfoError = false;
   started = false;
+  bootstrapBackoffTicks = 0;
+  bootstrapSkipTicks = 0;
 }
 
 function subscribeSet(listeners: Set<Listener>, listener: Listener): () => void {

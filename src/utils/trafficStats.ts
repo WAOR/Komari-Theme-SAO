@@ -173,12 +173,14 @@ export function summarizeTodayTrafficRecords(
       stat.trafficUp += counterDelta(record.net_total_up, previous.net_total_up);
       stat.trafficDown += counterDelta(record.net_total_down, previous.net_total_down);
     }
-    if (record.net_out > stat.peakUp || stat.peakUpAt == null) {
-      stat.peakUp = Math.max(0, record.net_out);
+    const netOut = Number.isFinite(record.net_out) ? record.net_out : 0;
+    const netIn = Number.isFinite(record.net_in) ? record.net_in : 0;
+    if (netOut > stat.peakUp || stat.peakUpAt == null) {
+      stat.peakUp = Math.max(0, netOut);
       stat.peakUpAt = timeMs;
     }
-    if (record.net_in > stat.peakDown || stat.peakDownAt == null) {
-      stat.peakDown = Math.max(0, record.net_in);
+    if (netIn > stat.peakDown || stat.peakDownAt == null) {
+      stat.peakDown = Math.max(0, netIn);
       stat.peakDownAt = timeMs;
     }
     previous = record;

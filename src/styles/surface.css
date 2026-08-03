@@ -72,7 +72,6 @@ body::after {
   border: 1px solid color-mix(in srgb, var(--border-strong) 54%, transparent);
   border-radius: 18px;
   background: var(--surface);
-  box-shadow: var(--shadow-card);
   padding: 22px;
 }
 
@@ -129,6 +128,7 @@ body::after {
   border: 1px solid color-mix(in srgb, var(--border) 88%, transparent);
   border-radius: 999px;
   color: var(--text-secondary);
+  -webkit-backdrop-filter: blur(14px);
   backdrop-filter: blur(14px);
   transition:
     background 160ms ease,
@@ -279,7 +279,6 @@ body::after {
   border: 1px solid var(--border);
   border-radius: 16px;
   background: var(--surface-elev);
-  box-shadow: var(--shadow-card);
   pointer-events: auto;
   -webkit-overflow-scrolling: touch;
 }
@@ -414,11 +413,6 @@ body::after {
   margin: 0;
   cursor: pointer;
   accent-color: var(--accent-500);
-}
-
-.dark-depth-range input[type="range"]:focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 2px;
 }
 
 .dark-depth-hint {
@@ -587,7 +581,6 @@ body::after {
       transparent 44%
     ),
     var(--surface-a);
-  box-shadow: var(--shadow-card);
   padding: 20px 24px 22px;
 }
 
@@ -819,6 +812,7 @@ body::after {
   border-radius: 999px;
   background: color-mix(in srgb, var(--surface-a) 84%, transparent);
   box-shadow: 0 8px 24px -22px rgba(0, 0, 0, 0.28);
+  -webkit-backdrop-filter: blur(14px);
   backdrop-filter: blur(14px);
 }
 
@@ -852,7 +846,6 @@ body::after {
     linear-gradient(180deg, color-mix(in srgb, var(--surface-a) 99%, white 1%) 0%, var(--surface-a) 100%);
   border: 1px solid var(--border);
   border-radius: 20px;
-  box-shadow: var(--shadow-card);
   padding: 16px;
 }
 
@@ -970,7 +963,6 @@ body::after {
   border: 1px solid var(--border);
   border-radius: 14px;
   background: var(--surface);
-  box-shadow: var(--shadow-card);
 }
 
 .instance-switcher-panel {
@@ -1196,7 +1188,6 @@ body::after {
   border: 1px solid var(--border);
   border-radius: 14px;
   background: var(--surface);
-  box-shadow: var(--shadow-card);
 }
 
 .instance-segmented.is-scrollable {
@@ -1430,6 +1421,7 @@ body::after {
   background: color-mix(in srgb, var(--surface) 94%, transparent);
   box-shadow: 0 14px 34px -18px rgba(0, 0, 0, 0.8);
   padding: 8px 9px;
+  -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
   transition:
     left 110ms cubic-bezier(0.2, 0.8, 0.2, 1),

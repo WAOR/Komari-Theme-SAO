@@ -17,7 +17,13 @@ const looseBool = z
     if (typeof v === "number") return v !== 0;
 
     const normalized = v.trim().toLowerCase();
-    if (normalized === "" || normalized === "0" || normalized === "false") {
+    if (
+      normalized === "" ||
+      normalized === "0" ||
+      normalized === "false" ||
+      normalized === "no" ||
+      normalized === "off"
+    ) {
       return false;
     }
     if (normalized === "1" || normalized === "true") {

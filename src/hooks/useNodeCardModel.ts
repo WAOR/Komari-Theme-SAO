@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useFakePingFallback } from "@/hooks/useFakePing";
-import { useHourlyClock } from "@/hooks/useClock";
+import { useHourlyClock, useMinuteClock } from "@/hooks/useClock";
 import { useNodeCardSnapshots } from "@/hooks/useNode";
 import {
   buildPingBuckets,
@@ -68,13 +68,14 @@ export function useNodeCardModel(
     pingBucketCount,
     !multiPingActive,
   );
+  // 与 usePingBuckets 同理:窗口按分钟前移,不依赖数据刷新才滑动。
+  const bucketNow = useMinuteClock(multiPingActive);
   const homepagePingLines = useMemo<HomepagePingDisplayLine[]>(() => {
     if (
       !multiPingActive
     ) {
       return [];
     }
-    const bucketNow = Date.now();
     return homepageMultiPingTaskIds.map((taskId) => {
       const loaded = realPingLines.find((line) => line.taskId === taskId);
       const line: HomepagePingLine =
@@ -94,6 +95,7 @@ export function useNodeCardModel(
       };
     });
   }, [
+    bucketNow,
     homepageMultiPingTaskIds,
     multiPingActive,
     pingBucketCount,

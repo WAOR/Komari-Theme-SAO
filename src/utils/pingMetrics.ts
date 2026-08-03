@@ -125,13 +125,20 @@ export function mergePingMetricSeries(series: PingMetricSeries[]): PingRecord[] 
     }
   }
 
-  records.sort((left, right) => {
-    const timeDiff = Date.parse(String(left.time)) - Date.parse(String(right.time));
-    if (Number.isFinite(timeDiff) && timeDiff !== 0) return timeDiff;
-    if (left.client !== right.client) return left.client.localeCompare(right.client);
-    return left.task_id - right.task_id;
+  // 预解析时间戳,避免比较器里 O(n log n) 次 Date.parse;不可解析的时间归一到
+  // +Infinity(排最后),让比较器满足传递性。
+  const decorated = records.map((record) => {
+    const timeMs = Date.parse(String(record.time));
+    return { record, timeMs: Number.isFinite(timeMs) ? timeMs : Number.POSITIVE_INFINITY };
   });
-  return records;
+  decorated.sort((left, right) => {
+    if (left.timeMs !== right.timeMs) return left.timeMs - right.timeMs;
+    if (left.record.client !== right.record.client) {
+      return left.record.client.localeCompare(right.record.client);
+    }
+    return left.record.task_id - right.record.task_id;
+  });
+  return decorated.map(({ record }) => record);
 }
 
 export function reconcilePingMetricStats(

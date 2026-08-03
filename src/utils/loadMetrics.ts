@@ -85,7 +85,7 @@ function emptyLoadRecord(client: string, time: string): LoadRecord {
 }
 
 export function mergeLoadMetricSeries(series: LoadMetricSeries[]): LoadRecord[] {
-  const records = new Map<string, LoadRecord>();
+  const records = new Map<string, { record: LoadRecord; timeMs: number }>();
   for (const item of series) {
     const field = LOAD_METRIC_FIELD[item.metricKey as keyof typeof LOAD_METRIC_FIELD];
     if (!field || !item.client) continue;
@@ -94,12 +94,16 @@ export function mergeLoadMetricSeries(series: LoadMetricSeries[]): LoadRecord[] 
       const timeMs = Date.parse(point.time);
       if (!Number.isFinite(timeMs)) continue;
       const key = `${item.client}\u0000${timeMs}`;
-      const record = records.get(key) ?? emptyLoadRecord(item.client, point.time);
-      record[field] = point.value;
-      records.set(key, record);
+      const entry = records.get(key) ?? {
+        record: emptyLoadRecord(item.client, point.time),
+        timeMs,
+      };
+      entry.record[field] = point.value;
+      records.set(key, entry);
     }
   }
-  return [...records.values()].sort(
-    (left, right) => Date.parse(String(left.time)) - Date.parse(String(right.time)),
-  );
+  // timeMs 在入库时已解析,排序直接用,避免比较器里重复 Date.parse。
+  return [...records.values()]
+    .sort((left, right) => left.timeMs - right.timeMs)
+    .map(({ record }) => record);
 }

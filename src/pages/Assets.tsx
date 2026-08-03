@@ -5,11 +5,10 @@ import { CalendarClock, ChevronDown, ChevronLeft, ChevronUp, RefreshCw } from "l
 import { useQuery } from "@tanstack/react-query";
 import { Flag } from "@/components/ui/Flag";
 import { Spinner } from "@/components/ui/Spinner";
-import { useAuth } from "@/hooks/useAuth";
-import { useAllNodeMeta } from "@/hooks/useNode";
 import { useThemeSettings } from "@/hooks/useThemeSettings";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useHourlyClock } from "@/hooks/useClock";
+import { useVisibleNodes } from "@/hooks/useVisibleNodes";
 import {
   calculateCostSummary,
   formatCnyMoney,
@@ -17,7 +16,6 @@ import {
   getExchangeRates,
 } from "@/utils/cost";
 import { formatBillingCycle } from "@/utils/billing";
-import { collectMatchingNodeUuids } from "@/utils/nodeIdentity";
 import { getExpireDaysRemaining, LONG_TERM_EXPIRE_DAYS } from "@/utils/format";
 import {
   getRenewalReminders,
@@ -122,23 +120,9 @@ export function Assets() {
   const [sortDirection, setSortDirection] = useState<AssetsSortDirection>("asc");
   const isMobileLayout = useMediaQuery(ASSETS_MOBILE_QUERY);
   const now = useHourlyClock();
-  const allNodes = useAllNodeMeta();
-  const { data: me } = useAuth();
   const themeSettings = useThemeSettings();
   const forceRateRefresh = useRef(false);
-  // 与首页同一可见性口径:后台 hidden 仅登录管理员可见,主题级隐藏对所有人剔除,
-  // auth 未就绪按访客处理(fail-closed)。
-  const hiddenUuids = useMemo(
-    () => collectMatchingNodeUuids(allNodes, themeSettings.hiddenNodes),
-    [allNodes, themeSettings.hiddenNodes],
-  );
-  const nodes = useMemo(
-    () =>
-      allNodes.filter(
-        (node) => (me?.logged_in === true || !node.hidden) && !hiddenUuids.has(node.uuid),
-      ),
-    [allNodes, me?.logged_in, hiddenUuids],
-  );
+  const nodes = useVisibleNodes();
   // 资产详情页是风险核对入口：这里始终按真实到期数据展示，不读取首页的关闭/稍后偏好。
   const renewalReminders = useMemo(() => getRenewalReminders(nodes, now), [nodes, now]);
   const renewalByUuid = useMemo(
@@ -170,15 +154,19 @@ export function Assets() {
     [nodes, now, themeSettings.costIgnoredNodes, themeSettings.costPremiums, rateQuery.data],
   );
   const detailRows = useMemo(() => {
-    const rows = summary?.details.slice() ?? [];
     const direction = sortDirection === "asc" ? 1 : -1;
-    return rows.sort((a, b) => {
-      if (a.counted !== b.counted) return a.counted ? -1 : 1;
+    // 排序键先算好,避免比较器里 O(n log n) 次重复解析到期日。
+    const rows = (summary?.details ?? []).map((detail) => ({
+      detail,
+      key: sortValue(detail, sortField),
+    }));
+    rows.sort((a, b) => {
+      if (a.detail.counted !== b.detail.counted) return a.detail.counted ? -1 : 1;
       return (
-        (sortValue(a, sortField) - sortValue(b, sortField)) * direction ||
-        a.name.localeCompare(b.name, "zh-CN")
+        (a.key - b.key) * direction || a.detail.name.localeCompare(b.detail.name, "zh-CN")
       );
     });
+    return rows.map(({ detail }) => detail);
   }, [sortDirection, sortField, summary]);
   const exchangeRateRows = useMemo(() => {
     if (!rateQuery.data?.rates.CNY) return [];

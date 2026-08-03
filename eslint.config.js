@@ -3,7 +3,8 @@ import reactHooks from "eslint-plugin-react-hooks";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist", "node_modules", "scripts", "public", "komari-main源码"] },
+  { ignores: ["dist", "node_modules", "scripts", "public"] },
+  ...tseslint.configs.recommended,
   {
     files: ["src/**/*.{ts,tsx}"],
     languageOptions: {

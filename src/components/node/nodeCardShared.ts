@@ -1,6 +1,8 @@
 // 大卡与紧凑卡共享的格式化和命中逻辑。
 
 import { formatUptimeDays, trimFixed } from "@/utils/format";
+import { latencyHeatColor, lossHeatColor } from "@/utils/metricTone";
+import type { PingOverviewBucket } from "@/types/komari";
 
 /** 卡片标签行的完整 tag 列表 tooltip(几种卡片布局共用同一文案)。 */
 export function joinTagTitle(tags: { label: string }[]) {
@@ -67,4 +69,60 @@ export function getBarGeometry(width: number, count: number): { gap: number; bar
   const gap = count > 48 ? 1 : 2;
   const barWidth = Math.max(1, (width - gap * (count - 1)) / Math.max(1, count));
   return { gap, barWidth };
+}
+
+// 延迟/丢包柱的统一取值模型:激活判定/柱高/颜色/透明度只在这一处定义,canvas(大卡/列表)、
+// DOM(紧凑卡)、SVG(迷你卡)三种渲染层各自消费,避免规则漂移。基准取大卡规则:
+// 延迟按 value/max 定高(下限 0.2),丢包恒定 0.84 高、只用颜色表达严重度。
+export interface HealthBarSlotModel {
+  active: boolean;
+  /** 柱高占比(0-1)。 */
+  heightFraction: number;
+  /** CSS 颜色;canvas 侧需再经 safeCanvasColor 解析。 */
+  color: string;
+  alpha: number;
+}
+
+const HEALTH_LOSS_BAR_HEIGHT = 0.84;
+const HEALTH_INACTIVE_BAR_HEIGHT = 0.25;
+const HEALTH_LATENCY_MIN_HEIGHT = 0.2;
+
+export function healthBarSlotModel(
+  bucket: PingOverviewBucket,
+  kind: "latency" | "loss",
+  max?: number,
+): HealthBarSlotModel {
+  if (kind === "latency") {
+    const value = bucket.value;
+    if (value != null && Number.isFinite(value) && value >= 0) {
+      const safeMax = max != null && max > 0 ? max : 1;
+      return {
+        active: true,
+        heightFraction: Math.max(HEALTH_LATENCY_MIN_HEIGHT, Math.min(1, value / safeMax)),
+        color: latencyHeatColor(value),
+        alpha: 0.92,
+      };
+    }
+    return {
+      active: false,
+      heightFraction: HEALTH_INACTIVE_BAR_HEIGHT,
+      color: "var(--progress-bg)",
+      alpha: 0.55,
+    };
+  }
+  const loss = bucket.loss;
+  if (loss != null && Number.isFinite(loss) && bucket.total > 0) {
+    return {
+      active: true,
+      heightFraction: HEALTH_LOSS_BAR_HEIGHT,
+      color: lossHeatColor(loss),
+      alpha: 0.94,
+    };
+  }
+  return {
+    active: false,
+    heightFraction: HEALTH_LOSS_BAR_HEIGHT,
+    color: "var(--progress-bg)",
+    alpha: 0.42,
+  };
 }

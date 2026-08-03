@@ -16,9 +16,13 @@ import { Flag } from "@/components/ui/Flag";
 import { OsLogo } from "@/components/ui/OsLogo";
 import { IpStackBadges } from "./IpStackBadges";
 import { useNodeCardModel } from "@/hooks/useNodeCardModel";
-import { usePreferences } from "@/hooks/usePreferences";
-import { latencyHeatColor, lossHeatColor, speedRateColor } from "@/utils/metricTone";
-import { joinTagTitle, nodeDetailLinkLabels, pingEmptyLabels } from "./nodeCardShared";
+import { speedRateColor } from "@/utils/metricTone";
+import {
+  healthBarSlotModel,
+  joinTagTitle,
+  nodeDetailLinkLabels,
+  pingEmptyLabels,
+} from "./nodeCardShared";
 import { formatBytes, type ByteRateDisplay } from "@/utils/format";
 import type { NodeInfo, NodeMetrics, PingOverviewItem, PingOverviewBucket } from "@/types/komari";
 
@@ -113,7 +117,7 @@ function MiniMetricBar({
   };
 
   return (
-    <div className="metric-item mini-metric-item">
+    <div className="metric-item">
       <div className="mini-metric-head">
         <span className="mini-metric-label">
           {icon}
@@ -256,7 +260,6 @@ function MiniHealthBars({
   max?: number;
 }) {
   const width = Math.max(1, buckets.length * 4 - 1);
-  const safeMax = max && max > 0 ? max : 1;
 
   return (
     <svg
@@ -266,23 +269,8 @@ function MiniHealthBars({
       aria-hidden
     >
       {buckets.map((bucket, index) => {
-        const latency = bucket.value;
-        const hasLatency = latency != null && Number.isFinite(latency) && latency >= 0;
-        const loss = bucket.loss;
-        const hasLoss = loss != null && Number.isFinite(loss) && bucket.total > 0;
-        const active = kind === "latency" ? hasLatency : hasLoss;
-        const barHeight =
-          kind === "latency"
-            ? 16 * (hasLatency ? Math.max(0.2, Math.min(1, latency / safeMax)) : 0.25)
-            : 16 * 0.84;
-        const tone =
-          kind === "latency"
-            ? hasLatency
-              ? latencyHeatColor(latency)
-              : "var(--progress-bg)"
-            : hasLoss
-              ? lossHeatColor(loss)
-              : "var(--progress-bg)";
+        const slot = healthBarSlotModel(bucket, kind, max);
+        const barHeight = 16 * slot.heightFraction;
 
         return (
           <rect
@@ -292,8 +280,8 @@ function MiniHealthBars({
             width="3"
             height={barHeight}
             rx="1.25"
-            fill={tone}
-            opacity={active ? 0.94 : 0.48}
+            fill={slot.color}
+            opacity={slot.alpha}
           />
         );
       })}
@@ -361,7 +349,6 @@ const MiniHealth = memo(function MiniHealth({
 });
 
 export const MiniNodeCard = memo(function MiniNodeCard({ uuid }: { uuid: string }) {
-  const { resolvedAppearance } = usePreferences();
   const model = useNodeCardModel(uuid, {
     pingBucketCount: HEALTH_BAR_COUNT,
   });
@@ -387,10 +374,7 @@ export const MiniNodeCard = memo(function MiniNodeCard({ uuid }: { uuid: string 
   } = model;
 
   return (
-    <article
-      className={clsx("mini-node-card", isOffline && "is-offline")}
-      data-appearance={resolvedAppearance}
-    >
+    <article className={clsx("mini-node-card", isOffline && "is-offline")}>
       <MiniHeader node={node} osName={osName} />
       <MiniChips tags={footerTags} renewalPrice={renewalPrice} ipv4={node.ipv4} ipv6={node.ipv6} />
       <MiniVitals node={node} loadFraction={loadFraction} />

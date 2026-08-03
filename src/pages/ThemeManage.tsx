@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -347,6 +347,335 @@ function draftFromSettings(settings: ResolvedThemeSettings): ThemeDraft {
   };
 }
 
+type BooleanDraftKey = {
+  [K in keyof ThemeDraft]: ThemeDraft[K] extends boolean ? K : never;
+}[keyof ThemeDraft];
+
+// 统一的「标题 + 说明 + 开关」行。memo + 稳定的 patch 引用:编辑无关字段的击键不再重渲这些行。
+const ToggleRow = memo(function ToggleRow({
+  field,
+  title,
+  desc,
+  checked,
+  onPatch,
+}: {
+  field: BooleanDraftKey;
+  title: string;
+  desc: string;
+  checked: boolean;
+  onPatch: (key: BooleanDraftKey, value: boolean) => void;
+}) {
+  return (
+    <label className="surface-inset flex items-center justify-between gap-3 px-4 py-3">
+      <span className="min-w-0">
+        <span className="block text-[13px] font-medium text-[var(--text-primary)]">{title}</span>
+        <span className="mt-1 block text-[11px] text-[var(--text-tertiary)]">{desc}</span>
+      </span>
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(event) => onPatch(field, event.target.checked)}
+        className="h-4 w-4 shrink-0 accent-[var(--accent-500)]"
+      />
+    </label>
+  );
+});
+
+const EMPTY_ASSIGNED_CLIENTS: string[] = [];
+const EMPTY_ADMIN_CLIENTS: AdminClient[] = [];
+
+// 单个 Ping 任务的绑定卡片。memo:编辑无关设置的击键不再重渲任务列表;展开态的
+// tasks×clients 复选网格只在绑定/搜索/展开变化时重算。
+const TaskBindingSection = memo(function TaskBindingSection({
+  task,
+  assigned,
+  expanded,
+  clientsById,
+  visibleClients,
+  assignedTaskByClientUuid,
+  nodeSearch,
+  onNodeSearch,
+  onToggleExpand,
+  onPatchBindings,
+}: {
+  task: PingTask;
+  assigned: string[];
+  expanded: boolean;
+  clientsById: Map<string, AdminClient>;
+  visibleClients: AdminClient[];
+  assignedTaskByClientUuid: Map<string, string>;
+  nodeSearch: string;
+  onNodeSearch: (value: string) => void;
+  onToggleExpand: (taskId: number) => void;
+  onPatchBindings: (
+    updater: (prev: HomepagePingTaskBindings) => HomepagePingTaskBindings,
+  ) => void;
+}) {
+  const assignedSummary = summarizeNodes(assigned, clientsById);
+  // 过滤只有展开的任务需要;收起的卡片跳过,搜索输入不再对每个任务做 O(clients) 扫描。
+  const selectableVisibleClients = expanded
+    ? visibleClients.filter((client) => {
+        const assignedTaskId = assignedTaskByClientUuid.get(client.uuid);
+        return !assignedTaskId || assignedTaskId === String(task.id);
+      })
+    : EMPTY_ADMIN_CLIENTS;
+  const allVisibleSelectableAssigned =
+    selectableVisibleClients.length > 0 &&
+    selectableVisibleClients.every((client) => assigned.includes(client.uuid));
+  return (
+    <section className="surface-inset px-4 py-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="text-[15px] font-semibold text-[var(--text-primary)]">
+              {task.name || `任务 #${task.id}`}
+            </h3>
+            <span className="rounded-full border border-[var(--hairline)] px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.08em] text-[var(--text-tertiary)]">
+              {task.type || "icmp"}
+            </span>
+            <span className="rounded-full border border-[var(--hairline)] px-2 py-0.5 text-[10px] font-medium text-[var(--text-tertiary)]">
+              {task.interval}s
+            </span>
+            <span className="rounded-full border border-[var(--hairline)] px-2 py-0.5 text-[10px] font-medium text-[var(--text-tertiary)]">
+              ID {task.id}
+            </span>
+          </div>
+          <div className="mt-2 text-[12px] text-[var(--text-secondary)]">
+            <span className="font-medium text-[var(--text-primary)]">
+              已绑定 {assigned.length} 个节点
+            </span>
+            <span className="mx-2 text-[var(--text-tertiary)]">·</span>
+            <span title={task.target || ""}>{task.target || "未填写目标"}</span>
+          </div>
+          <p className="mt-2 text-[12px] text-[var(--text-tertiary)]" title={assignedSummary}>
+            {assignedSummary}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {expanded && (
+            <button
+              type="button"
+              disabled={selectableVisibleClients.length === 0 || allVisibleSelectableAssigned}
+              onClick={() => {
+                onPatchBindings((prev) =>
+                  applyAvailableClientAssignments(
+                    prev,
+                    task.id,
+                    selectableVisibleClients.map((client) => client.uuid),
+                  ),
+                );
+              }}
+              className="theme-manage-button is-compact"
+            >
+              {allVisibleSelectableAssigned ? "已全选可用" : "全选可用"}
+            </button>
+          )}
+          {assigned.length > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                onPatchBindings((prev) => {
+                  const next = { ...prev };
+                  delete next[String(task.id)];
+                  return pruneBindings(next);
+                });
+              }}
+              className="theme-manage-button is-compact is-danger"
+            >
+              清空节点
+            </button>
+          )}
+          <button
+            type="button"
+            aria-expanded={expanded}
+            onClick={() => onToggleExpand(task.id)}
+            className="theme-manage-button is-compact"
+          >
+            {expanded ? "收起节点" : "编辑节点"}
+          </button>
+        </div>
+      </div>
+
+      {expanded && (
+        <div className="mt-4 border-t border-[var(--hairline)] pt-4">
+          <label className="surface-inset flex items-center gap-2 px-3 py-2">
+            <Search size={14} className="text-[var(--text-tertiary)]" />
+            <input
+              value={nodeSearch}
+              onChange={(event) => onNodeSearch(event.target.value)}
+              placeholder="搜索节点名称 / UUID / 分组 / 地区"
+              aria-label="搜索节点"
+              className="min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-[var(--text-tertiary)]"
+            />
+          </label>
+
+          <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+            {visibleClients.map((client) => {
+              const checked = assigned.includes(client.uuid);
+              const subtitle = [client.group, client.uuid].filter(Boolean).join(" · ");
+              return (
+                <label
+                  key={client.uuid}
+                  className={clsx(
+                    "flex cursor-pointer items-start gap-3 rounded-[12px] border px-3 py-3 transition-colors",
+                    checked
+                      ? "border-[var(--border-strong)] bg-[color-mix(in_srgb,var(--hover-bg)_72%,transparent)]"
+                      : "border-[var(--hairline)] bg-transparent hover:bg-[var(--hover-bg)]",
+                  )}
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={(event) => {
+                      const nextChecked = event.target.checked;
+                      onPatchBindings((prev) =>
+                        applyClientAssignment(prev, task.id, client.uuid, nextChecked),
+                      );
+                    }}
+                    className="mt-1 h-4 w-4 shrink-0 accent-[var(--accent-500)]"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <Flag region={client.region} size={14} />
+                      <span className="truncate text-[13px] font-medium text-[var(--text-primary)]">
+                        {client.name}
+                      </span>
+                    </div>
+                    <div className="mt-1 text-[11px] text-[var(--text-tertiary)]">
+                      {subtitle || client.region || "未设置分组"}
+                    </div>
+                  </div>
+                </label>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </section>
+  );
+});
+
+type PremiumDetail = ReturnType<typeof calculateCostSummary>["details"][number];
+
+// 溢价录入列表。memo:编辑其他设置的击键不重渲整表——引用变化只来自
+// costPremiums 切片、搜索结果与汇率加载态。
+const PremiumList = memo(function PremiumList({
+  clients,
+  costPremiums,
+  detailByUuid,
+  rateLoading,
+  acquiredAtMax,
+  onPatchPaid,
+  onPatchAcquiredAt,
+}: {
+  clients: AdminClient[];
+  costPremiums: ThemeDraft["costPremiums"];
+  detailByUuid: Map<string, PremiumDetail>;
+  rateLoading: boolean;
+  acquiredAtMax: string;
+  onPatchPaid: (uuid: string, rawValue: string) => void;
+  onPatchAcquiredAt: (uuid: string, rawValue: string) => void;
+}) {
+  return (
+    <div className="surface-inset max-h-[320px] overflow-y-auto">
+      {clients.map((client) => {
+        const entry = costPremiums[client.uuid];
+        const detail = detailByUuid.get(client.uuid);
+        const referenceLabel = rateLoading
+          ? "计算中"
+          : detail
+            ? detail.counted
+              ? formatCnyMoney(detail.remainingCny)
+              : detail.note || "--"
+            : "--";
+        const canCompute = detail != null && (detail.counted || detail.note === "免费");
+        return (
+          <div
+            key={client.uuid}
+            className="flex items-center justify-between gap-3 border-b border-[var(--hairline)] px-3 py-2 last:border-b-0"
+          >
+            <div className="flex min-w-0 items-center gap-2">
+              <Flag region={client.region ?? ""} size={13} />
+              <span
+                className="truncate text-[13px] text-[var(--text-primary)]"
+                title={client.name}
+              >
+                {client.name}
+              </span>
+              <span
+                className="shrink-0 text-[11px] text-[var(--text-tertiary)]"
+                title="该节点当前剩余价值（按账单周期折算，不含溢价）"
+              >
+                {referenceLabel}
+              </span>
+              {entry && (
+                <span
+                  className="shrink-0 text-[11px] font-medium"
+                  style={{
+                    color:
+                      entry.amount > 0
+                        ? "var(--status-error)"
+                        : entry.amount < 0
+                          ? "var(--status-success)"
+                          : "var(--text-tertiary)",
+                  }}
+                  title={
+                    entry.paidCny != null
+                      ? "溢价 = 收购价 − 收购日剩余价值；该折算基准已经固化"
+                      : "旧格式：直接记录的溢价，填写收购价后自动升级"
+                  }
+                >
+                  溢价 {formatSignedCny(entry.amount)}
+                </span>
+              )}
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <input
+                type="number"
+                inputMode="decimal"
+                step="any"
+                min="0"
+                value={entry?.paidCny ?? ""}
+                onChange={(event) => {
+                  // 键入 `-`/`e` 等非法中间态时 value 为空串,不能误当"留空即清除"删掉记录。
+                  if (event.target.validity.badInput) return;
+                  onPatchPaid(client.uuid, event.target.value);
+                }}
+                placeholder="收购价"
+                disabled={!canCompute}
+                aria-label={`${client.name} 的收购价`}
+                title={
+                  canCompute
+                    ? "实际收购价（人民币），留空即清除记录"
+                    : "该节点已忽略或汇率缺失，无法折算剩余价值"
+                }
+                className="surface-inset w-24 px-2 py-1 text-right text-[13px] outline-none disabled:opacity-45"
+              />
+              <input
+                type="date"
+                max={acquiredAtMax}
+                value={entry?.acquiredAt ?? ""}
+                onChange={(event) => onPatchAcquiredAt(client.uuid, event.target.value)}
+                // 与收购价同门槛:汇率/基准未就绪时 patchPremiumAcquiredAt 无法回算,
+                // 放开输入只会被静默丢弃(受控值弹回旧日期)。
+                disabled={!entry || !canCompute}
+                aria-label={`${client.name} 的收购日期`}
+                title={
+                  canCompute
+                    ? "收购日期：修改后会按当前价格、周期、到期日和汇率回算该日剩余价值，重新计算并固化溢价"
+                    : "该节点已忽略或汇率缺失，无法折算剩余价值"
+                }
+                className="surface-inset w-[8.75rem] px-2 py-1 text-[12px] outline-none disabled:opacity-45"
+              />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+});
+
 export function ThemeManage() {
   const now = useHourlyClock();
   const {
@@ -391,6 +720,10 @@ export function ThemeManage() {
     },
     [],
   );
+  const toggleTaskExpanded = useCallback((taskId: number) => {
+    setExpandedTaskId((current) => (current === taskId ? null : taskId));
+    setNodeSearch("");
+  }, []);
   const patchMultiPingTask = useCallback((slot: number, rawValue: string) => {
     editVersionRef.current += 1;
     setDraft((prev) => {
@@ -444,15 +777,6 @@ export function ThemeManage() {
   const seedDrafts = useCallback((next: ResolvedThemeSettings) => {
     setDraft(draftFromSettings(next));
   }, []);
-
-  useEffect(() => {
-    if (!config) return;
-    if (lastSeededSignatureRef.current === sourceSignature) return;
-    lastSeededSignatureRef.current = sourceSignature;
-    // 保存期间若用户又编辑了表单，保留新草稿，避免请求回流覆盖它。
-    if (savingDraftRef.current && draft !== savingDraftRef.current) return;
-    seedDrafts(sourceThemeSettings);
-  }, [config, draft, sourceSignature, sourceThemeSettings, seedDrafts]);
 
   const sortedTasks = useMemo(() => sortTasks(pingTasks ?? []), [pingTasks]);
   const sortedClients = useMemo(() => sortClients(adminClients ?? []), [adminClients]);
@@ -672,6 +996,16 @@ export function ThemeManage() {
     if (isDirty) setMessage(null);
   }, [isDirty]);
 
+  // 服务端设置真正变化时灌入草稿。首次灌入之后,只要表单有未保存编辑(含保存中)就跳过,
+  // 避免 refetch / 其他端保存的回流静默覆盖用户草稿。
+  useEffect(() => {
+    if (!config) return;
+    if (lastSeededSignatureRef.current === sourceSignature) return;
+    if (lastSeededSignatureRef.current !== null && isDirty) return;
+    lastSeededSignatureRef.current = sourceSignature;
+    seedDrafts(sourceThemeSettings);
+  }, [config, isDirty, sourceSignature, sourceThemeSettings, seedDrafts]);
+
   const assignedNodeCount = useMemo(
     () =>
       Object.values(draft.homepagePingBindings).reduce(
@@ -700,6 +1034,7 @@ export function ThemeManage() {
       const baseSettings: ThemeSettings & Record<string, unknown> = {
         ...(config.theme_settings ?? {}),
       };
+      // 清理旧版遗留键:该键的读取/迁移逻辑已全部移除,这里只在保存时洗掉存量站点残留。
       delete baseSettings.homepagePingTask;
       const nextSettings: ThemeSettings & Record<string, unknown> = {
         ...baseSettings,
@@ -981,22 +1316,13 @@ export function ThemeManage() {
         aside={<Wallpaper size={16} />}
       >
         <div className="flex flex-col gap-4">
-          <label className="surface-inset flex items-center justify-between gap-3 px-4 py-3">
-            <span className="min-w-0">
-              <span className="block text-[13px] font-medium text-[var(--text-primary)]">
-                启用背景图
-              </span>
-              <span className="mt-1 block text-[11px] text-[var(--text-tertiary)]">
-                关闭后不加载任何背景图（下方 URL 配置会保留），站点回到纯色主题；再次开启即恢复。
-              </span>
-            </span>
-            <input
-              type="checkbox"
-              checked={draft.enableBackgroundImage}
-              onChange={(event) => patch("enableBackgroundImage", event.target.checked)}
-              className="h-4 w-4 shrink-0 accent-[var(--accent-500)]"
-            />
-          </label>
+          <ToggleRow
+            field="enableBackgroundImage"
+            title="启用背景图"
+            desc="关闭后不加载任何背景图（下方 URL 配置会保留），站点回到纯色主题；再次开启即恢复。"
+            checked={draft.enableBackgroundImage}
+            onPatch={patch}
+          />
           <div className="grid gap-4 md:grid-cols-2">
             <label className="flex min-w-0 flex-col gap-2">
               <span className="text-[12px] font-medium text-[var(--text-secondary)]">
@@ -1106,86 +1432,41 @@ export function ThemeManage() {
         aside={<ListFilter size={16} />}
       >
         <div className="grid gap-3 md:grid-cols-3">
-          <label className="surface-inset flex items-center justify-between gap-3 px-4 py-3">
-            <span className="min-w-0">
-              <span className="block text-[13px] font-medium text-[var(--text-primary)]">
-                显示顶部总览
-              </span>
-              <span className="mt-1 block text-[11px] text-[var(--text-tertiary)]">
-                展示时间、在线数、地区、流量和速率。
-              </span>
-            </span>
-            <input
-              type="checkbox"
-              checked={draft.showHomeOverview}
-              onChange={(event) => patch("showHomeOverview", event.target.checked)}
-              className="h-4 w-4 shrink-0 accent-[var(--accent-500)]"
-            />
-          </label>
-          <label className="surface-inset flex items-center justify-between gap-3 px-4 py-3">
-            <span className="min-w-0">
-              <span className="block text-[13px] font-medium text-[var(--text-primary)]">
-                显示分组筛选
-              </span>
-              <span className="mt-1 block text-[11px] text-[var(--text-tertiary)]">
-                根据后端节点分组生成首页 Tab。
-              </span>
-            </span>
-            <input
-              type="checkbox"
-              checked={draft.showGroupTabs}
-              onChange={(event) => patch("showGroupTabs", event.target.checked)}
-              className="h-4 w-4 shrink-0 accent-[var(--accent-500)]"
-            />
-          </label>
-          <label className="surface-inset flex items-center justify-between gap-3 px-4 py-3">
-            <span className="min-w-0">
-              <span className="block text-[13px] font-medium text-[var(--text-primary)]">
-                显示地区筛选
-              </span>
-              <span className="mt-1 block text-[11px] text-[var(--text-tertiary)]">
-                按节点地区生成国旗筛选栏，点击某地区只看该地区节点。
-              </span>
-            </span>
-            <input
-              type="checkbox"
-              checked={draft.showRegionBar}
-              onChange={(event) => patch("showRegionBar", event.target.checked)}
-              className="h-4 w-4 shrink-0 accent-[var(--accent-500)]"
-            />
-          </label>
-          <label className="surface-inset flex items-center justify-between gap-3 px-4 py-3">
-            <span className="min-w-0">
-              <span className="block text-[13px] font-medium text-[var(--text-primary)]">
-                卡片显示分组
-              </span>
-              <span className="mt-1 block text-[11px] text-[var(--text-tertiary)]">
-                关闭后卡片内不再显示节点分组名（不影响分组筛选栏与备注）。
-              </span>
-            </span>
-            <input
-              type="checkbox"
-              checked={draft.showCardGroup}
-              onChange={(event) => patch("showCardGroup", event.target.checked)}
-              className="h-4 w-4 shrink-0 accent-[var(--accent-500)]"
-            />
-          </label>
-          <label className="surface-inset flex items-center justify-between gap-3 px-4 py-3">
-            <span className="min-w-0">
-              <span className="block text-[13px] font-medium text-[var(--text-primary)]">
-                启用排序切换
-              </span>
-              <span className="mt-1 block text-[11px] text-[var(--text-tertiary)]">
-                首页显示排序控件，访客可临时切换排序方式（离线节点恒定置底）。
-              </span>
-            </span>
-            <input
-              type="checkbox"
-              checked={draft.enableHomeSort}
-              onChange={(event) => patch("enableHomeSort", event.target.checked)}
-              className="h-4 w-4 shrink-0 accent-[var(--accent-500)]"
-            />
-          </label>
+          <ToggleRow
+            field="showHomeOverview"
+            title="显示顶部总览"
+            desc="展示时间、在线数、地区、流量和速率。"
+            checked={draft.showHomeOverview}
+            onPatch={patch}
+          />
+          <ToggleRow
+            field="showGroupTabs"
+            title="显示分组筛选"
+            desc="根据后端节点分组生成首页 Tab。"
+            checked={draft.showGroupTabs}
+            onPatch={patch}
+          />
+          <ToggleRow
+            field="showRegionBar"
+            title="显示地区筛选"
+            desc="按节点地区生成国旗筛选栏，点击某地区只看该地区节点。"
+            checked={draft.showRegionBar}
+            onPatch={patch}
+          />
+          <ToggleRow
+            field="showCardGroup"
+            title="卡片显示分组"
+            desc="关闭后卡片内不再显示节点分组名（不影响分组筛选栏与备注）。"
+            checked={draft.showCardGroup}
+            onPatch={patch}
+          />
+          <ToggleRow
+            field="enableHomeSort"
+            title="启用排序切换"
+            desc="首页显示排序控件，访客可临时切换排序方式（离线节点恒定置底）。"
+            checked={draft.enableHomeSort}
+            onPatch={patch}
+          />
         </div>
 
         <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,0.6fr)]">
@@ -1375,70 +1656,34 @@ export function ThemeManage() {
         aside={<Rows3 size={16} />}
       >
         <div className="grid gap-3 md:grid-cols-2">
-          <label className="surface-inset flex items-center justify-between gap-3 px-4 py-3">
-            <span className="min-w-0">
-              <span className="block text-[13px] font-medium text-[var(--text-primary)]">
-                显示累计流量
-              </span>
-              <span className="mt-1 block text-[11px] text-[var(--text-tertiary)]">
-                展示出站与入站累计流量。
-              </span>
-            </span>
-            <input
-              type="checkbox"
-              checked={draft.compactShowTrafficTotal}
-              onChange={(event) => patch("compactShowTrafficTotal", event.target.checked)}
-              className="h-4 w-4 shrink-0 accent-[var(--accent-500)]"
-            />
-          </label>
-          <label className="surface-inset flex items-center justify-between gap-3 px-4 py-3">
-            <span className="min-w-0">
-              <span className="block text-[13px] font-medium text-[var(--text-primary)]">
-                显示费用到期
-              </span>
-              <span className="mt-1 block text-[11px] text-[var(--text-tertiary)]">
-                展示续费价格与剩余天数。
-              </span>
-            </span>
-            <input
-              type="checkbox"
-              checked={draft.compactShowBilling}
-              onChange={(event) => patch("compactShowBilling", event.target.checked)}
-              className="h-4 w-4 shrink-0 accent-[var(--accent-500)]"
-            />
-          </label>
-          <label className="surface-inset flex items-center justify-between gap-3 px-4 py-3">
-            <span className="min-w-0">
-              <span className="block text-[13px] font-medium text-[var(--text-primary)]">
-                显示在线时间
-              </span>
-              <span className="mt-1 block text-[11px] text-[var(--text-tertiary)]">
-                在小卡片流量栏右侧展示在线时长。默认开启。
-              </span>
-            </span>
-            <input
-              type="checkbox"
-              checked={draft.compactShowUptime}
-              onChange={(event) => patch("compactShowUptime", event.target.checked)}
-              className="h-4 w-4 shrink-0 accent-[var(--accent-500)]"
-            />
-          </label>
-          <label className="surface-inset flex items-center justify-between gap-3 px-4 py-3">
-            <span className="min-w-0">
-              <span className="block text-[13px] font-medium text-[var(--text-primary)]">
-                显示连接数（TCP/UDP）
-              </span>
-              <span className="mt-1 block text-[11px] text-[var(--text-tertiary)]">
-                在大卡片与小卡片展示实时 TCP / UDP 连接数；需被控端上报，未上报显示 0。默认关闭。
-              </span>
-            </span>
-            <input
-              type="checkbox"
-              checked={draft.showConnections}
-              onChange={(event) => patch("showConnections", event.target.checked)}
-              className="h-4 w-4 shrink-0 accent-[var(--accent-500)]"
-            />
-          </label>
+          <ToggleRow
+            field="compactShowTrafficTotal"
+            title="显示累计流量"
+            desc="展示出站与入站累计流量。"
+            checked={draft.compactShowTrafficTotal}
+            onPatch={patch}
+          />
+          <ToggleRow
+            field="compactShowBilling"
+            title="显示费用到期"
+            desc="展示续费价格与剩余天数。"
+            checked={draft.compactShowBilling}
+            onPatch={patch}
+          />
+          <ToggleRow
+            field="compactShowUptime"
+            title="显示在线时间"
+            desc="在小卡片流量栏右侧展示在线时长。默认开启。"
+            checked={draft.compactShowUptime}
+            onPatch={patch}
+          />
+          <ToggleRow
+            field="showConnections"
+            title="显示连接数（TCP/UDP）"
+            desc="在大卡片与小卡片展示实时 TCP / UDP 连接数；需被控端上报，未上报显示 0。默认关闭。"
+            checked={draft.showConnections}
+            onPatch={patch}
+          />
         </div>
       </InstancePanel>
 
@@ -1450,40 +1695,20 @@ export function ThemeManage() {
       >
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.8fr)]">
           <div className="flex flex-col gap-3">
-            <label className="surface-inset flex items-center justify-between gap-3 px-4 py-3">
-              <span className="min-w-0">
-                <span className="block text-[13px] font-medium text-[var(--text-primary)]">
-                  显示资产页入口按钮
-                </span>
-                <span className="mt-1 block text-[11px] text-[var(--text-tertiary)]">
-                  在首页资产概览卡右上角显示进入资产统计页的按钮。
-                </span>
-              </span>
-              <input
-                type="checkbox"
-                checked={draft.showCostSummary}
-                onChange={(event) => patch("showCostSummary", event.target.checked)}
-                className="h-4 w-4 shrink-0 accent-[var(--accent-500)]"
-              />
-            </label>
-            <label className="surface-inset flex items-center justify-between gap-3 px-4 py-3">
-              <span className="min-w-0">
-                <span className="block text-[13px] font-medium text-[var(--text-primary)]">
-                  显示资产悬浮按钮
-                </span>
-                <span className="mt-1 block text-[11px] text-[var(--text-tertiary)]">
-                  卡内入口不可用时（总览隐藏或其开关关闭），以悬浮按钮进入资产统计页。
-                </span>
-              </span>
-              <input
-                type="checkbox"
-                checked={draft.showCostSummaryFloatingButton}
-                onChange={(event) =>
-                  patch("showCostSummaryFloatingButton", event.target.checked)
-                }
-                className="h-4 w-4 shrink-0 accent-[var(--accent-500)]"
-              />
-            </label>
+            <ToggleRow
+              field="showCostSummary"
+              title="显示资产页入口按钮"
+              desc="在首页资产概览卡右上角显示进入资产统计页的按钮。"
+              checked={draft.showCostSummary}
+              onPatch={patch}
+            />
+            <ToggleRow
+              field="showCostSummaryFloatingButton"
+              title="显示资产悬浮按钮"
+              desc="卡内入口不可用时（总览隐藏或其开关关闭），以悬浮按钮进入资产统计页。"
+              checked={draft.showCostSummaryFloatingButton}
+              onPatch={patch}
+            />
             <label className="flex flex-col gap-2">
               <span className="text-[12px] font-medium text-[var(--text-secondary)]">
                 实时汇率接口
@@ -1557,94 +1782,15 @@ export function ThemeManage() {
           )}
 
           {!clientsLoading && filteredPremiumClients.length > 0 && (
-            <div className="surface-inset max-h-[320px] overflow-y-auto">
-              {filteredPremiumClients.map((client) => {
-                const entry = draft.costPremiums[client.uuid];
-                const detail = premiumDetailByUuid.get(client.uuid);
-                const referenceLabel = premiumRateQuery.isLoading
-                  ? "计算中"
-                  : detail
-                    ? detail.counted
-                      ? formatCnyMoney(detail.remainingCny)
-                      : detail.note || "--"
-                    : "--";
-                const canCompute =
-                  detail != null && (detail.counted || detail.note === "免费");
-                return (
-                  <div
-                    key={client.uuid}
-                    className="flex items-center justify-between gap-3 border-b border-[var(--hairline)] px-3 py-2 last:border-b-0"
-                  >
-                    <div className="flex min-w-0 items-center gap-2">
-                      <Flag region={client.region ?? ""} size={13} />
-                      <span
-                        className="truncate text-[13px] text-[var(--text-primary)]"
-                        title={client.name}
-                      >
-                        {client.name}
-                      </span>
-                      <span
-                        className="shrink-0 text-[11px] text-[var(--text-tertiary)]"
-                        title="该节点当前剩余价值（按账单周期折算，不含溢价）"
-                      >
-                        {referenceLabel}
-                      </span>
-                      {entry && (
-                        <span
-                          className="shrink-0 text-[11px] font-medium"
-                          style={{
-                            color:
-                              entry.amount > 0
-                                ? "var(--status-error)"
-                                : entry.amount < 0
-                                  ? "var(--status-success)"
-                                  : "var(--text-tertiary)",
-                          }}
-                          title={
-                            entry.paidCny != null
-                              ? "溢价 = 收购价 − 收购日剩余价值；该折算基准已经固化"
-                              : "旧格式：直接记录的溢价，填写收购价后自动升级"
-                          }
-                        >
-                          溢价 {formatSignedCny(entry.amount)}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      <input
-                        type="number"
-                        inputMode="decimal"
-                        step="any"
-                        min="0"
-                        value={entry?.paidCny ?? ""}
-                        onChange={(event) => patchPremiumPaid(client.uuid, event.target.value)}
-                        placeholder="收购价"
-                        disabled={!canCompute}
-                        aria-label={`${client.name} 的收购价`}
-                        title={
-                          canCompute
-                            ? "实际收购价（人民币），留空即清除记录"
-                            : "该节点已忽略或汇率缺失，无法折算剩余价值"
-                        }
-                        className="surface-inset w-24 px-2 py-1 text-right text-[13px] outline-none disabled:opacity-45"
-                      />
-                      <input
-                        type="date"
-                        max={acquiredAtMax}
-                        value={entry?.acquiredAt ?? ""}
-                        onChange={(event) =>
-                          patchPremiumAcquiredAt(client.uuid, event.target.value)
-                        }
-                        disabled={!entry}
-                        aria-label={`${client.name} 的收购日期`}
-                        title="收购日期：修改后会按当前价格、周期、到期日和汇率回算该日剩余价值，重新计算并固化溢价"
-                        className="surface-inset w-[8.75rem] px-2 py-1 text-[12px] outline-none disabled:opacity-45"
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <PremiumList
+              clients={filteredPremiumClients}
+              costPremiums={draft.costPremiums}
+              detailByUuid={premiumDetailByUuid}
+              rateLoading={premiumRateQuery.isLoading}
+              acquiredAtMax={acquiredAtMax}
+              onPatchPaid={patchPremiumPaid}
+              onPatchAcquiredAt={patchPremiumAcquiredAt}
+            />
           )}
         </div>
       </InstancePanel>
@@ -1798,24 +1944,13 @@ export function ThemeManage() {
             </div>
           )}
 
-          <label className="surface-inset flex items-center justify-between gap-3 px-4 py-3">
-            <span className="min-w-0">
-              <span className="block text-[13px] font-medium text-[var(--text-primary)]">
-                未绑定节点显示模拟延迟
-              </span>
-              <span className="mt-1 block text-[11px] text-[var(--text-tertiary)]">
-                未绑定单线路 Ping 任务的在线节点显示前端生成的模拟数据（延迟 1-10ms、丢包
-                0%）。开启三网模式时仍用于迷你卡片和列表，大卡片与小卡片显示真实三网数据；
-                模拟数据仅用于视觉统一，不代表真实网络质量。
-              </span>
-            </span>
-            <input
-              type="checkbox"
-              checked={draft.fakePingForUnbound}
-              onChange={(event) => patch("fakePingForUnbound", event.target.checked)}
-              className="h-4 w-4 shrink-0 accent-[var(--accent-500)]"
-            />
-          </label>
+          <ToggleRow
+            field="fakePingForUnbound"
+            title="未绑定节点显示模拟延迟"
+            desc="未绑定单线路 Ping 任务的在线节点显示前端生成的模拟数据（延迟 1-10ms、丢包 0%）。开启三网模式时仍用于迷你卡片和列表，大卡片与小卡片显示真实三网数据；模拟数据仅用于视觉统一，不代表真实网络质量。"
+            checked={draft.fakePingForUnbound}
+            onPatch={patch}
+          />
 
           {(tasksLoading || clientsLoading) && (
             <div className="flex min-h-[20vh] items-center justify-center">
@@ -1842,157 +1977,24 @@ export function ThemeManage() {
             !clientsLoading &&
             !noTasksYet &&
             filteredTasks.map((task) => {
-              const assigned = draft.homepagePingBindings[String(task.id)] ?? [];
-              const assignedSummary = summarizeNodes(assigned, clientsById);
-              const isExpanded = expandedTaskId === task.id;
-              const selectableVisibleClients = visibleClients.filter((client) => {
-                const assignedTaskId = assignedTaskByClientUuid.get(client.uuid);
-                return !assignedTaskId || assignedTaskId === String(task.id);
-              });
-              const unselectedVisibleClients = selectableVisibleClients.filter(
-                (client) => !assigned.includes(client.uuid),
-              );
-              const allVisibleSelectableAssigned =
-                selectableVisibleClients.length > 0 && unselectedVisibleClients.length === 0;
+              const expanded = expandedTaskId === task.id;
               return (
-                <section key={task.id} className="surface-inset px-4 py-4">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="text-[15px] font-semibold text-[var(--text-primary)]">
-                          {task.name || `任务 #${task.id}`}
-                        </h3>
-                        <span className="rounded-full border border-[var(--hairline)] px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.08em] text-[var(--text-tertiary)]">
-                          {task.type || "icmp"}
-                        </span>
-                        <span className="rounded-full border border-[var(--hairline)] px-2 py-0.5 text-[10px] font-medium text-[var(--text-tertiary)]">
-                          {task.interval}s
-                        </span>
-                        <span className="rounded-full border border-[var(--hairline)] px-2 py-0.5 text-[10px] font-medium text-[var(--text-tertiary)]">
-                          ID {task.id}
-                        </span>
-                      </div>
-                      <div className="mt-2 text-[12px] text-[var(--text-secondary)]">
-                        <span className="font-medium text-[var(--text-primary)]">
-                          已绑定 {assigned.length} 个节点
-                        </span>
-                        <span className="mx-2 text-[var(--text-tertiary)]">·</span>
-                        <span title={task.target || ""}>{task.target || "未填写目标"}</span>
-                      </div>
-                      <p
-                        className="mt-2 text-[12px] text-[var(--text-tertiary)]"
-                        title={assignedSummary}
-                      >
-                        {assignedSummary}
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      {isExpanded && (
-                        <button
-                          type="button"
-                          disabled={
-                            selectableVisibleClients.length === 0 || allVisibleSelectableAssigned
-                          }
-                          onClick={() => {
-                            patchBindings((prev) =>
-                              applyAvailableClientAssignments(
-                                prev,
-                                task.id,
-                                selectableVisibleClients.map((client) => client.uuid),
-                              ),
-                            );
-                          }}
-                          className="theme-manage-button is-compact"
-                        >
-                          {allVisibleSelectableAssigned ? "已全选可用" : "全选可用"}
-                        </button>
-                      )}
-                      {assigned.length > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            patchBindings((prev) => {
-                              const next = { ...prev };
-                              delete next[String(task.id)];
-                              return pruneBindings(next);
-                            });
-                          }}
-                          className="theme-manage-button is-compact is-danger"
-                        >
-                          清空节点
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        aria-expanded={isExpanded}
-                        onClick={() => {
-                          setExpandedTaskId((current) => (current === task.id ? null : task.id));
-                          setNodeSearch("");
-                        }}
-                        className="theme-manage-button is-compact"
-                      >
-                        {isExpanded ? "收起节点" : "编辑节点"}
-                      </button>
-                    </div>
-                  </div>
-
-                  {isExpanded && (
-                    <div className="mt-4 border-t border-[var(--hairline)] pt-4">
-                      <label className="surface-inset flex items-center gap-2 px-3 py-2">
-                        <Search size={14} className="text-[var(--text-tertiary)]" />
-                        <input
-                          value={nodeSearch}
-                          onChange={(event) => setNodeSearch(event.target.value)}
-                          placeholder="搜索节点名称 / UUID / 分组 / 地区"
-                          aria-label="搜索节点"
-                          className="min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-[var(--text-tertiary)]"
-                        />
-                      </label>
-
-                      <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
-                        {visibleClients.map((client) => {
-                          const checked = assigned.includes(client.uuid);
-                          const subtitle = [client.group, client.uuid].filter(Boolean).join(" · ");
-                          return (
-                            <label
-                              key={client.uuid}
-                              className={clsx(
-                                "flex cursor-pointer items-start gap-3 rounded-[12px] border px-3 py-3 transition-colors",
-                                checked
-                                  ? "border-[var(--border-strong)] bg-[color-mix(in_srgb,var(--hover-bg)_72%,transparent)]"
-                                  : "border-[var(--hairline)] bg-transparent hover:bg-[var(--hover-bg)]",
-                              )}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={checked}
-                                onChange={(event) => {
-                                  const nextChecked = event.target.checked;
-                                  patchBindings((prev) =>
-                                    applyClientAssignment(prev, task.id, client.uuid, nextChecked),
-                                  );
-                                }}
-                                className="mt-1 h-4 w-4 shrink-0 accent-[var(--accent-500)]"
-                              />
-                              <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-2">
-                                  <Flag region={client.region} size={14} />
-                                  <span className="truncate text-[13px] font-medium text-[var(--text-primary)]">
-                                    {client.name}
-                                  </span>
-                                </div>
-                                <div className="mt-1 text-[11px] text-[var(--text-tertiary)]">
-                                  {subtitle || client.region || "未设置分组"}
-                                </div>
-                              </div>
-                            </label>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </section>
+                <TaskBindingSection
+                  key={task.id}
+                  task={task}
+                  assigned={
+                    draft.homepagePingBindings[String(task.id)] ?? EMPTY_ASSIGNED_CLIENTS
+                  }
+                  expanded={expanded}
+                  clientsById={clientsById}
+                  // 收起的卡片收到稳定空值:节点搜索的每次击键只重渲展开的那一张。
+                  visibleClients={expanded ? visibleClients : EMPTY_ADMIN_CLIENTS}
+                  assignedTaskByClientUuid={assignedTaskByClientUuid}
+                  nodeSearch={expanded ? nodeSearch : ""}
+                  onNodeSearch={setNodeSearch}
+                  onToggleExpand={toggleTaskExpanded}
+                  onPatchBindings={patchBindings}
+                />
               );
             })}
         </div>

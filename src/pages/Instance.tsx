@@ -169,7 +169,6 @@ export function Instance() {
         </div>
         {chartType === "load" && (
           <RangeSelector
-            key={`${chartType}-ranges`}
             ranges={loadRanges}
             value={loadHours}
             onChange={(value) => startTransition(() => setLoadHours(value))}
@@ -177,7 +176,6 @@ export function Instance() {
         )}
         {chartType === "ping" && showPingChart && (
           <RangeSelector
-            key={`${chartType}-ranges`}
             ranges={pingRanges}
             value={pingHours}
             onChange={(value) => startTransition(() => setPingHours(value))}

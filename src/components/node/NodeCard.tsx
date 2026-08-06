@@ -454,7 +454,6 @@ const NodeHealthSection = memo(function NodeHealthSection({
         <div className="server-health-chart-wrap">
           {hasHomepagePingBinding ? (
             <LatencyBars
-              max={ping.max}
               buckets={pingBuckets}
               redrawKey={redrawKey}
               onHoverIndex={onLatencyHover}

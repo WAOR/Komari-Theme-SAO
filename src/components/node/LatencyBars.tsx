@@ -1,27 +1,31 @@
 import { useCallback, useMemo } from "react";
 import { CanvasStrip, fillRoundedRect, safeCanvasColor } from "./CanvasStrip";
-import { getBarGeometry, getBarSlot, healthBarSlotModel } from "./nodeCardShared";
+import {
+  getBarGeometry,
+  getBarSlot,
+  healthBarInteractionModel,
+  healthBarSlotModel,
+} from "./nodeCardShared";
 import type { PingOverviewBucket } from "@/types/komari";
 
 interface LatencyBarsProps {
   buckets: PingOverviewBucket[];
-  max: number;
   redrawKey?: string;
   height?: number;
   onHoverIndex?: (index: number | null) => void;
 }
 
-export function LatencyBars({ buckets, max, redrawKey, height = 16, onHoverIndex }: LatencyBarsProps) {
+export function LatencyBars({ buckets, redrawKey, height = 16, onHoverIndex }: LatencyBarsProps) {
   const bars = useMemo(
     () => {
       // CSS 色变化时需要重新解析预计算的 canvas 色值。
       void redrawKey;
       return buckets.map((bucket) => {
-        const slot = healthBarSlotModel(bucket, "latency", max);
+        const slot = healthBarSlotModel(bucket, "latency");
         return { ...slot, tone: safeCanvasColor(slot.color) };
       });
     },
-    [buckets, max, redrawKey],
+    [buckets, redrawKey],
   );
 
   const getHoverIndex = useCallback(
@@ -30,15 +34,20 @@ export function LatencyBars({ buckets, max, redrawKey, height = 16, onHoverIndex
   );
 
   const draw = useCallback(
-    (ctx: CanvasRenderingContext2D, width: number, height: number) => {
+    (ctx: CanvasRenderingContext2D, width: number, height: number, interaction: { hoverIndex: number | null; hoverProgress: number }) => {
       const { gap, barWidth } = getBarGeometry(width, bars.length);
 
       bars.forEach(({ heightFraction, alpha, tone }, index) => {
-        const barHeight = height * heightFraction;
+        const visual = healthBarInteractionModel(
+          { active: true, heightFraction, color: tone, alpha },
+          interaction.hoverIndex === index,
+          interaction.hoverProgress,
+        );
+        const barHeight = height * visual.heightFraction;
         const x = index * (barWidth + gap);
         const y = height - barHeight;
 
-        ctx.globalAlpha = alpha;
+        ctx.globalAlpha = visual.alpha;
         ctx.fillStyle = tone;
         fillRoundedRect(ctx, x, y, barWidth, barHeight, 2);
       });

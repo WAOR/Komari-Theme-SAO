@@ -1,6 +1,11 @@
 import { useCallback, useMemo } from "react";
 import { CanvasStrip, fillRoundedRect, safeCanvasColor } from "./CanvasStrip";
-import { getBarGeometry, getBarSlot, healthBarSlotModel } from "./nodeCardShared";
+import {
+  getBarGeometry,
+  getBarSlot,
+  healthBarInteractionModel,
+  healthBarSlotModel,
+} from "./nodeCardShared";
 import type { PingOverviewBucket } from "@/types/komari";
 
 interface QualityBarsProps {
@@ -34,14 +39,19 @@ export function QualityBars({
   );
 
   const draw = useCallback(
-    (ctx: CanvasRenderingContext2D, width: number, height: number) => {
+    (ctx: CanvasRenderingContext2D, width: number, height: number, interaction: { hoverIndex: number | null; hoverProgress: number }) => {
       const { gap, barWidth } = getBarGeometry(width, bars.length);
 
       bars.forEach(({ heightFraction, alpha, tone }, index) => {
-        const barHeight = height * heightFraction;
+        const visual = healthBarInteractionModel(
+          { active: true, heightFraction, color: tone, alpha },
+          interaction.hoverIndex === index,
+          interaction.hoverProgress,
+        );
+        const barHeight = height * visual.heightFraction;
         const y = height - barHeight;
         const x = index * (barWidth + gap);
-        ctx.globalAlpha = alpha;
+        ctx.globalAlpha = visual.alpha;
         ctx.fillStyle = tone;
         fillRoundedRect(ctx, x, y, barWidth, barHeight, 2);
       });

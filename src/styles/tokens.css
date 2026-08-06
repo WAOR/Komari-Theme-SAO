@@ -54,6 +54,12 @@
   --status-warning: #e9a23b;
   --status-error: #dc2626;
   --status-info: #3b82f6;
+  /* 延迟状态阶梯：绿 → 黄绿 → 偏黄绿 → 暖金黄 → 红，避免高延迟档突兀跳橙。 */
+  --latency-excellent: #2fc66e;
+  --latency-good: #9fe339;
+  --latency-moderate: #cbd83a;
+  --latency-elevated: #e2a928;
+  --latency-critical: #dc2626;
   /* 品牌强调色,Spinner 转动弧、ThemeManage 复选框等引用。 */
   --accent-500: #3b82f6;
   /* 品牌深调:比 --accent-500 更沉、微偏靛,只用于主 CTA / 报头 / 激活态渐变的暗端,
@@ -122,6 +128,11 @@
   --status-warning: #daaa3f;
   --status-error: #f47067;
   --status-info: #539bf5;
+  --latency-excellent: #2fc66e;
+  --latency-good: #9fe339;
+  --latency-moderate: #cbd83a;
+  --latency-elevated: #e2a928;
+  --latency-critical: #f47067;
   --accent-500: #539bf5;
   --accent-strong: #4184e4;
   --speed-idle: #57ab5a;

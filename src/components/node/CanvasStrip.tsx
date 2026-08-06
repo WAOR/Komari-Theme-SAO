@@ -1,10 +1,21 @@
 import { useEffect, useRef, useState, useSyncExternalStore, type PointerEvent } from "react";
+import { supportsFineHover } from "@/utils/mediaQuery";
+
+export interface CanvasStripInteraction {
+  hoverIndex: number | null;
+  hoverProgress: number;
+}
 
 interface CanvasStripProps {
   className?: string;
   height: number;
   redrawKey?: string | number;
-  draw: (ctx: CanvasRenderingContext2D, width: number, height: number) => void;
+  draw: (
+    ctx: CanvasRenderingContext2D,
+    width: number,
+    height: number,
+    interaction: CanvasStripInteraction,
+  ) => void;
   getHoverIndex?: (offsetX: number, width: number) => number | null;
   onHoverIndex?: (index: number | null) => void;
 }
@@ -375,9 +386,59 @@ export function CanvasStrip({
 }: CanvasStripProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const lastHoverIndexRef = useRef<number | null>(null);
+  const hoverAnimationFrameRef = useRef<number | null>(null);
+  const interactionRef = useRef<CanvasStripInteraction>({ hoverIndex: null, hoverProgress: 0 });
+  const [interaction, setInteraction] = useState<CanvasStripInteraction>(interactionRef.current);
   const [width, setWidth] = useState(0);
   const [visible, setVisible] = useState(() => typeof IntersectionObserver === "undefined");
   const dpr = useSyncExternalStore(subscribeToDpr, currentDpr, () => 1);
+
+  const commitInteraction = (next: CanvasStripInteraction) => {
+    interactionRef.current = next;
+    setInteraction(next);
+  };
+
+  const animateHover = (hoverIndex: number | null, target: 0 | 1) => {
+    if (hoverAnimationFrameRef.current != null) {
+      cancelAnimationFrame(hoverAnimationFrameRef.current);
+      hoverAnimationFrameRef.current = null;
+    }
+
+    const current = interactionRef.current;
+    // 横向扫过相邻柱时沿用当前强度，避免每跨一格都从 0 开始造成闪烁。
+    const startProgress = current.hoverProgress;
+    const start = performance.now();
+    const duration = 150 * Math.abs(target - startProgress);
+    const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+
+    if (reduceMotion || duration <= 0) {
+      commitInteraction({ hoverIndex: target === 0 ? null : hoverIndex, hoverProgress: target });
+      return;
+    }
+
+    commitInteraction({ hoverIndex, hoverProgress: startProgress });
+    const tick = (now: number) => {
+      const elapsed = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - elapsed, 3);
+      const hoverProgress = startProgress + (target - startProgress) * eased;
+      const done = elapsed >= 1;
+      commitInteraction({
+        hoverIndex: done && target === 0 ? null : hoverIndex,
+        hoverProgress: done ? target : hoverProgress,
+      });
+      hoverAnimationFrameRef.current = done ? null : requestAnimationFrame(tick);
+    };
+    hoverAnimationFrameRef.current = requestAnimationFrame(tick);
+  };
+
+  useEffect(
+    () => () => {
+      if (hoverAnimationFrameRef.current != null) {
+        cancelAnimationFrame(hoverAnimationFrameRef.current);
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -414,21 +475,28 @@ export function CanvasStrip({
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.globalAlpha = 1;
     ctx.clearRect(0, 0, width, height);
-    draw(ctx, width, height);
-  }, [dpr, draw, height, redrawKey, visible, width]);
-
-  const handlePointerMove = (event: PointerEvent<HTMLCanvasElement>) => {
-    if (!getHoverIndex || !onHoverIndex || width <= 0) return;
-    const next = getHoverIndex(event.nativeEvent.offsetX, width);
-    if (next === lastHoverIndexRef.current) return;
-    lastHoverIndexRef.current = next;
-    onHoverIndex(next);
-  };
+    draw(ctx, width, height, interaction);
+  }, [dpr, draw, height, interaction, redrawKey, visible, width]);
 
   const handlePointerLeave = () => {
     if (lastHoverIndexRef.current === null) return;
+    const previous = lastHoverIndexRef.current;
     lastHoverIndexRef.current = null;
+    animateHover(previous, 0);
     onHoverIndex?.(null);
+  };
+
+  const handlePointerMove = (event: PointerEvent<HTMLCanvasElement>) => {
+    if (!supportsFineHover(event.pointerType)) {
+      if (lastHoverIndexRef.current !== null) handlePointerLeave();
+      return;
+    }
+    if (!getHoverIndex || width <= 0) return;
+    const next = getHoverIndex(event.nativeEvent.offsetX, width);
+    if (next === lastHoverIndexRef.current) return;
+    lastHoverIndexRef.current = next;
+    animateHover(next, next == null ? 0 : 1);
+    onHoverIndex?.(next);
   };
 
   return (

@@ -1,7 +1,7 @@
 import { clamp, toHsl, toOklch } from "@/utils/hsl";
 import { formatByteRate } from "@/utils/format";
 
-// latency 与 loss 共用五段 HSL 热力渐变，只使用不同阈值。
+// 丢包使用连续 HSL 热力渐变；延迟使用下方独立的离散监控状态阶梯。
 const HEAT_RAMP_SEGMENTS = [
   (t: number) => toHsl(145 - 18 * t, 62 + 8 * t, 48 + 3 * t),
   (t: number) => toHsl(127 - 47 * t, 70 + 6 * t, 51 + 1 * t),
@@ -29,7 +29,12 @@ export function latencyHeatColor(ms: number | null | undefined): string {
   if (ms == null || !Number.isFinite(ms) || ms < 0) {
     return "var(--text-tertiary)";
   }
-  return heatRamp(ms, [100, 150, 200, 300], 300);
+  // 首页是状态巡检而非精密曲线：离散色阶保证 53ms 与 91ms 一眼可分，精确值由数字和 tooltip 承担。
+  if (ms <= 60) return "var(--latency-excellent)";
+  if (ms <= 100) return "var(--latency-good)";
+  if (ms <= 160) return "var(--latency-moderate)";
+  if (ms <= 200) return "var(--latency-elevated)";
+  return "var(--latency-critical)";
 }
 
 // 流量使用率：0–50% 保持绿色，之后随配额耗尽转为琥珀和红色。

@@ -10,3 +10,15 @@ export function subscribeMediaQuery(mq: MediaQueryList, handler: () => void): ()
   mq.addListener(handler);
   return () => mq.removeListener(handler);
 }
+
+const FINE_HOVER_QUERY = "(any-hover: hover) and (any-pointer: fine)";
+let fineHoverMediaQuery: MediaQueryList | null = null;
+
+/** 只让真正具备悬停能力的精细指针进入柱条 hover 交互；触摸输入始终排除。 */
+export function supportsFineHover(pointerType?: string): boolean {
+  if (pointerType === "touch" || typeof window === "undefined" || !window.matchMedia) {
+    return false;
+  }
+  fineHoverMediaQuery ??= window.matchMedia(FINE_HOVER_QUERY);
+  return fineHoverMediaQuery.matches;
+}

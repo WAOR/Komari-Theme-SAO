@@ -1,4 +1,4 @@
-import { memo, type CSSProperties, type ReactNode } from "react";
+import { memo, useState, type CSSProperties, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowDown,
@@ -15,14 +15,17 @@ import { clsx } from "clsx";
 import { Flag } from "@/components/ui/Flag";
 import { OsLogo } from "@/components/ui/OsLogo";
 import { IpStackBadges } from "./IpStackBadges";
+import { HealthBucketTooltip } from "./HealthBucketTooltip";
 import { useNodeCardModel } from "@/hooks/useNodeCardModel";
 import { speedRateColor } from "@/utils/metricTone";
+import { supportsFineHover } from "@/utils/mediaQuery";
 import {
   healthBarSlotModel,
   joinTagTitle,
   nodeDetailLinkLabels,
   pingEmptyLabels,
 } from "./nodeCardShared";
+import { formatHealthBucketTooltip } from "./pingBucketText";
 import { formatBytes, type ByteRateDisplay } from "@/utils/format";
 import type { NodeInfo, NodeMetrics, PingOverviewItem, PingOverviewBucket } from "@/types/komari";
 
@@ -253,43 +256,59 @@ function MiniFlow({
 function MiniHealthBars({
   buckets,
   kind,
-  max,
 }: {
   buckets: PingOverviewBucket[];
   kind: "latency" | "loss";
-  max?: number;
 }) {
   const width = Math.max(1, buckets.length * 4 - 1);
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const hoveredBucket = hoveredIndex == null ? null : (buckets[hoveredIndex] ?? null);
+  const tooltip = hoveredBucket ? formatHealthBucketTooltip(hoveredBucket, kind) : null;
 
   return (
-    <svg
-      className="mini-health-bars"
-      viewBox={`0 0 ${width} 16`}
-      preserveAspectRatio="none"
-      aria-hidden
-    >
-      {buckets.map((bucket, index) => {
-        const slot = healthBarSlotModel(bucket, kind, max);
-        const barHeight = 16 * slot.heightFraction;
+    <div className="mini-health-chart-wrap">
+      <svg
+        className="mini-health-bars"
+        viewBox={`0 0 ${width} 16`}
+        preserveAspectRatio="none"
+        aria-hidden
+        onPointerMove={(event) => {
+          if (!supportsFineHover(event.pointerType)) {
+            setHoveredIndex(null);
+            return;
+          }
+          const rect = event.currentTarget.getBoundingClientRect();
+          if (rect.width <= 0 || buckets.length === 0) return;
+          const ratio = (event.clientX - rect.left) / rect.width;
+          setHoveredIndex(Math.max(0, Math.min(buckets.length - 1, Math.floor(ratio * buckets.length))));
+        }}
+        onPointerLeave={() => setHoveredIndex(null)}
+      >
+        {buckets.map((bucket, index) => {
+          const slot = healthBarSlotModel(bucket, kind);
+          const barHeight = 16 * slot.heightFraction;
 
-        return (
-          <rect
-            key={bucket.index}
-            x={index * 4}
-            y={16 - barHeight}
-            width="3"
-            height={barHeight}
-            rx="1.25"
-            fill={slot.color}
-            opacity={slot.alpha}
-          />
-        );
-      })}
-    </svg>
+          return (
+            <rect
+              key={bucket.index}
+              className="mini-health-bar"
+              x={index * 4}
+              y={16 - barHeight}
+              width="3"
+              height={barHeight}
+              rx="1.25"
+              fill={slot.color}
+              opacity={slot.alpha}
+            />
+          );
+        })}
+      </svg>
+      <HealthBucketTooltip text={tooltip} index={hoveredIndex} count={buckets.length} />
+    </div>
   );
 }
 
-// 延迟/丢包必显；mini 使用无监听的内联 SVG，避免每张卡创建 Canvas 与观察器。
+// 延迟/丢包必显；mini 使用内联 SVG，避免每张卡创建 Canvas 与观察器。
 const MiniHealth = memo(function MiniHealth({
   ping,
   pingBuckets,
@@ -323,7 +342,7 @@ const MiniHealth = memo(function MiniHealth({
             )}
           </strong>
         </div>
-        <MiniHealthBars kind="latency" max={ping.max} buckets={pingBuckets} />
+        <MiniHealthBars kind="latency" buckets={pingBuckets} />
       </div>
       <div className="mini-node-health-item">
         <div className="mini-node-health-head">

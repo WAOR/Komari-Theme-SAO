@@ -73,7 +73,7 @@ export function getBarGeometry(width: number, count: number): { gap: number; bar
 
 // 延迟/丢包柱的统一取值模型:激活判定/柱高/颜色/透明度只在这一处定义,canvas(大卡/列表)、
 // DOM(紧凑卡)、SVG(迷你卡)三种渲染层各自消费,避免规则漂移。基准取大卡规则:
-// 延迟按 value/max 定高(下限 0.2),丢包恒定 0.84 高、只用颜色表达严重度。
+// 延迟与丢包都使用固定高度，严重度只由绝对值颜色表达，便于跨节点比较。
 export interface HealthBarSlotModel {
   active: boolean;
   /** 柱高占比(0-1)。 */
@@ -83,24 +83,40 @@ export interface HealthBarSlotModel {
   alpha: number;
 }
 
+/** DOM、SVG 与 Canvas 统一采用 1.55 倍抬高和 54% 背景透明度。 */
+export function healthBarInteractionModel(
+  slot: HealthBarSlotModel,
+  isHovered: boolean,
+  hoverProgress: number,
+) {
+  const progress = Math.max(0, Math.min(1, hoverProgress));
+  if (isHovered) {
+    return {
+      heightFraction: Math.min(1, slot.heightFraction * (1 + 0.55 * progress)),
+      alpha: slot.alpha + (1 - slot.alpha) * progress,
+    };
+  }
+  return {
+    heightFraction: slot.heightFraction,
+    alpha: slot.alpha * (1 - 0.46 * progress),
+  };
+}
+
 const HEALTH_LOSS_BAR_HEIGHT = 0.84;
 const HEALTH_INACTIVE_BAR_HEIGHT = 0.25;
-const HEALTH_LATENCY_MIN_HEIGHT = 0.2;
 
 export function healthBarSlotModel(
   bucket: PingOverviewBucket,
   kind: "latency" | "loss",
-  max?: number,
 ): HealthBarSlotModel {
   if (kind === "latency") {
     const value = bucket.value;
     if (value != null && Number.isFinite(value) && value >= 0) {
-      const safeMax = max != null && max > 0 ? max : 1;
       return {
         active: true,
-        heightFraction: Math.max(HEALTH_LATENCY_MIN_HEIGHT, Math.min(1, value / safeMax)),
+        heightFraction: HEALTH_LOSS_BAR_HEIGHT,
         color: latencyHeatColor(value),
-        alpha: 0.92,
+        alpha: 0.94,
       };
     }
     return {

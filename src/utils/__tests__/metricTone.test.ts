@@ -23,10 +23,10 @@ function oklchHue(color: string): number {
 
 describe("latencyHeatColor", () => {
   it("treats 0ms (sub-millisecond success) as the greenest latency, not neutral", () => {
-    // 后端把往返 <1ms 取整成 0；0 是最优延迟,取最绿端(色相 ~145°),不能当无数据画成中性灰。
+    // 后端把往返 <1ms 取整成 0；0 是最优延迟，不能当无数据画成中性灰。
     const color = latencyHeatColor(0);
     expect(color).not.toBe("var(--text-tertiary)");
-    expect(hue(color)).toBeCloseTo(145, 0);
+    expect(color).toBe("var(--latency-excellent)");
   });
 
   it("returns neutral only for no data (null/undefined) or loss (negative / non-finite)", () => {
@@ -36,9 +36,17 @@ describe("latencyHeatColor", () => {
     expect(latencyHeatColor(Number.NaN)).toBe("var(--text-tertiary)");
   });
 
-  it("rotates hue green→red as latency grows", () => {
-    expect(hue(latencyHeatColor(0))).toBeGreaterThan(hue(latencyHeatColor(120)));
-    expect(hue(latencyHeatColor(120))).toBeGreaterThan(hue(latencyHeatColor(500)));
+  it("uses explicit monitoring tiers with useful separation inside 0-100ms", () => {
+    expect(latencyHeatColor(53)).toBe("var(--latency-excellent)");
+    expect(latencyHeatColor(60)).toBe("var(--latency-excellent)");
+    expect(latencyHeatColor(61)).toBe("var(--latency-good)");
+    expect(latencyHeatColor(91)).toBe("var(--latency-good)");
+    expect(latencyHeatColor(100)).toBe("var(--latency-good)");
+    expect(latencyHeatColor(101)).toBe("var(--latency-moderate)");
+    expect(latencyHeatColor(160)).toBe("var(--latency-moderate)");
+    expect(latencyHeatColor(161)).toBe("var(--latency-elevated)");
+    expect(latencyHeatColor(200)).toBe("var(--latency-elevated)");
+    expect(latencyHeatColor(201)).toBe("var(--latency-critical)");
   });
 });
 

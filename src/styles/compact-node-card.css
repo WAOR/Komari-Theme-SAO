@@ -584,16 +584,25 @@
     transform 150ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-.compact-node-health-bar:hover,
-.compact-node-health-bar[data-selected="true"] {
-  filter: saturate(1.14) brightness(1.04);
-  opacity: 1 !important;
-  outline: none;
-  transform: scaleY(1.55);
+@media (any-hover: hover) and (any-pointer: fine) {
+  .compact-node-health-bar:hover,
+  .compact-node-health-bar[data-selected="true"] {
+    filter: saturate(1.14) brightness(1.04);
+    opacity: 1 !important;
+    outline: none;
+    transform: scaleY(1.55);
+  }
+
+  .compact-node-health-bars:hover .compact-node-health-bar:not(:hover):not([data-selected="true"]) {
+    opacity: 0.54 !important;
+  }
 }
 
-.compact-node-health-bars:hover .compact-node-health-bar:not(:hover):not([data-selected="true"]) {
-  opacity: 0.54 !important;
+@media (any-hover: none) {
+  .compact-node-health-tooltip,
+  .node-health-hover-tooltip {
+    display: none;
+  }
 }
 
 @keyframes compact-health-tooltip-in {

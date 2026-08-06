@@ -23,6 +23,7 @@ import { useThemeSettings } from "@/hooks/useThemeSettings";
 import { formatBytes } from "@/utils/format";
 import { HOMEPAGE_MULTI_PING_TASK_COUNT } from "@/utils/pingTasks";
 import { speedRateColor, speedRateColorFromBytes } from "@/utils/metricTone";
+import { supportsFineHover } from "@/utils/mediaQuery";
 import { formatHealthBucketTooltip } from "./pingBucketText";
 import { MultiPingStatus } from "./MultiPingStatus";
 import {
@@ -194,11 +195,9 @@ function CompactInfoRow({
 
 function HealthBars({
   buckets,
-  max,
   kind,
 }: {
   buckets: PingOverviewBucket[];
-  max: number;
   kind: "latency" | "loss";
 }) {
   const bars = buckets.slice(-HEALTH_BAR_COUNT);
@@ -228,6 +227,7 @@ function HealthBars({
       role="group"
       aria-label={`${kind === "latency" ? "延迟" : "丢包"}历史${activeTooltip ? `，${activeTooltip}` : ""}，使用左右方向键查看`}
       onFocus={() => {
+        if (!supportsFineHover()) return;
         if (selectedIndex == null) selectIndex(bars.length - 1);
       }}
       onBlur={() => {
@@ -250,13 +250,12 @@ function HealthBars({
         </span>
       )}
       {bars.map((bucket, index) => {
-        const slot = healthBarSlotModel(bucket, kind, max);
+        const slot = healthBarSlotModel(bucket, kind);
         const style = {
           "--compact-health-height": `${slot.heightFraction * 100}%`,
           "--compact-health-color": slot.color,
           opacity: slot.alpha,
         } as CSSProperties;
-        const tooltip = formatHealthBucketTooltip(bucket, kind);
 
         return (
           <span
@@ -265,10 +264,12 @@ function HealthBars({
             style={style}
             data-selected={selectedIndex === index ? "true" : "false"}
             aria-hidden="true"
-            title={tooltip}
-            onMouseEnter={() => setHoveredIndex(index)}
-            onMouseLeave={() => setHoveredIndex(null)}
+            onPointerEnter={(event) => {
+              if (supportsFineHover(event.pointerType)) setHoveredIndex(index);
+            }}
+            onPointerLeave={() => setHoveredIndex(null)}
             onClick={() => {
+              if (!supportsFineHover()) return;
               containerRef.current?.focus({ preventScroll: true });
               setSelectedIndex(index);
             }}
@@ -625,7 +626,7 @@ const CompactNodeHealth = memo(function CompactNodeHealth({
         unit={ping.lastValue != null ? "ms" : undefined}
         color={latencyColor}
       >
-        <HealthBars buckets={pingBuckets} max={ping.max} kind="latency" />
+        <HealthBars buckets={pingBuckets} kind="latency" />
       </CompactHealthItem>
       <CompactHealthItem
         icon={<Unplug size={12} />}
@@ -634,7 +635,7 @@ const CompactNodeHealth = memo(function CompactNodeHealth({
         unit={ping.loss != null ? "%" : undefined}
         color={lossColor}
       >
-        <HealthBars buckets={pingBuckets} max={1} kind="loss" />
+        <HealthBars buckets={pingBuckets} kind="loss" />
       </CompactHealthItem>
     </div>
   );

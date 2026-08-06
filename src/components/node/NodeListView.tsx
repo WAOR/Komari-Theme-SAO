@@ -104,13 +104,11 @@ function ListLatency({
   latency,
   latencyColor,
   buckets,
-  max,
   redrawKey,
 }: {
   latency: number | null;
   latencyColor: string;
   buckets: Parameters<typeof LatencyBars>[0]["buckets"];
-  max: number;
   redrawKey: string;
 }) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
@@ -128,7 +126,6 @@ function ListLatency({
       <span className="node-list-latency-bars">
         <LatencyBars
           buckets={buckets}
-          max={max}
           redrawKey={redrawKey}
           height={14}
           onHoverIndex={setHoveredIndex}
@@ -285,7 +282,6 @@ const NodeRow = memo(function NodeRow({ uuid }: { uuid: string }) {
           latency={ping.lastValue}
           latencyColor={latencyColor}
           buckets={pingBuckets}
-          max={ping.max}
           redrawKey={redrawKey}
         />
       </div>

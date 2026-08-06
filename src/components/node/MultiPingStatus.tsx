@@ -72,7 +72,6 @@ const MultiPingMetricRow = memo(function MultiPingMetricRow({
         {metric === "latency" ? (
           <LatencyBars
             buckets={line.buckets}
-            max={line.max}
             redrawKey={redrawKey}
             height={chartHeight}
             onHoverIndex={setHoveredIndex}

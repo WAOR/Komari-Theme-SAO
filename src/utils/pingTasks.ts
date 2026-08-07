@@ -1,6 +1,8 @@
 export type HomepagePingTaskBindings = Record<string, string[]>;
 export const HOMEPAGE_MULTI_PING_TASK_COUNT = 3;
 
+const invertedBindingsCache = new WeakMap<HomepagePingTaskBindings, Map<string, number>>();
+
 function parseTaskId(taskId: string) {
   if (!/^\d+$/.test(taskId)) return null;
   const parsed = Number(taskId);
@@ -60,6 +62,9 @@ export function normalizeHomepagePingTaskBindings(
 export function invertHomepagePingTaskBindings(
   bindings: HomepagePingTaskBindings,
 ): Map<string, number> {
+  const cached = invertedBindingsCache.get(bindings);
+  if (cached) return cached;
+
   const selectedTaskByClient = new Map<string, number>();
   const entries = Object.entries(normalizeHomepagePingTaskBindings(bindings)).sort(
     ([left], [right]) => Number(left) - Number(right),
@@ -75,7 +80,15 @@ export function invertHomepagePingTaskBindings(
     }
   }
 
+  invertedBindingsCache.set(bindings, selectedTaskByClient);
   return selectedTaskByClient;
+}
+
+export function hasHomepagePingTaskBinding(
+  clientUuid: string,
+  bindings: HomepagePingTaskBindings,
+): boolean {
+  return Boolean(clientUuid) && invertHomepagePingTaskBindings(bindings).has(clientUuid);
 }
 
 export function resolveHomepagePingTaskIdsByClient(

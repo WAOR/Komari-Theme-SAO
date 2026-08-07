@@ -51,6 +51,13 @@
   min-width: 0;
 }
 
+.server-card-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+}
+
 .server-card-title-block {
   flex: 1 1 auto;
   min-width: 0;

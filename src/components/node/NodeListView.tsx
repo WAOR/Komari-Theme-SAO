@@ -14,6 +14,7 @@ import { LatencyBars } from "./LatencyBars";
 import { HealthBucketTooltip } from "./HealthBucketTooltip";
 import { formatOsLabel, joinTagTitle, nodeDetailLinkLabels } from "./nodeCardShared";
 import { formatHealthBucketTooltip } from "./pingBucketText";
+import type { PingOverviewTaskLoadState } from "@/types/komari";
 
 const GAUGE_SEGMENTS = 14;
 // 列表网络列的延迟柱数:比卡片(24)少,配窄列宽,柱子仍清晰可读。
@@ -26,6 +27,73 @@ function clamp01(value: number) {
 function pctText(value: number) {
   if (!Number.isFinite(value) || value <= 0) return "0";
   return value >= 10 ? Math.round(value).toString() : value.toFixed(1);
+}
+
+type ListPingState = PingOverviewTaskLoadState | "unconfigured";
+
+export function resolveListPingState(
+  loadState: PingOverviewTaskLoadState | undefined,
+  hasRealHomepagePingBinding: boolean,
+  pingIsAssigned: boolean,
+): ListPingState {
+  if (!hasRealHomepagePingBinding && !pingIsAssigned) return "unconfigured";
+  return loadState ?? (pingIsAssigned ? "ready" : "pending");
+}
+
+export function formatListPingStatus(
+  latency: number | null,
+  state: ListPingState,
+) {
+  const roundedLatency = latency == null ? null : Math.round(latency);
+  const value = roundedLatency == null ? null : `${roundedLatency} 毫秒`;
+  if (value != null) {
+    if (state === "error") {
+      return {
+        visibleText: `${roundedLatency}`,
+        title: "首页 Ping 刷新失败，显示上次数据",
+        ariaText: `${value}，首页 Ping 刷新失败，显示上次数据`,
+      };
+    }
+    if (state === "pending") {
+      return {
+        visibleText: `${roundedLatency}`,
+        title: "首页 Ping 正在刷新，显示上次数据",
+        ariaText: `${value}，首页 Ping 正在刷新，显示上次数据`,
+      };
+    }
+    return {
+      visibleText: `${roundedLatency}`,
+      title: `${value}`,
+      ariaText: value,
+    };
+  }
+
+  switch (state) {
+    case "unconfigured":
+      return {
+        visibleText: "未配置",
+        title: "未配置首页 Ping",
+        ariaText: "未配置首页 Ping",
+      };
+    case "pending":
+      return {
+        visibleText: "加载中",
+        title: "正在加载首页 Ping",
+        ariaText: "首页 Ping 加载中",
+      };
+    case "error":
+      return {
+        visibleText: "加载失败",
+        title: "首页 Ping 加载失败",
+        ariaText: "首页 Ping 加载失败",
+      };
+    default:
+      return {
+        visibleText: "无样本",
+        title: "暂无有效 Ping 样本",
+        ariaText: "无样本",
+      };
+  }
 }
 
 // 细 canvas 分段条 + 百分比,与大卡 MetricBar 同一视觉语言,但压成一格(数值在上、细条在下)。
@@ -102,25 +170,45 @@ function StackLine({
 // 网络列:当前延迟在上,聚合延迟柱状图在下(热力着色,与大卡同一视觉语言)。
 function ListLatency({
   latency,
+  loadState,
+  hasRealHomepagePingBinding,
+  pingIsAssigned,
   latencyColor,
   buckets,
   redrawKey,
 }: {
   latency: number | null;
+  loadState: PingOverviewTaskLoadState | undefined;
+  hasRealHomepagePingBinding: boolean;
+  pingIsAssigned: boolean;
   latencyColor: string;
   buckets: Parameters<typeof LatencyBars>[0]["buckets"];
   redrawKey: string;
 }) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const state = resolveListPingState(
+    loadState,
+    hasRealHomepagePingBinding,
+    pingIsAssigned,
+  );
+  const status = formatListPingStatus(latency, state);
   const hoveredBucket = hoveredIndex == null ? null : (buckets[hoveredIndex] ?? null);
   const tooltip = hoveredBucket
     ? formatHealthBucketTooltip(hoveredBucket, "latency")
     : null;
 
   return (
-    <div className="node-list-latency">
-      <span className="node-list-latency-value tabular" style={{ color: latencyColor }}>
-        {latency != null ? Math.round(latency) : "—"}
+    <div
+      className="node-list-latency"
+      data-ping-state={state}
+      aria-label={`网络延迟 ${status.ariaText}`}
+    >
+      <span
+        className="node-list-latency-value tabular"
+        style={{ color: latencyColor }}
+        title={status.title}
+      >
+        {status.visibleText}
         {latency != null && <small>ms</small>}
       </span>
       <span className="node-list-latency-bars">
@@ -159,12 +247,19 @@ const NodeRow = memo(function NodeRow({ uuid }: { uuid: string }) {
     uptime,
     renewalPrice,
     latencyColor,
+    hasRealHomepagePingBinding,
     loadFraction,
     upRate,
     downRate,
     isOffline,
     osName,
   } = model;
+  const listPingState = resolveListPingState(
+    ping.loadState,
+    hasRealHomepagePingBinding,
+    ping.isAssigned,
+  );
+  const listPingStatus = formatListPingStatus(ping.lastValue, listPingState);
   const detailLabels = nodeDetailLinkLabels(node.name, osName);
   const usedPct = `${Math.round(clamp01(traffic.fraction) * 100)}%`;
   const rowLabel = [
@@ -177,7 +272,7 @@ const NodeRow = memo(function NodeRow({ uuid }: { uuid: string }) {
     `上行 ${upRate.value}${upRate.unit}`,
     `下行 ${downRate.value}${downRate.unit}`,
     `流量使用 ${usedPct}`,
-    `网络延迟 ${ping.lastValue == null ? "无样本" : `${Math.round(ping.lastValue)} 毫秒`}`,
+    `网络延迟 ${listPingStatus.ariaText}`,
     node.online === true ? "在线" : node.online === false ? "离线" : "状态未知",
     `运行 ${uptime.value}${uptime.unit}`,
     `到期 ${expire.value}${expire.unit}`,
@@ -280,6 +375,9 @@ const NodeRow = memo(function NodeRow({ uuid }: { uuid: string }) {
       <div className="node-list-cell col-net">
         <ListLatency
           latency={ping.lastValue}
+          loadState={ping.loadState}
+          hasRealHomepagePingBinding={hasRealHomepagePingBinding}
+          pingIsAssigned={ping.isAssigned}
           latencyColor={latencyColor}
           buckets={pingBuckets}
           redrawKey={redrawKey}

@@ -1102,6 +1102,55 @@ body::after {
   word-break: break-word;
 }
 
+.instance-info-inline-value {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.instance-info-refresh {
+  display: inline-grid;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-tertiary);
+  transition:
+    background 160ms ease,
+    color 160ms ease;
+}
+
+.instance-info-refresh:hover {
+  background: var(--hover-bg);
+  color: var(--text-primary);
+}
+
+.instance-info-refresh:disabled {
+  cursor: default;
+  opacity: 0.65;
+}
+
+.instance-info-refresh.is-spinning svg {
+  animation: instance-info-refresh-spin 900ms linear infinite;
+}
+
+@keyframes instance-info-refresh-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .instance-info-refresh.is-spinning svg {
+    animation: none;
+  }
+}
+
 /* 流量项带进度条，保留竖排 */
 .instance-info-item.is-stack {
   display: block;
@@ -1130,12 +1179,20 @@ body::after {
 }
 
 .instance-overview-multi {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
   color: var(--text-tertiary);
   font-size: 11px;
   font-weight: 500;
+  line-height: 18px;
+  white-space: nowrap;
+}
+
+.instance-overview-multi > span {
+  line-height: inherit;
 }
 
 .instance-progress-track {
@@ -1598,6 +1655,10 @@ body::after {
     width: 100%;
     align-items: flex-start;
     gap: 3px;
+  }
+
+  .instance-overview-multi {
+    justify-content: flex-start;
   }
 
   .instance-uplot-wrap.is-large {

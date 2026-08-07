@@ -1,7 +1,17 @@
-import { useEffect } from "react";
+import { useEffect, type ReactNode } from "react";
+import { RefreshCw } from "lucide-react";
 import { useNodeMeta, useNodeMetrics } from "@/hooks/useNode";
+import { useMinuteClock } from "@/hooks/useClock";
+import { useTodayTrafficStats } from "@/hooks/useTodayTrafficStats";
 import { InstanceSwitcher } from "./InstanceSwitcher";
-import { formatBytes, formatUptimeDays } from "@/utils/format";
+import {
+  formatTodayPeakValue,
+  formatTodayTrafficValue,
+} from "./instanceTodayTrafficFormat";
+import {
+  formatBytes,
+  formatUptimeDays,
+} from "@/utils/format";
 import { resolveTrafficUsage } from "@/utils/traffic";
 import { InstancePanel } from "./InstancePanel";
 
@@ -19,8 +29,11 @@ export function InstanceDetails({
   uuid: string;
   onNodeReady?: () => (() => void) | void;
 }) {
+  const now = useMinuteClock();
   const meta = useNodeMeta(uuid);
   const metrics = useNodeMetrics(uuid);
+  const trafficQuery = useTodayTrafficStats([uuid], now, "summary");
+  const todayStat = trafficQuery.data?.rows.find((row) => row.uuid === uuid);
   const isReady = Boolean(meta && metrics);
 
   useEffect(() => {
@@ -96,6 +109,35 @@ export function InstanceDetails({
             value={`↑ ${formatBytes(metrics.netUp)}/s · ↓ ${formatBytes(metrics.netDown)}/s`}
           />
           <InfoRow label={isOnline ? "最近更新" : "最后上报"} value={lastUpdated} />
+          <InfoRow
+            label="今日流量"
+            value={
+              <span className="instance-info-inline-value">
+                <span>
+                  {formatTodayTrafficValue(
+                    todayStat,
+                    trafficQuery.isPending,
+                    trafficQuery.isError,
+                  )}
+                </span>
+                <button
+                  type="button"
+                  className={`instance-info-refresh${trafficQuery.isFetching ? " is-spinning" : ""}`}
+                  onClick={() => void trafficQuery.refetch()}
+                  disabled={trafficQuery.isFetching}
+                  aria-busy={trafficQuery.isFetching}
+                  aria-label="刷新今日流量"
+                  title="刷新今日流量"
+                >
+                  <RefreshCw size={13} strokeWidth={2.2} />
+                </button>
+              </span>
+            }
+          />
+          <InfoRow
+            label="峰值速度"
+            value={formatTodayPeakValue(todayStat, trafficQuery.isPending)}
+          />
           <div className="instance-info-item is-stack">
             <span className="instance-info-label">总流量</span>
             <div className="instance-info-traffic">
@@ -126,7 +168,7 @@ function InfoRow({
   value,
 }: {
   label: string;
-  value: string;
+  value: ReactNode;
 }) {
   return (
     <div className="instance-info-item">

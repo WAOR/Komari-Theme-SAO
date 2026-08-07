@@ -68,37 +68,7 @@ export const NodeInfoSchema = z
   })
   .passthrough();
 
-export interface NodeInfo {
-  uuid: string;
-  name: string;
-  group?: string | null;
-  region?: string | null;
-  hidden: boolean;
-  cpu_name: string;
-  cpu_cores: number;
-  arch: string;
-  virtualization: string;
-  os: string;
-  kernel_version: string;
-  gpu_name: string;
-  mem_total: number;
-  swap_total: number;
-  disk_total: number;
-  weight: number;
-  price: number;
-  billing_cycle?: string | null;
-  auto_renewal: boolean;
-  currency: string;
-  expired_at?: string | null;
-  tags: string;
-  public_remark: string;
-  traffic_limit: number;
-  traffic_limit_type: string;
-  ipv4: string;
-  ipv6: string;
-  created_at: string;
-  updated_at: string;
-}
+export type NodeInfo = z.output<typeof NodeInfoSchema>;
 
 export interface NodeRealtime {
   cpu: { usage: number };
@@ -170,6 +140,7 @@ export interface ThemeSettings {
   compactShowBilling?: boolean;
   compactShowUptime?: boolean;
   showConnections?: boolean;
+  showTodayTrafficPopover?: boolean;
   hiddenNodes?: string[];
   costIgnoredNodes?: string[];
   // 值支持旧版纯数字(自动升格)或 { amount, paidCny?, acquiredAt? } 条目,见 normalizeCostPremiums。
@@ -204,22 +175,7 @@ export const PublicConfigSchema = z
   })
   .passthrough();
 
-export interface PublicConfig {
-  sitename: string;
-  description: string;
-  theme: string;
-  allow_cors: boolean;
-  disable_password_login: boolean;
-  oauth_enable: boolean;
-  private_site: boolean;
-  record_enabled: boolean;
-  record_preserve_time: number;
-  ping_record_preserve_time: number;
-  metric_retention_days: number;
-  custom_head: string;
-  custom_body: string;
-  theme_settings: ThemeSettings & Record<string, unknown>;
-}
+export type PublicConfig = z.output<typeof PublicConfigSchema>;
 
 export const AdminClientSchema = z
   .object({
@@ -231,13 +187,7 @@ export const AdminClientSchema = z
   })
   .passthrough();
 
-export interface AdminClient {
-  uuid: string;
-  name: string;
-  group?: string | null;
-  region?: string | null;
-  weight: number;
-}
+export type AdminClient = z.output<typeof AdminClientSchema>;
 
 export const MeSchema = z
   .object({
@@ -247,11 +197,7 @@ export const MeSchema = z
   })
   .passthrough();
 
-export interface Me {
-  logged_in: boolean;
-  username: string;
-  uuid: string;
-}
+export type Me = z.output<typeof MeSchema>;
 
 export const LoadRecordSchema = z
   .object({
@@ -277,27 +223,7 @@ export const LoadRecordSchema = z
   })
   .passthrough();
 
-export interface LoadRecord {
-  cpu: number;
-  gpu: number;
-  ram: number;
-  ram_total: number;
-  swap: number;
-  swap_total: number;
-  load: number;
-  temp: number;
-  disk: number;
-  disk_total: number;
-  net_in: number;
-  net_out: number;
-  net_total_up: number;
-  net_total_down: number;
-  process: number;
-  connections: number;
-  connections_udp: number;
-  time: string | number;
-  client: string;
-}
+export type LoadRecord = z.output<typeof LoadRecordSchema>;
 
 export const PingRecordSchema = z
   .object({
@@ -305,19 +231,12 @@ export const PingRecordSchema = z
     time: z.union([z.string(), z.number()]),
     value: z.number(),
     client: z.string().default(""),
+    count: z.number().optional(),
+    loss: z.number().nullable().optional(),
   })
   .passthrough();
 
-export interface PingRecord {
-  task_id: number;
-  time: string | number;
-  value: number;
-  client: string;
-  /** 聚合 metric 点覆盖的原始样本数；旧接口的原始记录没有此字段。 */
-  count?: number;
-  /** 聚合窗口的丢包百分比；旧接口由 value < 0 表示单次丢包。 */
-  loss?: number | null;
-}
+export type PingRecord = z.output<typeof PingRecordSchema>;
 
 export const PingTaskSchema = z
   .object({
@@ -332,16 +251,7 @@ export const PingTaskSchema = z
   })
   .passthrough();
 
-export interface PingTask {
-  id: number;
-  interval: number;
-  name: string;
-  loss: number;
-  clients: string[];
-  type: string;
-  target: string;
-  weight: number;
-}
+export type PingTask = z.output<typeof PingTaskSchema>;
 
 export interface LoadRecordsResponse {
   count: number;
@@ -382,9 +292,13 @@ export interface PingTaskStats {
   p99P50Ratio: number;
 }
 
+export type PingOverviewTaskLoadState = "pending" | "ready" | "error";
+
 export interface PingOverviewItem {
   client: string;
   isAssigned: boolean;
+  /** 当前任务本轮请求状态；模拟 Ping 不设置此字段。 */
+  loadState?: PingOverviewTaskLoadState;
   lastValue: number | null;
   /** metric API 聚合桶的真实宽度；旧 records 接口没有该字段。 */
   metricIntervalMs?: number;

@@ -27,11 +27,21 @@ import {
 } from "@/utils/metricTone";
 import { resolveTrafficUsage, trafficTypeLabel, type TrafficDisplay } from "@/utils/traffic";
 import { resolveOsInfo } from "@/components/ui/OsLogo";
-import { HOMEPAGE_MULTI_PING_TASK_COUNT } from "@/utils/pingTasks";
+import {
+  hasHomepagePingTaskBinding,
+  HOMEPAGE_MULTI_PING_TASK_COUNT,
+} from "@/utils/pingTasks";
 
 interface NodeCardModelOptions {
   pingBucketCount?: number;
   includeMultiPing?: boolean;
+}
+
+export function shouldRenderHomepagePingBars(
+  hasRealHomepagePingBinding: boolean,
+  pingIsAssigned: boolean,
+) {
+  return hasRealHomepagePingBinding || pingIsAssigned;
 }
 
 export function useNodeCardModel(
@@ -55,6 +65,11 @@ export function useNodeCardModel(
     homepageMultiPingTaskIds.length === HOMEPAGE_MULTI_PING_TASK_COUNT;
   const realPing = useNodePingOverview(uuid, !multiPingActive);
   const realPingLines = useNodePingOverviewLines(uuid, multiPingActive);
+  const hasRealHomepagePingBinding = useMemo(
+    () =>
+      multiPingActive || hasHomepagePingTaskBinding(uuid, homepagePingBindings),
+    [homepagePingBindings, multiPingActive, uuid],
+  );
   const now = useHourlyClock();
   const ping = useFakePingFallback(
     uuid,
@@ -62,6 +77,16 @@ export function useNodeCardModel(
     metrics?.online === true,
     fakePingForUnbound && !multiPingActive,
     homepagePingBindings,
+  );
+  // 状态跟随每条任务数据进入 Store,不再订阅全局 isRefreshing。这样后台轮询开始/结束
+  // 时不会让所有节点卡片仅因一个布尔值变化而重渲染。
+  const pingLoading =
+    hasRealHomepagePingBinding && (ping.loadState ?? "pending") === "pending";
+  const pingError =
+    hasRealHomepagePingBinding && ping.loadState === "error";
+  const shouldRenderPingBars = shouldRenderHomepagePingBars(
+    hasRealHomepagePingBinding,
+    ping.isAssigned,
   );
   const pingBuckets = usePingBuckets(
     ping,
@@ -84,6 +109,7 @@ export function useNodeCardModel(
           taskName: `任务 #${taskId}`,
           client: uuid,
           isAssigned: true,
+          loadState: "pending",
           lastValue: null,
           samples: [],
           max: 1,
@@ -138,9 +164,20 @@ export function useNodeCardModel(
     () => ({
       latencyColor: latencyHeatColor(ping.lastValue),
       lossColor: lossHeatColor(ping.loss),
-      hasHomepagePingBinding: ping.isAssigned,
+      hasRealHomepagePingBinding,
+      // 保留旧字段供外部模型消费者兼容；它表示真实配置状态。
+      hasHomepagePingBinding: hasRealHomepagePingBinding,
+      shouldRenderPingBars,
+      pingLoading,
+      pingError,
     }),
-    [ping],
+    [
+      hasRealHomepagePingBinding,
+      ping,
+      pingError,
+      pingLoading,
+      shouldRenderPingBars,
+    ],
   );
 
   return useMemo(() => {

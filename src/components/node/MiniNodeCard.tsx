@@ -15,6 +15,7 @@ import { clsx } from "clsx";
 import { Flag } from "@/components/ui/Flag";
 import { OsLogo } from "@/components/ui/OsLogo";
 import { IpStackBadges } from "./IpStackBadges";
+import { NodeTodayTrafficPopover } from "./NodeTodayTrafficPopover";
 import { HealthBucketTooltip } from "./HealthBucketTooltip";
 import { useNodeCardModel } from "@/hooks/useNodeCardModel";
 import { speedRateColor } from "@/utils/metricTone";
@@ -35,7 +36,15 @@ const HEALTH_BAR_COUNT = 24;
 type MiniNode = NodeInfo & NodeMetrics;
 type MiniTag = { label: string; color: string };
 
-function MiniHeader({ node, osName }: { node: MiniNode; osName: string }) {
+function MiniHeader({
+  node,
+  osName,
+  showTodayTraffic,
+}: {
+  node: MiniNode;
+  osName: string;
+  showTodayTraffic: boolean;
+}) {
   const detailLabels = nodeDetailLinkLabels(node.name, osName);
   const detailHref = `/instance/${encodeURIComponent(node.uuid)}`;
   return (
@@ -44,6 +53,7 @@ function MiniHeader({ node, osName }: { node: MiniNode; osName: string }) {
       <Link to={detailHref} className="mini-node-title" title={node.name}>
         {node.name}
       </Link>
+      {showTodayTraffic && <NodeTodayTrafficPopover uuid={node.uuid} size={13} />}
       <Link
         to={detailHref}
         className="mini-node-os"
@@ -314,17 +324,33 @@ const MiniHealth = memo(function MiniHealth({
   pingBuckets,
   latencyColor,
   lossColor,
-  hasHomepagePingBinding,
+  hasRealHomepagePingBinding,
+  pingLoading,
+  pingError,
 }: {
   ping: PingOverviewItem;
   pingBuckets: PingOverviewBucket[];
   latencyColor: string;
   lossColor: string;
-  hasHomepagePingBinding: boolean;
+  hasRealHomepagePingBinding: boolean;
+  pingLoading: boolean;
+  pingError: boolean;
 }) {
-  const { text: emptyText } = pingEmptyLabels(hasHomepagePingBinding);
+  const { text: emptyText } = pingEmptyLabels(
+    hasRealHomepagePingBinding,
+    pingLoading,
+    pingError,
+  );
   return (
-    <div className="mini-node-health">
+    <div
+      className="mini-node-health"
+      data-ping-state={ping.loadState ?? "ready"}
+      title={
+        pingError && (ping.lastValue != null || ping.loss != null)
+          ? "首页 Ping 刷新失败，显示上次数据"
+          : undefined
+      }
+    >
       <div className="mini-node-health-item">
         <div className="mini-node-health-head">
           <span className="mini-node-health-label">
@@ -367,7 +393,13 @@ const MiniHealth = memo(function MiniHealth({
   );
 });
 
-export const MiniNodeCard = memo(function MiniNodeCard({ uuid }: { uuid: string }) {
+export const MiniNodeCard = memo(function MiniNodeCard({
+  uuid,
+  showTodayTraffic = true,
+}: {
+  uuid: string;
+  showTodayTraffic?: boolean;
+}) {
   const model = useNodeCardModel(uuid, {
     pingBucketCount: HEALTH_BAR_COUNT,
   });
@@ -387,14 +419,20 @@ export const MiniNodeCard = memo(function MiniNodeCard({ uuid }: { uuid: string 
     loadFraction,
     upRate,
     downRate,
-    hasHomepagePingBinding,
+    hasRealHomepagePingBinding,
+    pingLoading,
+    pingError,
     isOffline,
     osName,
   } = model;
 
   return (
     <article className={clsx("mini-node-card", isOffline && "is-offline")}>
-      <MiniHeader node={node} osName={osName} />
+      <MiniHeader
+        node={node}
+        osName={osName}
+        showTodayTraffic={showTodayTraffic}
+      />
       <MiniChips tags={footerTags} renewalPrice={renewalPrice} ipv4={node.ipv4} ipv6={node.ipv6} />
       <MiniVitals node={node} loadFraction={loadFraction} />
       <MiniFlow node={node} upRate={upRate} downRate={downRate} />
@@ -403,7 +441,9 @@ export const MiniNodeCard = memo(function MiniNodeCard({ uuid }: { uuid: string 
         pingBuckets={pingBuckets}
         latencyColor={latencyColor}
         lossColor={lossColor}
-        hasHomepagePingBinding={hasHomepagePingBinding}
+        hasRealHomepagePingBinding={hasRealHomepagePingBinding}
+        pingLoading={pingLoading}
+        pingError={pingError}
       />
     </article>
   );

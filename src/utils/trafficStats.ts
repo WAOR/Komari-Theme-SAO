@@ -88,13 +88,13 @@ export function summarizeTodayTrafficMetrics(
           stat.trafficDown += value;
           break;
         case RATE_UP_METRIC:
-          if (value > stat.peakUp || stat.peakUpAt == null) {
+          if (value > stat.peakUp) {
             stat.peakUp = value;
             stat.peakUpAt = timeMs;
           }
           break;
         case RATE_DOWN_METRIC:
-          if (value > stat.peakDown || stat.peakDownAt == null) {
+          if (value > stat.peakDown) {
             stat.peakDown = value;
             stat.peakDownAt = timeMs;
           }
@@ -175,11 +175,11 @@ export function summarizeTodayTrafficRecords(
     }
     const netOut = Number.isFinite(record.net_out) ? record.net_out : 0;
     const netIn = Number.isFinite(record.net_in) ? record.net_in : 0;
-    if (netOut > stat.peakUp || stat.peakUpAt == null) {
+    if (netOut > stat.peakUp) {
       stat.peakUp = Math.max(0, netOut);
       stat.peakUpAt = timeMs;
     }
-    if (netIn > stat.peakDown || stat.peakDownAt == null) {
+    if (netIn > stat.peakDown) {
       stat.peakDown = Math.max(0, netIn);
       stat.peakDownAt = timeMs;
     }

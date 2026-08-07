@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   normalizeHomepageMultiPingTaskIds,
   invertHomepagePingTaskBindings,
+  hasHomepagePingTaskBinding,
   normalizeHomepagePingTaskBindings,
   resolveHomepagePingSelections,
   resolveHomepagePingTaskIdsByClient,
@@ -41,6 +42,19 @@ describe("homepage ping task bindings", () => {
         ["node-b", 1],
       ]),
     );
+  });
+
+  it("reuses the inverted binding index for a stable bindings object", () => {
+    const bindings = { "8": ["node-a"], "9": ["node-b"] };
+    expect(invertHomepagePingTaskBindings(bindings)).toBe(
+      invertHomepagePingTaskBindings(bindings),
+    );
+  });
+
+  it("reports a binding before overview data has loaded", () => {
+    const bindings = { "8": ["node-a"], "9": ["node-b"] };
+    expect(hasHomepagePingTaskBinding("node-a", bindings)).toBe(true);
+    expect(hasHomepagePingTaskBinding("node-c", bindings)).toBe(false);
   });
 
   it("normalizes the global three-task selection in display order", () => {

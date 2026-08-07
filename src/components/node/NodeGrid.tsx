@@ -36,7 +36,10 @@ import { useHomeSort } from "@/hooks/useHomeSort";
 import { useHomeNodeOrder } from "@/hooks/useHomeNodeOrder";
 import { useHourlyClock } from "@/hooks/useClock";
 import { preloadAssetsPage } from "@/services/assetsPageLoader";
-import { preloadTodayTrafficStats } from "@/hooks/useTodayTrafficStats";
+import {
+  preloadTodayTrafficStats,
+  TodayTrafficStatsProvider,
+} from "@/hooks/useTodayTrafficStats";
 import { HomeSortControl } from "./HomeSortControl";
 import {
   getOverviewRating,
@@ -253,6 +256,7 @@ function HomeOverviewCards({
             title="今日流量统计"
             onPointerEnter={onWarmTraffic}
             onFocus={onWarmTraffic}
+            onClick={onWarmTraffic}
           >
             <TrafficBarsIcon />
           </Link>
@@ -448,6 +452,7 @@ export function NodeGrid() {
     };
   }, [visibleNodes]);
   const showHomeOverview = themeSettings.isReady && themeSettings.showHomeOverview;
+  const showTrafficPopover = themeSettings.isReady && themeSettings.showTodayTrafficPopover;
   const hasNodes = visibleMeta.length > 0;
   // 卡内入口与悬浮入口互斥，避免重复操作入口。
   const showAssetCard = showHomeOverview && hasNodes;
@@ -472,14 +477,6 @@ export function NodeGrid() {
     const handle = window.setTimeout(preloadAssetsPage, 1_000);
     return () => window.clearTimeout(handle);
   }, [showCostDetailButton, showCostFloatingButton]);
-
-  useEffect(() => {
-    if (!showHomeOverview || !hasNodes) return;
-
-    // 今日页体积很小，首页稳定后尽早预取数据，让点击入口时直接命中查询缓存。
-    const handle = window.setTimeout(warmTrafficPage, 250);
-    return () => window.clearTimeout(handle);
-  }, [hasNodes, showHomeOverview, warmTrafficPage]);
 
   // 资产入口存在时预热汇率，供概览、价格排序和资产页复用。
   const costNeeded = showAssetCard || showCostFloatingButton;
@@ -597,15 +594,24 @@ export function NodeGrid() {
         : orderedUuids.map((uuid) => (
             <div key={uuid} className="min-w-0">
               {mode === "mini" ? (
-                <MiniNodeCard uuid={uuid} />
+                <MiniNodeCard
+                  uuid={uuid}
+                  showTodayTraffic={showTrafficPopover}
+                />
               ) : mode === "compact" ? (
-                <CompactNodeCard uuid={uuid} />
+                <CompactNodeCard
+                  uuid={uuid}
+                  showTodayTraffic={showTrafficPopover}
+                />
               ) : (
-                <NodeCard uuid={uuid} />
+                <NodeCard
+                  uuid={uuid}
+                  showTodayTraffic={showTrafficPopover}
+                />
               )}
             </div>
           )),
-    [orderedUuids, mode],
+    [orderedUuids, mode, showTrafficPopover],
   );
   const showGroupTabs =
     themeSettings.isReady && themeSettings.showGroupTabs && groupOptions.length > 0;
@@ -623,6 +629,11 @@ export function NodeGrid() {
     : isMini
       ? ({ "--mini-card-min-width": `${minColumnWidth}px` } as MiniGridStyle)
       : { gridTemplateColumns: `repeat(auto-fill, minmax(min(100%, ${minColumnWidth}px), 1fr))` };
+  const gridElement = (
+    <div className={gridWrapClassName} style={gridStyle}>
+      {cards}
+    </div>
+  );
   // 迷你与列表档的控件栏借用小卡列宽，避免跟随密集内容列而被压窄。
   const borrowControlsGrid = isMini || isList;
   const controlsWrapClassName = borrowControlsGrid
@@ -721,10 +732,12 @@ export function NodeGrid() {
       )}
       {isList ? (
         <NodeListView uuids={orderedUuids} />
+      ) : showTrafficPopover ? (
+        <TodayTrafficStatsProvider uuids={trafficUuids}>
+          {gridElement}
+        </TodayTrafficStatsProvider>
       ) : (
-        <div className={gridWrapClassName} style={gridStyle}>
-          {cards}
-        </div>
+        gridElement
       )}
     </>
   );

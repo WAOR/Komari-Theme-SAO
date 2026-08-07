@@ -1,5 +1,9 @@
 import { useCallback, useMemo, useSyncExternalStore } from "react";
-import { subscribeMediaQuery } from "@/utils/mediaQuery";
+import {
+  subscribeFineHover,
+  subscribeMediaQuery,
+  supportsFineHover,
+} from "@/utils/mediaQuery";
 
 /** 订阅单个 CSS 媒体查询，旧 Safari 的事件兼容由 subscribeMediaQuery 统一处理。 */
 export function useMediaQuery(query: string, serverFallback = false) {
@@ -16,4 +20,9 @@ export function useMediaQuery(query: string, serverFallback = false) {
   const getServerSnapshot = useCallback(() => serverFallback, [serverFallback]);
 
   return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+}
+
+/** 所有节点卡片共享一套细指针媒体查询和一个原生 change 监听。 */
+export function useFineHover() {
+  return useSyncExternalStore(subscribeFineHover, supportsFineHover, () => false);
 }

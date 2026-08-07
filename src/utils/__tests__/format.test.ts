@@ -3,6 +3,7 @@ import {
   formatBytes,
   formatByteRate,
   formatByteRateLabel,
+  formatClockTime,
   formatExpireDays,
   formatTrafficRateLabel,
   formatUptimeDays,
@@ -38,6 +39,20 @@ describe("formatBytes", () => {
     expect(formatBytes(MB)).toBe("1.00 MB");
     expect(formatBytes(100 * MB)).toBe("100 MB");
     expect(formatBytes(2.5 * GB)).toBe("2.50 GB");
+  });
+});
+
+describe("formatClockTime", () => {
+  it("formats local hour and minute only", () => {
+    expect(formatClockTime(new Date(2026, 7, 6, 14, 32).getTime())).toBe("14:32");
+    expect(formatClockTime(new Date(2026, 7, 6, 9, 5).getTime())).toBe("09:05");
+  });
+
+  it("returns an em dash for missing or non-finite timestamps", () => {
+    expect(formatClockTime(null)).toBe("—");
+    expect(formatClockTime(undefined)).toBe("—");
+    expect(formatClockTime(Number.NaN)).toBe("—");
+    expect(formatClockTime(0)).not.toBe("—");
   });
 });
 

@@ -9,8 +9,8 @@ export function ChartTooltip({ tooltip }: { tooltip: ChartTooltipState }) {
       style={{ left: tooltip.left, top: tooltip.top }}
     >
       <div className="instance-chart-tooltip-time">{tooltip.time}</div>
-      {tooltip.rows.map((row) => (
-        <div key={`${row.label}-${row.color}`} className="instance-chart-tooltip-row">
+      {tooltip.rows.map((row, index) => (
+        <div key={`${index}-${row.label}`} className="instance-chart-tooltip-row">
           <span
             aria-hidden="true"
             className="instance-chart-tooltip-dot"

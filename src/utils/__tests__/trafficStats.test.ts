@@ -116,6 +116,35 @@ describe("today traffic stats", () => {
     });
   });
 
+  it("does not assign a pseudo peak timestamp when every rate sample is zero", () => {
+    const metricStat = summarizeTodayTrafficMetrics(
+      [
+        metricSeries(RATE_UP_METRIC, [["2026-07-16T00:05:00Z", 0]]),
+        metricSeries(RATE_DOWN_METRIC, [["2026-07-16T00:05:00Z", 0]]),
+      ],
+      ["node-a"],
+    )[0];
+    const recordStat = summarizeTodayTrafficRecords(
+      "node-a",
+      [record("2026-07-16T00:05:00Z")],
+      Date.parse("2026-07-16T00:00:00Z"),
+      Date.parse("2026-07-16T01:00:00Z"),
+    );
+
+    expect(metricStat).toMatchObject({
+      peakUp: 0,
+      peakUpAt: null,
+      peakDown: 0,
+      peakDownAt: null,
+    });
+    expect(recordStat).toMatchObject({
+      peakUp: 0,
+      peakUpAt: null,
+      peakDown: 0,
+      peakDownAt: null,
+    });
+  });
+
   it("builds newest-first upload and download samples for the detail table", () => {
     const metricSamples = buildTodayTrafficMetricSamples(
       [

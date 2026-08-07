@@ -1,4 +1,9 @@
 const UNITS = ["B", "KB", "MB", "GB", "TB", "PB"] as const;
+const CLOCK_TIME_FORMATTER = new Intl.DateTimeFormat("zh-CN", {
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+});
 const TRAFFIC_RATE_THRESHOLDS: Array<{ unit: Exclude<TrafficRateUnit, "bps">; divisor: number }> = [
   { unit: "Tbps", divisor: 1_000_000_000_000 },
   { unit: "Gbps", divisor: 1_000_000_000 },
@@ -41,6 +46,12 @@ export function formatBytes(n: number | undefined | null): string {
   if (idx === 0) return `${Math.round(v)} ${UNITS[idx]}`;
   const dec = v >= 100 ? 0 : v >= 10 ? 1 : 2;
   return `${v.toFixed(dec)} ${UNITS[idx]}`;
+}
+
+/** 只显示时分（本地时区），用于峰值时间、更新时间等场景。 */
+export function formatClockTime(timeMs: number | null | undefined): string {
+  if (timeMs == null || !Number.isFinite(timeMs)) return "—";
+  return CLOCK_TIME_FORMATTER.format(timeMs);
 }
 
 function formatRateValue(value: number): string {

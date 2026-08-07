@@ -32,6 +32,7 @@ import { MetricBar } from "./MetricBar";
 import { LatencyBars } from "./LatencyBars";
 import { QualityBars } from "./QualityBars";
 import { CanvasStrip, mixSrgbTowardWhite, safeCanvasColor } from "./CanvasStrip";
+import { NodeTodayTrafficPopover } from "./NodeTodayTrafficPopover";
 import {
   joinTagTitle,
   nodeDetailLinkLabels,
@@ -52,8 +53,10 @@ type DisplayTag = { label: string; color: string };
 
 export const NodeCard = memo(function NodeCard({
   uuid,
+  showTodayTraffic = true,
 }: {
   uuid: string;
+  showTodayTraffic?: boolean;
 }) {
   const { resolvedAppearance } = usePreferences();
   // 自定义配色改动时 version 自增，拼进 redrawKey 让 canvas 进度条即时重画（含离线静态卡）。
@@ -90,7 +93,10 @@ export const NodeCard = memo(function NodeCard({
     loadFraction,
     upRate,
     downRate,
-    hasHomepagePingBinding,
+    hasRealHomepagePingBinding,
+    shouldRenderPingBars,
+    pingLoading,
+    pingError,
     isOnline,
     isOffline,
     osName,
@@ -102,7 +108,12 @@ export const NodeCard = memo(function NodeCard({
       className={clsx("server-card", isOffline && "is-offline")}
     >
       <div className="server-card-content">
-        <NodeCardHeader node={node} subtitle={subtitle} osName={osName} />
+        <NodeCardHeader
+          node={node}
+          subtitle={subtitle}
+          osName={osName}
+          showTodayTraffic={showTodayTraffic}
+        />
 
         <div className="server-card-stack">
           <NodeMetricSection
@@ -155,7 +166,10 @@ export const NodeCard = memo(function NodeCard({
               ping={ping}
               pingBuckets={pingBuckets}
               redrawKey={redrawKey}
-              hasHomepagePingBinding={hasHomepagePingBinding}
+              hasRealHomepagePingBinding={hasRealHomepagePingBinding}
+              shouldRenderPingBars={shouldRenderPingBars}
+              pingLoading={pingLoading}
+              pingError={pingError}
               latencyColor={latencyColor}
               lossColor={lossColor}
             />
@@ -178,10 +192,12 @@ function NodeCardHeader({
   node,
   subtitle,
   osName,
+  showTodayTraffic,
 }: {
   node: NodeCardNode;
   subtitle: string;
   osName: string;
+  showTodayTraffic: boolean;
 }) {
   const detailLabels = nodeDetailLinkLabels(node.name, osName);
   return (
@@ -208,14 +224,17 @@ function NodeCardHeader({
           </div>
         )}
       </div>
-      <Link
-        to={`/instance/${encodeURIComponent(node.uuid)}`}
-        className="server-card-detail-link"
-        title={detailLabels.title}
-        aria-label={detailLabels.ariaLabel}
-      >
-        <OsLogo value={node.os} size={15} />
-      </Link>
+      <div className="server-card-actions">
+        {showTodayTraffic && <NodeTodayTrafficPopover uuid={node.uuid} />}
+        <Link
+          to={`/instance/${encodeURIComponent(node.uuid)}`}
+          className="server-card-detail-link"
+          title={detailLabels.title}
+          aria-label={detailLabels.ariaLabel}
+        >
+          <OsLogo value={node.os} size={15} />
+        </Link>
+      </div>
     </header>
   );
 }
@@ -397,14 +416,20 @@ const NodeHealthSection = memo(function NodeHealthSection({
   ping,
   pingBuckets,
   redrawKey,
-  hasHomepagePingBinding,
+  hasRealHomepagePingBinding,
+  shouldRenderPingBars,
+  pingLoading,
+  pingError,
   latencyColor,
   lossColor,
 }: {
   ping: PingOverviewItem;
   pingBuckets: PingOverviewBucket[];
   redrawKey: string;
-  hasHomepagePingBinding: boolean;
+  hasRealHomepagePingBinding: boolean;
+  shouldRenderPingBars: boolean;
+  pingLoading: boolean;
+  pingError: boolean;
   latencyColor: string;
   lossColor: string;
 }) {
@@ -418,7 +443,11 @@ const NodeHealthSection = memo(function NodeHealthSection({
     setHoveredLossIndex(index);
     if (index != null) setHoveredLatencyIndex(null);
   }, []);
-  const { title: emptyTitle, text: emptyText } = pingEmptyLabels(hasHomepagePingBinding);
+  const { title: emptyTitle, text: emptyText } = pingEmptyLabels(
+    hasRealHomepagePingBinding,
+    pingLoading,
+    pingError,
+  );
   const hoveredLatencyBucket =
     hoveredLatencyIndex == null ? null : (pingBuckets[hoveredLatencyIndex] ?? null);
   const hoveredLossBucket =
@@ -438,7 +467,15 @@ const NodeHealthSection = memo(function NodeHealthSection({
             <Clock3 size={13} strokeWidth={2} />
             <span>延迟</span>
           </div>
-          <span className="server-health-value tabular" style={{ color: latencyColor }}>
+          <span
+            className="server-health-value tabular"
+            style={{ color: latencyColor }}
+            title={
+              pingError && ping.lastValue != null
+                ? "首页 Ping 刷新失败，显示上次数据"
+                : undefined
+            }
+          >
             {ping.lastValue != null ? (
               <>
                 {Math.round(ping.lastValue)}
@@ -452,7 +489,7 @@ const NodeHealthSection = memo(function NodeHealthSection({
           </span>
         </div>
         <div className="server-health-chart-wrap">
-          {hasHomepagePingBinding ? (
+          {shouldRenderPingBars ? (
             <LatencyBars
               buckets={pingBuckets}
               redrawKey={redrawKey}
@@ -474,7 +511,15 @@ const NodeHealthSection = memo(function NodeHealthSection({
             <Unplug size={13} strokeWidth={2} />
             <span>丢包率</span>
           </div>
-          <span className="server-health-value tabular" style={{ color: lossColor }}>
+          <span
+            className="server-health-value tabular"
+            style={{ color: lossColor }}
+            title={
+              pingError && ping.loss != null
+                ? "首页 Ping 刷新失败，显示上次数据"
+                : undefined
+            }
+          >
             {ping.loss != null ? (
               <>
                 {ping.loss.toFixed(1)}
@@ -488,7 +533,7 @@ const NodeHealthSection = memo(function NodeHealthSection({
           </span>
         </div>
         <div className="server-health-chart-wrap">
-          {hasHomepagePingBinding ? (
+          {shouldRenderPingBars ? (
             <QualityBars
               buckets={pingBuckets}
               redrawKey={redrawKey}

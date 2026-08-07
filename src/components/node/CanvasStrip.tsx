@@ -1,4 +1,11 @@
-import { useEffect, useRef, useState, useSyncExternalStore, type PointerEvent } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type PointerEvent,
+} from "react";
 import { supportsFineHover } from "@/utils/mediaQuery";
 
 export interface CanvasStripInteraction {
@@ -448,17 +455,19 @@ export function CanvasStrip({
       setWidth((current) => (current === nextWidth ? current : nextWidth));
     };
 
-    updateWidth(normalizeWidth(canvas.getBoundingClientRect().width));
-    return subscribeToWidth(canvas, updateWidth);
+    const unsubscribeWidth = subscribeToWidth(canvas, updateWidth);
+    const unsubscribeVisibility = subscribeToVisibility(canvas, setVisible);
+    // 仅旧浏览器的 observer 回退需要主动测量；现代浏览器的首帧不被同步布局读取阻塞。
+    if (typeof ResizeObserver === "undefined") {
+      updateWidth(normalizeWidth(canvas.getBoundingClientRect().width));
+    }
+    return () => {
+      unsubscribeWidth();
+      unsubscribeVisibility();
+    };
   }, []);
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    return subscribeToVisibility(canvas, setVisible);
-  }, []);
-
-  useEffect(() => {
+  useLayoutEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || !visible || width <= 0) return;
 

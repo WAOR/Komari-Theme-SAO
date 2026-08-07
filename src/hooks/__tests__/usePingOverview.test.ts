@@ -4,6 +4,7 @@ import {
   buildPingBuckets,
   buildPingOverviewItems,
   resolveHomepagePingRequestMode,
+  selectPersistablePingOverview,
 } from "@/hooks/usePingOverview";
 
 const MINUTE_MS = 60_000;
@@ -135,6 +136,35 @@ function pingOverviewResponse(taskId: number, value: number) {
 }
 
 describe("homepage ping polling selection", () => {
+  it("reports only the nodes affected by each completed task", async () => {
+    const progress: Array<string[] | undefined> = [];
+    const result = await buildPingOverviewMap(
+      1,
+      ["node-a", "node-b"],
+      { 1: ["node-a"], 2: ["node-b"] },
+      [],
+      undefined,
+      undefined,
+      async (_hours, taskId) => ({
+        ...pingOverviewResponse(taskId ?? 0, taskId ?? 0),
+        records: [
+          {
+            ...pingOverviewResponse(taskId ?? 0, taskId ?? 0).records[0],
+            client: taskId === 1 ? "node-a" : "node-b",
+          },
+        ],
+      }),
+      undefined,
+      (next) => progress.push(next.changedUuids),
+    );
+
+    expect(progress[0]).toEqual(["node-a", "node-b"]);
+    expect(progress).toContainEqual(["node-a"]);
+    expect(progress).toContainEqual(["node-b"]);
+    expect(result.singleItems.get("node-a")?.lastValue).toBe(1);
+    expect(result.singleItems.get("node-b")?.lastValue).toBe(2);
+  });
+
   it("keeps large/compact and mini/list in their shared request modes", () => {
     expect(resolveHomepagePingRequestMode("large", true, [1, 2, 3])).toBe("multi");
     expect(resolveHomepagePingRequestMode("compact", true, [1, 2, 3])).toBe("multi");
@@ -178,7 +208,149 @@ describe("homepage ping polling selection", () => {
       20,
       130,
     ]);
+    expect(second.multiLines.get("node-a")?.map((line) => line.loadState)).toEqual([
+      "ready",
+      "error",
+      "ready",
+    ]);
     expect(second.multiLines.get("node-a")?.[1]?.taskName).toBe("Task 2");
+  });
+
+  it("reports all failed tasks and refuses to persist an empty placeholder result", async () => {
+    const progress: string[][] = [];
+    const result = await buildPingOverviewMap(
+      1,
+      ["node-a"],
+      { 8: ["node-a"] },
+      [],
+      undefined,
+      undefined,
+      async () => {
+        throw new Error("temporary task failure");
+      },
+      undefined,
+      (next) => {
+        progress.push([next.pendingTaskIds.join(","), next.failedTaskIds.join(",")]);
+      },
+    );
+
+    expect(result.successfulTaskIds).toEqual([]);
+    expect(result.failedTaskIds).toEqual([8]);
+    expect(result.pendingTaskIds).toEqual([]);
+    expect(result.singleItems.get("node-a")).toMatchObject({ loadState: "error" });
+    expect(progress).toContainEqual(["", "8"]);
+    expect(selectPersistablePingOverview(result)).toBeNull();
+  });
+
+  it("persists only ready lines after a partial task failure", async () => {
+    const result = await buildPingOverviewMap(
+      1,
+      ["node-a"],
+      {},
+      [1, 2, 3],
+      undefined,
+      undefined,
+      async (_hours, taskId) => pingOverviewResponse(taskId ?? 0, taskId ?? 0),
+    );
+    const partial = await buildPingOverviewMap(
+      1,
+      ["node-a"],
+      {},
+      [1, 2, 3],
+      undefined,
+      result,
+      async (_hours, taskId) => {
+        if (taskId === 2) throw new Error("temporary task failure");
+        return pingOverviewResponse(taskId ?? 0, (taskId ?? 0) + 100);
+      },
+    );
+
+    const persisted = selectPersistablePingOverview(partial);
+    const persistedLines = persisted?.multiLines.find(([uuid]) => uuid === "node-a")?.[1];
+    expect(persistedLines?.map((line) => line.taskId)).toEqual([1, 3]);
+    expect(persistedLines?.every((line) => line.loadState === "ready")).toBe(true);
+  });
+
+  it("keeps existing task data ready while a background refresh is pending", async () => {
+    const previous = await buildPingOverviewMap(
+      1,
+      ["node-a"],
+      {},
+      [1, 2, 3],
+      undefined,
+      undefined,
+      async (_hours, taskId) => pingOverviewResponse(taskId ?? 0, taskId ?? 0),
+    );
+    let releaseRefresh!: () => void;
+    const refreshGate = new Promise<void>((resolve) => {
+      releaseRefresh = resolve;
+    });
+    const progress: Array<{ pending: number[]; states: Array<string | undefined> }> = [];
+
+    const refresh = buildPingOverviewMap(
+      1,
+      ["node-a"],
+      {},
+      [1, 2, 3],
+      undefined,
+      previous,
+      async (_hours, taskId) => {
+        await refreshGate;
+        return pingOverviewResponse(taskId ?? 0, (taskId ?? 0) + 100);
+      },
+      undefined,
+      (next) => {
+        progress.push({
+          pending: next.pendingTaskIds,
+          states: next.multiLines.get("node-a")?.map((line) => line.loadState) ?? [],
+        });
+      },
+    );
+
+    expect(progress[0]).toEqual({
+      pending: [1, 2, 3],
+      states: ["ready", "ready", "ready"],
+    });
+    releaseRefresh();
+    await refresh;
+  });
+
+  it("emits a completed task before a slower task settles", async () => {
+    let releaseSlowTask!: () => void;
+    const slowTask = new Promise<void>((resolve) => {
+      releaseSlowTask = resolve;
+    });
+    const progress: number[][] = [];
+    const pending = buildPingOverviewMap(
+      1,
+      ["node-a"],
+      {},
+      [1, 2, 3],
+      undefined,
+      undefined,
+      async (_hours, taskId) => {
+        if (taskId === 2) await slowTask;
+        return pingOverviewResponse(taskId ?? 0, (taskId ?? 0) * 10);
+      },
+      undefined,
+      (result) => {
+        progress.push(
+          result.multiLines.get("node-a")?.map((line) => line.lastValue ?? -1) ?? [],
+        );
+      },
+    );
+
+    await vi.waitFor(() => {
+      expect(progress.some((values) => values[0] === 10 && values[1] === -1)).toBe(true);
+    });
+
+    releaseSlowTask();
+    const result = await pending;
+    expect(result.multiLines.get("node-a")?.map((line) => line.lastValue)).toEqual([
+      10,
+      20,
+      30,
+    ]);
   });
 
   it("loads all selected task stats once and reuses them across task series", async () => {

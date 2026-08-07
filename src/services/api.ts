@@ -50,12 +50,13 @@ import {
   type TrafficMetricSeries,
 } from "@/utils/trafficStats";
 
-const ApiEnvelope = <T extends z.ZodTypeAny>(inner: T) =>
-  z.object({
+const ApiEnvelope = z
+  .object({
     status: z.string().optional(),
     message: z.string().optional(),
-    data: inner,
-  });
+    data: z.unknown().optional(),
+  })
+  .passthrough();
 
 const RpcRecordsSchema = z
   .object({
@@ -245,15 +246,31 @@ async function apiGet<T>(
     throw new ApiRequestError(`Request ${path} failed: ${resp.status}`, resp.status, path);
   }
   const json = (await resp.json()) as unknown;
-  const envelopeResult = ApiEnvelope(schema).safeParse(json);
-  if (envelopeResult.success) return envelopeResult.data.data as T;
+  const envelopeResult = ApiEnvelope.safeParse(json);
+  if (envelopeResult.success) {
+    const envelope = envelopeResult.data;
+    if (envelope.status?.toLowerCase() === "error") {
+      throw new ApiRequestError(
+        envelope.message || `Request ${path} failed`,
+        resp.status,
+        path,
+      );
+    }
+    if (Object.prototype.hasOwnProperty.call(envelope, "data")) {
+      const dataResult = schema.safeParse(envelope.data);
+      if (dataResult.success) return dataResult.data;
+      throw new Error(
+        `Schema mismatch on ${path}: envelope=${dataResult.error.issues[0]?.message ?? ""}`,
+      );
+    }
+  }
   const rawResult = schema.safeParse(json);
   if (rawResult.success) return rawResult.data;
   // 两种解析错误都抛出来:enveloped 接口看 envelope 错误,裸 array/object 接口看 raw
   // 错误,而这里无法判断接口本该返回哪种结构。
   throw new Error(
     `Schema mismatch on ${path}: envelope=${
-      envelopeResult.error.issues[0]?.message ?? ""
+      envelopeResult.success ? "" : envelopeResult.error.issues[0]?.message ?? ""
     }; raw=${rawResult.error.issues[0]?.message ?? ""}`,
   );
 }
@@ -462,6 +479,16 @@ function loadMetricQueryCapability() {
       metricQueryApiAvailable = available;
       return available;
     })
+    .catch((error) => {
+      // 能力探测失败不等于后端没有该接口；当前调用走兼容路径，后续请求仍可重试探测。
+      warnDegradedOnce(
+        "metric-capability-probe",
+        error instanceof Error
+          ? `Metric API 能力探测失败,已使用兼容路径: ${error.message}`
+          : "Metric API 能力探测失败,已使用兼容路径",
+      );
+      return false;
+    })
     .finally(() => {
       metricQueryProbeRequest = null;
     });
@@ -547,14 +574,24 @@ function loadPublicPingTasks() {
   )
     .then((tasks) => {
       const parsed = tasks as PingTask[];
-      publicPingTasksCache = parsed;
-      publicPingTasksCachedAt = Date.now();
+      if (parsed.length > 0) {
+        publicPingTasksCache = parsed;
+        publicPingTasksCachedAt = Date.now();
+      } else {
+        publicPingTasksCache = null;
+        publicPingTasksCachedAt = 0;
+      }
       return parsed;
     })
     .finally(() => {
       publicPingTasksRequest = null;
     });
   return publicPingTasksRequest;
+}
+
+export function prewarmPingOverviewDependencies() {
+  void loadMetricQueryCapability().catch(() => undefined);
+  void loadPublicPingTasks().catch(() => undefined);
 }
 
 function normalizePingMetricStats(

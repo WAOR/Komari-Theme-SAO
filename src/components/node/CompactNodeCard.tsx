@@ -37,6 +37,7 @@ import {
   TRAFFIC_SLIVER_RATIO,
 } from "./nodeCardShared";
 import { IpStackBadges } from "./IpStackBadges";
+import { NodeTodayTrafficPopover } from "./NodeTodayTrafficPopover";
 import type {
   NodeInfo,
   NodeMetrics,
@@ -315,9 +316,11 @@ function CompactHealthItem({
 function CompactNodeHeader({
   node,
   osName,
+  showTodayTraffic,
 }: {
   node: CompactNode;
   osName: string;
+  showTodayTraffic: boolean;
 }) {
   const detailLabels = nodeDetailLinkLabels(node.name, osName);
   return (
@@ -335,6 +338,9 @@ function CompactNodeHeader({
         </div>
       </div>
       <div className="compact-node-actions">
+        {showTodayTraffic && (
+          <NodeTodayTrafficPopover uuid={node.uuid} size={14} />
+        )}
         <Link
           to={`/instance/${encodeURIComponent(node.uuid)}`}
           className="compact-node-detail-link"
@@ -607,18 +613,34 @@ const CompactNodeHealth = memo(function CompactNodeHealth({
   pingBuckets,
   latencyColor,
   lossColor,
-  hasHomepagePingBinding,
+  hasRealHomepagePingBinding,
+  pingLoading,
+  pingError,
 }: {
   ping: PingOverviewItem;
   pingBuckets: PingOverviewBucket[];
   latencyColor: string;
   lossColor: string;
-  hasHomepagePingBinding: boolean;
+  hasRealHomepagePingBinding: boolean;
+  pingLoading: boolean;
+  pingError: boolean;
 }) {
   // 已绑定但无样本时显示"无样本",未绑定时显示"未配置" —— 见 pingEmptyLabels。
-  const { text: emptyText } = pingEmptyLabels(hasHomepagePingBinding);
+  const { text: emptyText } = pingEmptyLabels(
+    hasRealHomepagePingBinding,
+    pingLoading,
+    pingError,
+  );
   return (
-    <div className="compact-node-bottom">
+    <div
+      className="compact-node-bottom"
+      data-ping-state={ping.loadState ?? "ready"}
+      title={
+        pingError && (ping.lastValue != null || ping.loss != null)
+          ? "首页 Ping 刷新失败，显示上次数据"
+          : undefined
+      }
+    >
       <CompactHealthItem
         icon={<Clock3 size={12} />}
         label="延迟"
@@ -643,8 +665,10 @@ const CompactNodeHealth = memo(function CompactNodeHealth({
 
 export const CompactNodeCard = memo(function CompactNodeCard({
   uuid,
+  showTodayTraffic = true,
 }: {
   uuid: string;
+  showTodayTraffic?: boolean;
 }) {
   const model = useNodeCardModel(uuid, {
     pingBucketCount: HEALTH_BAR_COUNT,
@@ -674,7 +698,9 @@ export const CompactNodeCard = memo(function CompactNodeCard({
     latencyColor,
     lossColor,
     loadFraction,
-    hasHomepagePingBinding,
+    hasRealHomepagePingBinding,
+    pingLoading,
+    pingError,
     osName,
   } = model;
   const showTrafficTotal = themeSettings.isReady && themeSettings.compactShowTrafficTotal;
@@ -686,7 +712,11 @@ export const CompactNodeCard = memo(function CompactNodeCard({
 
   return (
     <article className={clsx("compact-node-card", isOffline && "is-offline")}>
-      <CompactNodeHeader node={node} osName={osName} />
+      <CompactNodeHeader
+        node={node}
+        osName={osName}
+        showTodayTraffic={showTodayTraffic}
+      />
       <CompactNodeChips subtitle={subtitle} tags={footerTags} ipv4={node.ipv4} ipv6={node.ipv6} />
       <CompactNodeVitals node={node} loadFraction={loadFraction} />
       <CompactNodeInfoStrip
@@ -714,7 +744,9 @@ export const CompactNodeCard = memo(function CompactNodeCard({
           pingBuckets={pingBuckets}
           latencyColor={latencyColor}
           lossColor={lossColor}
-          hasHomepagePingBinding={hasHomepagePingBinding}
+          hasRealHomepagePingBinding={hasRealHomepagePingBinding}
+          pingLoading={pingLoading}
+          pingError={pingError}
         />
       )}
     </article>

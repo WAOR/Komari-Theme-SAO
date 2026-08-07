@@ -7,16 +7,6 @@ import {
 } from "@/utils/pingTasks";
 import type { PingOverviewItem } from "@/types/komari";
 
-const bindingSelectionCache = new WeakMap<HomepagePingTaskBindings, Map<string, number>>();
-
-function getCachedBindingSelection(bindings: HomepagePingTaskBindings) {
-  const cached = bindingSelectionCache.get(bindings);
-  if (cached) return cached;
-  const selection = invertHomepagePingTaskBindings(bindings);
-  bindingSelectionCache.set(bindings, selection);
-  return selection;
-}
-
 export function useFakePingFallback(
   uuid: string,
   ping: PingOverviewItem,
@@ -27,7 +17,7 @@ export function useFakePingFallback(
   const boundUuids = useMemo(
     () =>
       fakePingForUnbound
-        ? getCachedBindingSelection(homepagePingBindings)
+        ? invertHomepagePingTaskBindings(homepagePingBindings)
         : null,
     [fakePingForUnbound, homepagePingBindings],
   );

@@ -26,9 +26,25 @@ const MultiPingMetricRow = memo(function MultiPingMetricRow({
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const latencyColor = latencyHeatColor(line.lastValue);
   const lossColor = lossHeatColor(line.loss);
+  const isLoading = line.loadState === "pending";
+  const isError = line.loadState === "error";
+  const staleError = isError && (line.lastValue != null || line.loss != null);
   const latencyLabel =
-    line.lastValue == null ? "无样本" : `${Math.round(line.lastValue)}ms`;
-  const lossLabel = line.loss == null ? "—" : `${line.loss.toFixed(1)}%`;
+    isLoading && line.lastValue == null
+      ? "加载中"
+      : isError && line.lastValue == null
+        ? "加载失败"
+        : line.lastValue == null
+          ? "无样本"
+          : `${Math.round(line.lastValue)}ms`;
+  const lossLabel =
+    isLoading && line.loss == null
+      ? "加载中"
+      : isError && line.loss == null
+        ? "加载失败"
+        : line.loss == null
+          ? "—"
+          : `${line.loss.toFixed(1)}%`;
   const hoveredBucket =
     hoveredIndex == null ? null : (line.buckets[hoveredIndex] ?? null);
   const tooltip = hoveredBucket
@@ -38,16 +54,24 @@ const MultiPingMetricRow = memo(function MultiPingMetricRow({
   const value = metric === "latency" ? line.lastValue : line.loss;
   const valueColor = metric === "latency" ? latencyColor : lossColor;
   const unit = metric === "latency" ? "ms" : "%";
+  const waiting = isLoading && value == null;
   const displayValue =
-    value == null
-      ? "—"
-      : metric === "latency"
-        ? Math.round(value)
-        : value.toFixed(1);
+    waiting
+      ? "..."
+      : isError && value == null
+        ? "!"
+        : value == null
+          ? "—"
+          : metric === "latency"
+            ? Math.round(value)
+            : value.toFixed(1);
   return (
     <div
       className="multi-ping-metric-row"
-      title={`${line.taskName} · 延迟 ${latencyLabel} · 丢包 ${lossLabel}`}
+      data-load-state={line.loadState ?? "ready"}
+      title={`${line.taskName} · 延迟 ${latencyLabel} · 丢包 ${lossLabel}${
+        staleError ? " · 刷新失败，显示上次数据" : ""
+      }`}
     >
       <div
         className={clsx(

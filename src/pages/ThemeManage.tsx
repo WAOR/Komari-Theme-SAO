@@ -285,6 +285,7 @@ function pickManagedThemeSettings(settings: ResolvedThemeSettings) {
     compactShowBilling: settings.compactShowBilling,
     compactShowUptime: settings.compactShowUptime,
     showConnections: settings.showConnections,
+    showTodayTrafficPopover: settings.showTodayTrafficPopover,
     hiddenNodes: settings.hiddenNodes,
     costIgnoredNodes: settings.costIgnoredNodes,
     // 按键排序:costPremiums 的键序随编辑历史漂移(删掉再加回同一键会排到最后),而 dirty /
@@ -1651,39 +1652,65 @@ export function ThemeManage() {
 
       <InstancePanel
         kicker={<><span className="instance-panel-kicker-num">06</span>卡片</>}
-        title="小卡片显示项"
-        description="控制小卡片中间信息块的密度；实时速率始终显示，其他项可以按需隐藏。"
+        title="卡片显示项"
+        description="分别管理跨卡片视图的功能入口，以及小卡片专属的信息密度。"
         aside={<Rows3 size={16} />}
       >
-        <div className="grid gap-3 md:grid-cols-2">
-          <ToggleRow
-            field="compactShowTrafficTotal"
-            title="显示累计流量"
-            desc="展示出站与入站累计流量。"
-            checked={draft.compactShowTrafficTotal}
-            onPatch={patch}
-          />
-          <ToggleRow
-            field="compactShowBilling"
-            title="显示费用到期"
-            desc="展示续费价格与剩余天数。"
-            checked={draft.compactShowBilling}
-            onPatch={patch}
-          />
-          <ToggleRow
-            field="compactShowUptime"
-            title="显示在线时间"
-            desc="在小卡片流量栏右侧展示在线时长。默认开启。"
-            checked={draft.compactShowUptime}
-            onPatch={patch}
-          />
-          <ToggleRow
-            field="showConnections"
-            title="显示连接数（TCP/UDP）"
-            desc="在大卡片与小卡片展示实时 TCP / UDP 连接数；需被控端上报，未上报显示 0。默认关闭。"
-            checked={draft.showConnections}
-            onPatch={patch}
-          />
+        <div>
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+            <span className="text-[13px] font-medium text-[var(--text-primary)]">跨视图设置</span>
+            <span className="text-[11px] text-[var(--text-tertiary)]">
+              适用于多个卡片尺寸，具体范围以每项说明为准。
+            </span>
+          </div>
+          <div className="mt-2 grid gap-3 md:grid-cols-2">
+            <ToggleRow
+              field="showTodayTrafficPopover"
+              title="显示今日流量悬浮窗"
+              desc="在大卡片、小卡片与迷你卡片标题旁显示入口；鼠标悬浮或点击可查看今日流量与峰值速度。默认开启。"
+              checked={draft.showTodayTrafficPopover}
+              onPatch={patch}
+            />
+            <ToggleRow
+              field="showConnections"
+              title="显示连接数（TCP/UDP）"
+              desc="在大卡片与小卡片展示实时 TCP / UDP 连接数；需被控端上报，未上报显示 0。默认关闭。"
+              checked={draft.showConnections}
+              onPatch={patch}
+            />
+          </div>
+        </div>
+
+        <div className="mt-4">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+            <span className="text-[13px] font-medium text-[var(--text-primary)]">小卡片专属</span>
+            <span className="text-[11px] text-[var(--text-tertiary)]">
+              控制小卡片中间信息块的密度；实时速率始终显示。
+            </span>
+          </div>
+          <div className="mt-2 grid gap-3 md:grid-cols-2">
+            <ToggleRow
+              field="compactShowTrafficTotal"
+              title="显示累计流量"
+              desc="展示出站与入站累计流量。"
+              checked={draft.compactShowTrafficTotal}
+              onPatch={patch}
+            />
+            <ToggleRow
+              field="compactShowBilling"
+              title="显示费用到期"
+              desc="展示续费价格与剩余天数。"
+              checked={draft.compactShowBilling}
+              onPatch={patch}
+            />
+            <ToggleRow
+              field="compactShowUptime"
+              title="显示在线时间"
+              desc="在小卡片流量栏右侧展示在线时长。默认开启。"
+              checked={draft.compactShowUptime}
+              onPatch={patch}
+            />
+          </div>
         </div>
       </InstancePanel>
 

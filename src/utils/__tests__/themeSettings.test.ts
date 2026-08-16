@@ -1,7 +1,59 @@
 import { describe, expect, it } from "vitest";
-import { normalizeThemeSettings } from "@/utils/themeSettings";
+import {
+  DEFAULT_THEME_SETTINGS,
+  normalizeThemeSettings,
+} from "@/utils/themeSettings";
+import { DEFAULT_BACKGROUND_VIDEO_URL } from "@/utils/background";
 
 describe("normalizeThemeSettings", () => {
+  it("defaults to image mode with the bundled desktop video ready to enable", () => {
+    const settings = normalizeThemeSettings({});
+
+    expect(settings.backgroundMediaType).toBe("image");
+    expect(settings.backgroundVideo).toBe(DEFAULT_BACKGROUND_VIDEO_URL);
+    expect(settings.backgroundVideoDark).toBe("");
+    expect(settings.backgroundMediaType).toBe(DEFAULT_THEME_SETTINGS.backgroundMediaType);
+    expect(settings.backgroundVideo).toBe(DEFAULT_THEME_SETTINGS.backgroundVideo);
+    expect(normalizeThemeSettings({ backgroundVideo: "" }).backgroundVideo).toBe(
+      DEFAULT_BACKGROUND_VIDEO_URL,
+    );
+  });
+
+  it("normalizes the light and dark video fields independently", () => {
+    const light = "https://cdn.example/day.mp4?Policy=a(b)&Signature=x%2By%3D";
+    const dark = "/media/night%20sky.mp4?token=a%7Cb";
+    const settings = normalizeThemeSettings({
+      backgroundMediaType: "video",
+      backgroundVideo: `  ${light}  `,
+      backgroundVideoDark: `  ${dark}  `,
+    });
+
+    expect(settings.backgroundMediaType).toBe("video");
+    expect(settings.backgroundVideo).toBe(light);
+    expect(settings.backgroundVideoDark).toBe(dark);
+  });
+
+  it("does not migrate a pipe-delimited video value", () => {
+    const settings = normalizeThemeSettings({
+      backgroundVideo: "/light.mp4|/dark.mp4",
+      backgroundVideoDark: "/night.mp4",
+    });
+
+    expect(settings.backgroundVideo).toBe(DEFAULT_BACKGROUND_VIDEO_URL);
+    expect(settings.backgroundVideoDark).toBe("/night.mp4");
+  });
+
+  it("falls unknown media types back to image and rejects unsafe video URLs", () => {
+    const settings = normalizeThemeSettings({
+      backgroundMediaType: "animation",
+      backgroundVideo: "javascript:alert(1)",
+    } as never);
+
+    expect(settings.backgroundMediaType).toBe("image");
+    expect(settings.backgroundVideo).toBe(DEFAULT_BACKGROUND_VIDEO_URL);
+    expect(settings.backgroundVideoDark).toBe("");
+  });
+
   it("keeps mini and falls unknown saved view modes back to compact", () => {
     const settings = normalizeThemeSettings({
       desktopNodeViewMode: "retired-view",

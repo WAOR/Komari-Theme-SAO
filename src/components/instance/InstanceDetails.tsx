@@ -142,19 +142,22 @@ export function InstanceDetails({
             <span className="instance-info-label">总流量</span>
             <div className="instance-info-traffic">
               <span className="instance-info-value">{`↑ ${formatBytes(metrics.trafficUp)} · ↓ ${formatBytes(metrics.trafficDown)}`}</span>
-              {meta.traffic_limit > 0 && (
-                <>
-                  <div className="instance-progress-track" aria-hidden>
-                    <span
-                      className="instance-progress-fill"
-                      style={{ width: `${trafficUsage.fraction * 100}%` }}
-                    />
-                  </div>
-                  <span className="instance-info-note">
-                    {`${formatBytes(trafficUsage.used)} / ${formatBytes(meta.traffic_limit)}`}
-                  </span>
-                </>
-              )}
+              <div
+                className={`instance-progress-track${trafficUsage.unlimited ? " is-unlimited" : ""}`}
+                aria-hidden
+              >
+                {!trafficUsage.unlimited && (
+                  <span
+                    className="instance-progress-fill"
+                    style={{ width: `${trafficUsage.fraction * 100}%` }}
+                  />
+                )}
+              </div>
+              <span className="instance-info-note">
+                {trafficUsage.unlimited
+                  ? `${formatBytes(trafficUsage.used)} / ∞`
+                  : `${formatBytes(trafficUsage.used)} / ${formatBytes(trafficUsage.limit)}`}
+              </span>
             </div>
           </div>
         </div>

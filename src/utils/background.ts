@@ -4,6 +4,8 @@ export type ResolvedAppearance = Exclude<Appearance, "system">;
 
 export const DEFAULT_BACKGROUND_ALIGNMENT = "cover,center";
 export const DEFAULT_SURFACE_OPACITY = 100;
+export const DEFAULT_BACKGROUND_VIDEO_URL =
+  "/assets/LanternRivers_1080p15fps2Mbps3s.mp4";
 
 // 低于此不透明度时才叠加背景可读性遮罩。
 export const SURFACE_SCRIM_THRESHOLD = 95;
@@ -31,6 +33,69 @@ export function normalizeBackgroundUrl(value: unknown): string {
   const dark = parts[1] ?? "";
   if (dark && dark !== light) return `${light}|${dark}`;
   return light;
+}
+
+/** 规范化单个视频 URL，拒绝非 HTTP(S) 与非站内路径。 */
+export function normalizeBackgroundVideoUrl(value: unknown): string {
+  if (typeof value !== "string") return "";
+  const part = value.trim();
+  if (!part || part.length > MAX_URL_LENGTH || /[\x00-\x20\x7f\\|]/.test(part)) {
+    return "";
+  }
+
+  if (part.startsWith("/")) return part.startsWith("//") ? "" : part;
+
+  if (!/^https?:\/\//i.test(part)) return "";
+  try {
+    const parsed = new URL(part);
+    if (
+      (parsed.protocol !== "http:" && parsed.protocol !== "https:") ||
+      parsed.username ||
+      parsed.password
+    ) {
+      return "";
+    }
+    return part;
+  } catch {
+    return "";
+  }
+}
+
+export interface BackgroundVideoSourceInput {
+  enabled: boolean;
+  mediaType: "image" | "video";
+  videoUrl: string;
+  videoUrlDark: string;
+  appearance: ResolvedAppearance;
+  isMobile: boolean;
+  reducedMotion: boolean;
+  saveData: boolean;
+}
+
+/** 返回允许加载的桌面视频源；移动端与节能场景在设置 `src` 前直接截断。 */
+export function resolveBackgroundVideoSource(input: BackgroundVideoSourceInput): string {
+  if (
+    !input.enabled ||
+    input.mediaType !== "video" ||
+    input.isMobile ||
+    input.reducedMotion ||
+    input.saveData
+  ) {
+    return "";
+  }
+  return input.appearance === "dark" ? input.videoUrlDark || input.videoUrl : input.videoUrl;
+}
+
+interface ReleasableVideo {
+  pause: () => void;
+  removeAttribute: (name: string) => void;
+  load: () => void;
+}
+
+export function releaseBackgroundVideo(video: ReleasableVideo): void {
+  video.pause();
+  video.removeAttribute("src");
+  video.load();
 }
 
 /** 从规范化的单 URL 或 `light|dark` 对中选择当前外观。 */
@@ -91,15 +156,19 @@ const BACKGROUND_CACHE_KEY = "komaritheme:bg";
 
 interface BackgroundSettingsInput {
   enableBackgroundImage: boolean;
+  backgroundMediaType: "image" | "video";
   backgroundImage: string;
   backgroundImageMobile: string;
+  backgroundVideo: string;
+  backgroundVideoDark: string;
   backgroundAlignment: string;
   surfaceOpacity: number;
 }
 
 /** 可直接写入 CSS 的首帧背景缓存。 */
 interface BackgroundCache {
-  v: 1;
+  v: 2;
+  desktopVideo: boolean;
   size: string;
   position: string;
   alpha: string;
@@ -115,18 +184,22 @@ function toCssUrl(url: string): string {
 }
 
 export function buildBackgroundCache(settings: BackgroundSettingsInput): BackgroundCache | null {
-  // 关闭时只停用背景，保留设置中的 URL 供下次启用。
+  // 视频 URL 不进入首帧缓存；只记录视频模式，以便加载阶段隐藏桌面回退图。
   if (!settings.enableBackgroundImage) return null;
   const lightDesktop = resolveBackgroundUrl(settings.backgroundImage, "light");
   const darkDesktop = resolveBackgroundUrl(settings.backgroundImage, "dark");
   const lightMobile = resolveBackgroundUrl(settings.backgroundImageMobile, "light") || lightDesktop;
   const darkMobile = resolveBackgroundUrl(settings.backgroundImageMobile, "dark") || darkDesktop;
-  if (!lightDesktop && !darkDesktop && !lightMobile && !darkMobile) return null;
+  const hasVideo =
+    settings.backgroundMediaType === "video" &&
+    Boolean(settings.backgroundVideo || settings.backgroundVideoDark);
+  if (!lightDesktop && !darkDesktop && !lightMobile && !darkMobile && !hasVideo) return null;
 
   const { size, position } = parseBackgroundAlignment(settings.backgroundAlignment);
   const scrimPct = computeBackgroundScrim(settings.surfaceOpacity);
   return {
-    v: 1,
+    v: 2,
+    desktopVideo: hasVideo,
     size,
     position,
     alpha: String(normalizeSurfaceOpacity(settings.surfaceOpacity)),
@@ -154,6 +227,10 @@ const BACKGROUND_VAR_NAMES = [
 export function applyBackgroundCache(
   cache: BackgroundCache | null,
   appearance: ResolvedAppearance,
+  options: {
+    isMobile: boolean;
+    videoState?: "inactive" | "loading" | "playing" | "failed";
+  },
 ): void {
   if (typeof document === "undefined") return;
   const root = document.documentElement;
@@ -164,13 +241,25 @@ export function applyBackgroundCache(
   const dark = appearance === "dark";
   const desktop = dark ? cache.darkDesktop : cache.lightDesktop;
   const mobile = (dark ? cache.darkMobile : cache.lightMobile) || desktop;
-  root.style.setProperty("--bg-image-desktop", desktop);
+  const videoState = options.videoState ?? "inactive";
+  const suppressDesktopImage =
+    !options.isMobile && (videoState === "loading" || videoState === "playing");
+  const renderedDesktop = suppressDesktopImage ? "none" : desktop;
+  const selectedImage = options.isMobile ? mobile : renderedDesktop;
+  const videoIsPlaying = !options.isMobile && videoState === "playing";
+  const active = videoIsPlaying || selectedImage !== "none";
+  root.style.setProperty("--bg-image-desktop", renderedDesktop);
   root.style.setProperty("--bg-image-mobile", mobile);
   root.style.setProperty("--bg-size", cache.size);
   root.style.setProperty("--bg-position", cache.position);
-  root.style.setProperty("--surface-alpha", cache.alpha);
-  if (cache.scrim) root.style.setProperty("--bg-scrim", cache.scrim);
-  else root.style.removeProperty("--bg-scrim");
+  if (active) {
+    root.style.setProperty("--surface-alpha", cache.alpha);
+    if (cache.scrim) root.style.setProperty("--bg-scrim", cache.scrim);
+    else root.style.removeProperty("--bg-scrim");
+  } else {
+    root.style.removeProperty("--surface-alpha");
+    root.style.removeProperty("--bg-scrim");
+  }
 }
 
 export function persistBackgroundCache(cache: BackgroundCache | null): void {

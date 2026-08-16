@@ -76,7 +76,7 @@
           const rawBg = localStorage.getItem("komaritheme:bg");
           if (rawBg) {
             const bg = JSON.parse(rawBg);
-            if (bg && bg.v === 1) {
+            if (bg && (bg.v === 1 || bg.v === 2)) {
               const sizes = new Set(["cover", "contain", "auto"]);
               const positions = new Set(["top", "center", "bottom"]);
               const parseImage = (value) =>
@@ -85,8 +85,26 @@
                   ? value
                   : null;
               const dark = resolved === "dark";
-              const desktop = parseImage(dark ? bg.darkDesktop : bg.lightDesktop) ?? "none";
-              const mobile = parseImage(dark ? bg.darkMobile : bg.lightMobile) ?? desktop;
+              const desktopImage =
+                parseImage(dark ? bg.darkDesktop : bg.lightDesktop) ?? "none";
+              const mobile =
+                parseImage(dark ? bg.darkMobile : bg.lightMobile) ?? desktopImage;
+              const isMobile = window.matchMedia("(max-width: 720px)").matches;
+              const hasCoarsePointer = window.matchMedia(
+                "(hover: none) and (pointer: coarse)",
+              ).matches;
+              const reducedMotion = window.matchMedia(
+                "(prefers-reduced-motion: reduce)",
+              ).matches;
+              const saveData = navigator.connection && navigator.connection.saveData === true;
+              const shouldLoadDesktopVideo =
+                bg.v === 2 &&
+                bg.desktopVideo === true &&
+                !isMobile &&
+                !hasCoarsePointer &&
+                !reducedMotion &&
+                !saveData;
+              const desktop = shouldLoadDesktopVideo ? "none" : desktopImage;
               const parsedAlpha =
                 (typeof bg.alpha === "string" && bg.alpha.trim() !== "") ||
                 typeof bg.alpha === "number"
@@ -101,8 +119,13 @@
               style.setProperty("--bg-image-mobile", mobile);
               style.setProperty("--bg-size", sizes.has(bg.size) ? bg.size : "cover");
               style.setProperty("--bg-position", positions.has(bg.position) ? bg.position : "center");
-              style.setProperty("--surface-alpha", String(alpha));
-              if (scrim > 0) {
+              const selectedImage = isMobile ? mobile : desktop;
+              if (selectedImage !== "none") {
+                style.setProperty("--surface-alpha", String(alpha));
+              } else {
+                style.removeProperty("--surface-alpha");
+              }
+              if (selectedImage !== "none" && scrim > 0) {
                 style.setProperty(
                   "--bg-scrim",
                   `color-mix(in srgb, var(--bg-0) ${scrim}%, transparent)`,

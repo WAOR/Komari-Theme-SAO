@@ -1,12 +1,12 @@
 import { useCallback, useSyncExternalStore } from "react";
 import { useThemeSettings } from "@/hooks/useThemeSettings";
-import { subscribeMediaQuery } from "@/utils/mediaQuery";
+import { MOBILE_VIEWPORT_QUERY, subscribeMediaQuery } from "@/utils/mediaQuery";
 import { isNodeViewMode, type NodeViewMode } from "@/utils/themeSettings";
 
 // Legacy keys retained so session view-mode overrides survive the rename.
 const DESKTOP_OVERRIDE_KEY = "komaritheme:node-view-mode-session:desktop";
 const MOBILE_OVERRIDE_KEY = "komaritheme:node-view-mode-session:mobile";
-export const MOBILE_VIEW_MODE_QUERY = "(max-width: 720px)";
+export const MOBILE_VIEW_MODE_QUERY = MOBILE_VIEWPORT_QUERY;
 // 快捷切换按钮的循环顺序：大卡 → 小卡 → 迷你 → 列表 → 大卡……
 const VIEW_MODE_CYCLE: readonly NodeViewMode[] = ["large", "compact", "mini", "list"];
 // 列表档天生不适合窄屏,仅桌面可用:移动端从循环里剔除,且默认值解析成 list 时兜底回 compact。
@@ -69,7 +69,7 @@ function clearOverride(key: string) {
 
 function getMediaQuery() {
   if (typeof window === "undefined" || !window.matchMedia) return null;
-  mediaQuery ??= window.matchMedia(MOBILE_VIEW_MODE_QUERY);
+  mediaQuery ??= window.matchMedia(MOBILE_VIEWPORT_QUERY);
   return mediaQuery;
 }
 

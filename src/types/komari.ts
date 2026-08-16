@@ -150,8 +150,11 @@ export interface ThemeSettings {
   >;
   costRateApiUrl?: string;
   enableBackgroundImage?: boolean;
+  backgroundMediaType?: "image" | "video";
   backgroundImage?: string;
   backgroundImageMobile?: string;
+  backgroundVideo?: string;
+  backgroundVideoDark?: string;
   backgroundAlignment?: string;
   surfaceOpacity?: number;
 }

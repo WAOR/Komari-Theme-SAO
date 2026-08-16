@@ -8,6 +8,7 @@ import {
   CircleDollarSign,
   EyeOff,
   Grid3x3,
+  ImageIcon,
   LayoutTemplate,
   LayoutGrid,
   List,
@@ -19,6 +20,7 @@ import {
   Search,
   Sun,
   SunMoon,
+  Video,
   Wallpaper,
 } from "lucide-react";
 import { clsx } from "clsx";
@@ -37,10 +39,12 @@ import {
 } from "@/services/api";
 import type { AdminClient, PingTask, ThemeSettings } from "@/types/komari";
 import {
+  DEFAULT_BACKGROUND_VIDEO_URL,
   type BackgroundPosition,
   type BackgroundSize,
   normalizeBackgroundAlignment,
   normalizeBackgroundUrl,
+  normalizeBackgroundVideoUrl,
   parseBackgroundAlignment,
 } from "@/utils/background";
 import {
@@ -71,6 +75,7 @@ import {
 import {
   DEFAULT_THEME_SETTINGS,
   normalizeThemeSettings,
+  type BackgroundMediaType,
   type ResolvedThemeSettings,
 } from "@/utils/themeSettings";
 import {
@@ -91,6 +96,14 @@ const NODE_VIEW_MODE_OPTIONS = [
   { value: "list", label: "列表", icon: List },
 ] as const;
 const MOBILE_VIEW_MODE_OPTIONS = NODE_VIEW_MODE_OPTIONS.filter((option) => option.value !== "list");
+const BACKGROUND_MEDIA_TYPE_OPTIONS: Array<{
+  value: BackgroundMediaType;
+  label: string;
+  icon: typeof ImageIcon;
+}> = [
+  { value: "image", label: "图片", icon: ImageIcon },
+  { value: "video", label: "视频", icon: Video },
+];
 const BACKGROUND_SIZE_OPTIONS: Array<{ value: BackgroundSize; label: string }> = [
   { value: "cover", label: "填满" },
   { value: "contain", label: "完整" },
@@ -297,8 +310,11 @@ function pickManagedThemeSettings(settings: ResolvedThemeSettings) {
     ),
     costRateApiUrl: settings.costRateApiUrl,
     enableBackgroundImage: settings.enableBackgroundImage,
+    backgroundMediaType: settings.backgroundMediaType,
     backgroundImage: settings.backgroundImage,
     backgroundImageMobile: settings.backgroundImageMobile,
+    backgroundVideo: settings.backgroundVideo,
+    backgroundVideoDark: settings.backgroundVideoDark,
     backgroundAlignment: settings.backgroundAlignment,
     surfaceOpacity: settings.surfaceOpacity,
   };
@@ -960,8 +976,25 @@ export function ThemeManage() {
   // 由当前草稿拼出的设置 payload,保存请求和 dirty 判断都用它。草稿字段与设置同名,这里只做
   // 「编辑态 → 存储态」的换形与归一化;文本域(hiddenNodesText/costIgnoredText)和 ratingLabels
   // 解构出来换回存储字段,其余原样透传。
+  const normalizedBackgroundVideo = normalizeBackgroundVideoUrl(draft.backgroundVideo);
+  const normalizedBackgroundVideoDark = normalizeBackgroundVideoUrl(draft.backgroundVideoDark);
+  const backgroundVideoLightMalformed =
+    draft.backgroundVideo.trim() !== "" && !normalizedBackgroundVideo;
+  const backgroundVideoDarkInvalid =
+    draft.backgroundVideoDark.trim() !== "" && !normalizedBackgroundVideoDark;
+  const backgroundVideoLightInvalid =
+    draft.backgroundMediaType === "video" && !normalizedBackgroundVideo;
+  const videoInputInvalid =
+    draft.backgroundMediaType === "video" &&
+    (!normalizedBackgroundVideo || backgroundVideoDarkInvalid);
+
   const draftThemeSettings = useMemo<ThemeSettings>(() => {
-    const { ratingLabels, hiddenNodesText, costIgnoredText, ...rest } = draft;
+    const {
+      ratingLabels,
+      hiddenNodesText,
+      costIgnoredText,
+      ...rest
+    } = draft;
     return {
       ...rest,
       homepagePingBindings: pruneBindings(rest.homepagePingBindings),
@@ -975,9 +1008,23 @@ export function ThemeManage() {
       costRateApiUrl: normalizeCostRateApiUrl(rest.costRateApiUrl),
       backgroundImage: normalizeBackgroundUrl(rest.backgroundImage),
       backgroundImageMobile: normalizeBackgroundUrl(rest.backgroundImageMobile),
+      backgroundVideo: backgroundVideoLightMalformed
+        ? sourceThemeSettings.backgroundVideo
+        : normalizedBackgroundVideo || DEFAULT_BACKGROUND_VIDEO_URL,
+      backgroundVideoDark: backgroundVideoDarkInvalid
+        ? sourceThemeSettings.backgroundVideoDark
+        : normalizedBackgroundVideoDark,
       backgroundAlignment: normalizeBackgroundAlignment(rest.backgroundAlignment),
     };
-  }, [draft]);
+  }, [
+    backgroundVideoDarkInvalid,
+    backgroundVideoLightMalformed,
+    draft,
+    normalizedBackgroundVideo,
+    normalizedBackgroundVideoDark,
+    sourceThemeSettings.backgroundVideo,
+    sourceThemeSettings.backgroundVideoDark,
+  ]);
 
   // 只比较本页实际管理的设置。enableAdminButton/showPingChart 这类隐藏设置会通过
   // baseSettings 在保存时保留,但不该让表单永远显示为 dirty。
@@ -990,7 +1037,10 @@ export function ThemeManage() {
   // 标为 dirty(重置可用),而保存按钮再额外按合法性把关(见下文)。
   const costRateApiUrlDirty =
     draft.costRateApiUrl.trim() !== sourceThemeSettings.costRateApiUrl;
-  const isDirty = draftSignature !== sourceSignature || costRateApiUrlDirty;
+  const isDirty =
+    draftSignature !== sourceSignature ||
+    costRateApiUrlDirty ||
+    videoInputInvalid;
 
   // 用户重新编辑后清掉「已保存」提示,避免过期的成功提示和 dirty 表单并存。
   useEffect(() => {
@@ -1025,22 +1075,26 @@ export function ThemeManage() {
   );
 
   const handleSave = async () => {
-    if (!config?.theme || savingDraftRef.current || draftMultiPingInvalid) return;
+    if (
+      !config?.theme ||
+      savingDraftRef.current ||
+      draftCostRateApiUrlInvalid ||
+      videoInputInvalid ||
+      draftMultiPingInvalid
+    ) {
+      return;
+    }
     const submittedEditVersion = editVersionRef.current;
     savingDraftRef.current = draft;
     setSaving(true);
     setError(null);
     setMessage(null);
     try {
-      const baseSettings: ThemeSettings & Record<string, unknown> = {
-        ...(config.theme_settings ?? {}),
-      };
-      // 清理旧版遗留键:该键的读取/迁移逻辑已全部移除,这里只在保存时洗掉存量站点残留。
-      delete baseSettings.homepagePingTask;
       const nextSettings: ThemeSettings & Record<string, unknown> = {
-        ...baseSettings,
+        ...(config.theme_settings ?? {}),
         ...draftThemeSettings,
       };
+      delete nextSettings.homepagePingTask;
       await saveThemeSettings(config.theme, nextSettings);
       await queryClient.invalidateQueries({ queryKey: ["public"] });
       if (editVersionRef.current === submittedEditVersion) {
@@ -1133,11 +1187,13 @@ export function ThemeManage() {
     patch("backgroundAlignment", `${size},${draftBgAlignment.position}`);
   const setBgPosition = (position: BackgroundPosition) =>
     patch("backgroundAlignment", `${draftBgAlignment.size},${position}`);
-  const hasBackgroundImage =
+  const hasBackgroundMedia =
     draft.enableBackgroundImage &&
     Boolean(
-      normalizeBackgroundUrl(draft.backgroundImage) ||
-        normalizeBackgroundUrl(draft.backgroundImageMobile),
+        normalizeBackgroundUrl(draft.backgroundImage) ||
+        normalizeBackgroundUrl(draft.backgroundImageMobile) ||
+        draft.backgroundMediaType === "video" &&
+        (draft.backgroundVideo || draft.backgroundVideoDark),
     );
   const acquiredAtMax = localDateInputMax();
 
@@ -1163,7 +1219,11 @@ export function ThemeManage() {
               type="button"
               onClick={handleSave}
               disabled={
-                !isDirty || saving || draftCostRateApiUrlInvalid || draftMultiPingInvalid
+                !isDirty ||
+                saving ||
+                draftCostRateApiUrlInvalid ||
+                videoInputInvalid ||
+                draftMultiPingInvalid
               }
               className="theme-manage-button is-primary"
             >
@@ -1257,7 +1317,7 @@ export function ThemeManage() {
         aside={<LayoutGrid size={16} />}
       >
         <div className="grid gap-4 md:grid-cols-2">
-          <div className="surface-inset flex flex-col gap-3 px-4 py-4">
+          <div className="surface-inset flex min-w-0 flex-col gap-3 px-4 py-4">
             <div>
               <div className="text-[13px] font-semibold text-[var(--text-primary)]">
                 桌面端默认
@@ -1282,7 +1342,7 @@ export function ThemeManage() {
               ))}
             </div>
           </div>
-          <div className="surface-inset flex flex-col gap-3 px-4 py-4">
+          <div className="surface-inset flex min-w-0 flex-col gap-3 px-4 py-4">
             <div>
               <div className="text-[13px] font-semibold text-[var(--text-primary)]">
                 移动端默认
@@ -1313,17 +1373,37 @@ export function ThemeManage() {
       <InstancePanel
         kicker={<><span className="instance-panel-kicker-num">03</span>背景</>}
         title="背景与透明度"
-        description="为站点设置自定义背景图，并调节卡片不透明度。背景图可分别为浅色 / 深色与桌面 / 移动端设置；卡片不透明度调低后会自动叠加可读性遮罩。"
+        description="为站点设置自定义背景图或桌面视频，并调节卡片不透明度。"
         aside={<Wallpaper size={16} />}
       >
         <div className="flex flex-col gap-4">
           <ToggleRow
             field="enableBackgroundImage"
-            title="启用背景图"
-            desc="关闭后不加载任何背景图（下方 URL 配置会保留），站点回到纯色主题；再次开启即恢复。"
+            title="启用自定义背景"
+            desc="关闭后不加载任何背景图或视频（下方 URL 配置会保留），站点回到纯色主题；再次开启即恢复。"
             checked={draft.enableBackgroundImage}
             onPatch={patch}
           />
+
+          <div className="surface-inset flex flex-col gap-3 px-4 py-4">
+            <div className="text-[13px] font-semibold text-[var(--text-primary)]">桌面端背景类型</div>
+            <div className="instance-segmented">
+              {BACKGROUND_MEDIA_TYPE_OPTIONS.map(({ value, label, icon: Icon }) => (
+                <button
+                  key={value}
+                  type="button"
+                  data-active={draft.backgroundMediaType === value ? "true" : "false"}
+                  aria-pressed={draft.backgroundMediaType === value}
+                  onClick={() => patch("backgroundMediaType", value)}
+                  className="inline-flex items-center justify-center gap-2"
+                >
+                  <Icon size={14} />
+                  <span>{label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="grid gap-4 md:grid-cols-2">
             <label className="flex min-w-0 flex-col gap-2">
               <span className="text-[12px] font-medium text-[var(--text-secondary)]">
@@ -1336,7 +1416,7 @@ export function ThemeManage() {
                 className="surface-inset w-full px-3 py-2 text-[13px] outline-none"
               />
               <span className="text-[11px] text-[var(--text-tertiary)]">
-                留空则不显示背景图。可用 <code>浅色图|深色图</code> 为两种外观分别设置。
+                留空则不显示背景图；可用 <code>浅色图|深色图</code> 分别设置两种外观。
               </span>
             </label>
             <label className="flex min-w-0 flex-col gap-2">
@@ -1350,10 +1430,51 @@ export function ThemeManage() {
                 className="surface-inset w-full px-3 py-2 text-[13px] outline-none"
               />
               <span className="text-[11px] text-[var(--text-tertiary)]">
-                屏宽 ≤ 720px 时生效；同样支持 <code>浅色图|深色图</code> 写法。
+                屏宽不超过 720px 时生效；同样支持 <code>浅色图|深色图</code>。
               </span>
             </label>
           </div>
+
+          {draft.backgroundMediaType === "video" && (
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="flex min-w-0 flex-col gap-2">
+                <span className="text-[12px] font-medium text-[var(--text-secondary)]">
+                  浅色模式视频
+                </span>
+                <input
+                  value={draft.backgroundVideo}
+                  onChange={(event) => patch("backgroundVideo", event.target.value)}
+                  placeholder="https://example.com/light.mp4"
+                  aria-invalid={backgroundVideoLightInvalid}
+                  className="surface-inset w-full px-3 py-2 text-[13px] outline-none"
+                />
+                {backgroundVideoLightInvalid && (
+                  <span className="text-[12px] text-[var(--status-offline)]">
+                    {backgroundVideoLightMalformed
+                      ? "请输入 HTTP(S) 或以 / 开头的站内视频直链"
+                      : `视频模式需要浅色视频地址，可使用 ${DEFAULT_BACKGROUND_VIDEO_URL}`}
+                  </span>
+                )}
+              </label>
+              <label className="flex min-w-0 flex-col gap-2">
+                <span className="text-[12px] font-medium text-[var(--text-secondary)]">
+                  深色模式视频（可选）
+                </span>
+                <input
+                  value={draft.backgroundVideoDark}
+                  onChange={(event) => patch("backgroundVideoDark", event.target.value)}
+                  placeholder="留空则沿用浅色模式视频"
+                  aria-invalid={backgroundVideoDarkInvalid}
+                  className="surface-inset w-full px-3 py-2 text-[13px] outline-none"
+                />
+                {backgroundVideoDarkInvalid && (
+                  <span className="text-[12px] text-[var(--status-offline)]">
+                    请输入 HTTP(S) 或以 / 开头的站内视频直链
+                  </span>
+                )}
+              </label>
+            </div>
+          )}
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="surface-inset flex flex-col gap-3 px-4 py-4">
@@ -1417,10 +1538,10 @@ export function ThemeManage() {
               </span>
             </div>
             <span className="text-[11px] leading-relaxed text-[var(--text-tertiary)]">
-              输入 0–100 的整数。100 = 完全不透明（与默认主题一致），数值越低卡片越通透、越能透出背景图。
-              {hasBackgroundImage
-                ? " 低于 95 时会自动在背景图上叠加可读性遮罩，保证文字清晰；卡片本身保持纯半透明，各设备观感一致。"
-                : " 需先在上方设置背景图后才会生效。"}
+              输入 0–100 的整数。100 = 完全不透明（与默认主题一致），数值越低卡片越通透、越能透出自定义背景。
+              {hasBackgroundMedia
+                ? " 低于 95 时会自动在背景上叠加可读性遮罩，保证文字清晰；卡片本身保持纯半透明。"
+                : " 需先在上方设置自定义背景后才会生效。"}
             </span>
           </div>
         </div>

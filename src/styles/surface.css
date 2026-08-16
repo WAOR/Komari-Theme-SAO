@@ -42,6 +42,69 @@ body::after {
   pointer-events: none;
 }
 
+/* 仅桌面端挂载的真实视频层；body::before 在视频失败时承担静态图回退。 */
+.background-video-layer {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: -1;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.background-video-media,
+.background-video-scrim {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.background-video-media {
+  opacity: 0;
+  transition: opacity 420ms ease;
+}
+
+.background-video-media[data-state="playing"] {
+  opacity: 1;
+}
+
+.background-video-scrim {
+  background: var(--bg-scrim, transparent);
+  opacity: 0;
+  transition: opacity 420ms ease;
+}
+
+.background-video-layer[data-state="playing"] .background-video-scrim {
+  opacity: 1;
+}
+
+/* JS 在设置 src 前拦截窄屏和主触点设备，CSS 用相同条件兜底。 */
+@media (min-width: 721px) {
+  .background-video-layer {
+    display: block;
+  }
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .background-video-layer {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .background-video-media {
+    transition: none;
+  }
+
+  .background-video-scrim {
+    transition: none;
+  }
+}
+
 /* 有意不做卡片磨砂(backdrop-filter):它依赖 GPU 合成,不同设备/浏览器渲染差异大
    (关闭硬件加速的桌面浏览器甚至完全不画),还会和卡片的 content-visibility 优化冲突
    (Chromium 把 paint containment 视为 backdrop root,吞掉元素自身的 backdrop-filter)。
@@ -1201,6 +1264,16 @@ body::after {
   border-radius: 999px;
   background: var(--progress-bg);
   box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.22);
+}
+
+.instance-progress-track.is-unlimited {
+  background:
+    repeating-linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--text-tertiary) 28%, transparent) 0 6px,
+      color-mix(in srgb, var(--text-tertiary) 10%, transparent) 6px 12px
+    ),
+    var(--progress-bg);
 }
 
 .instance-progress-fill {

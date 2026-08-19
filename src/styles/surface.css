@@ -253,29 +253,19 @@ body::after {
   right: calc(100% + 8px);
   display: inline-flex;
   width: max-content;
-  max-width: min(340px, calc(100vw - 5rem));
+  max-width: min(600px, calc(100vw - 4.5rem));
   align-items: center;
   gap: 8px;
   overflow: hidden;
   opacity: 1;
   transform: translateX(0) scale(1);
   transform-origin: right center;
+  padding: 2px;
+  margin: -2px;
   transition:
     max-width 220ms cubic-bezier(0.32, 0.72, 0, 1),
     opacity 160ms ease,
     transform 220ms cubic-bezier(0.32, 0.72, 0, 1);
-}
-
-/* 外观选择与其他快捷按钮共用同一个 36px 圆形规格；分组仅保留语义，不再额外
-   包一层会把整行撑高的胶囊。 */
-.floating-controls .floating-controls-appearance {
-  flex: 0 0 auto;
-  gap: 8px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  box-shadow: none;
-  backdrop-filter: none;
 }
 
 .floating-controls-actions .control-button,

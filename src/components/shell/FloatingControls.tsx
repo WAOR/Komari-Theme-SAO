@@ -25,6 +25,7 @@ import { useThemeSettings } from "@/hooks/useThemeSettings";
 import { usePriceVisibility } from "@/hooks/usePriceVisibility";
 import type { NodeViewMode } from "@/utils/themeSettings";
 import { clsx } from "clsx";
+import type { Appearance } from "@/utils/themeSettings";
 
 const MetricColorPicker = lazy(() =>
   import("./MetricColorPicker").then((module) => ({ default: module.MetricColorPicker })),
@@ -39,11 +40,20 @@ const VIEW_MODE_META: Record<NodeViewMode, { icon: typeof LayoutGrid; label: str
   list: { icon: List, label: "列表视图" },
 };
 
-const APPEARANCE_OPTIONS = [
-  { value: "light", icon: Sun, label: "浅色" },
-  { value: "system", icon: Monitor, label: "跟随系统" },
-  { value: "dark", icon: Moon, label: "深色" },
-] as const;
+const NEXT_APPEARANCE: Record<Appearance, Appearance> = {
+  system: "light",
+  light: "dark",
+  dark: "system",
+};
+
+const APPEARANCE_META: Record<
+  Appearance,
+  { icon: typeof Sun; label: string; nextLabel: string }
+> = {
+  light: { icon: Sun, label: "浅色", nextLabel: "深色" },
+  dark: { icon: Moon, label: "深色", nextLabel: "跟随系统" },
+  system: { icon: Monitor, label: "跟随系统", nextLabel: "浅色" },
+};
 
 export function FloatingControls({
   onExpandedChange,
@@ -70,6 +80,13 @@ export function FloatingControls({
   const hiddenTabIndex = collapsed ? -1 : undefined;
   const ToggleIcon = collapsed ? ChevronLeft : ChevronRight;
   const ViewIcon = VIEW_MODE_META[nextMode].icon;
+  const currentAppearance = APPEARANCE_META[appearance] ?? APPEARANCE_META.system;
+  const AppearanceIcon = currentAppearance.icon;
+
+  const cycleAppearance = () => {
+    setAppearance(NEXT_APPEARANCE[appearance] ?? "system");
+  };
+
   // 只要不在最宽松的大卡默认态,就视为"已切换"，按钮保持高亮。
   const isReducedView = mode !== "large";
   useEffect(() => {
@@ -98,29 +115,19 @@ export function FloatingControls({
           <div className="floating-controls-actions" aria-hidden={collapsed}>
             {settingsReady && (
               <>
-                <div
-                  className="control-group floating-controls-appearance"
-                  role="group"
-                  aria-label="外观选择"
+                <button
+                  type="button"
+                  onClick={cycleAppearance}
+                  aria-label={`外观: ${currentAppearance.label} (点击切换为${currentAppearance.nextLabel})`}
+                  title={`外观: ${currentAppearance.label} (点击切换为${currentAppearance.nextLabel})`}
+                  tabIndex={hiddenTabIndex}
+                  className={clsx(
+                    "control-button grid h-9 w-9 place-items-center",
+                    appearance !== "system" && "control-toggle is-active",
+                  )}
                 >
-                  {APPEARANCE_OPTIONS.map(({ value, icon: Icon, label }) => (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() => setAppearance(value)}
-                      aria-label={label}
-                      aria-pressed={appearance === value}
-                      title={label}
-                      tabIndex={hiddenTabIndex}
-                      className={clsx(
-                        "control-button grid h-9 w-9 place-items-center",
-                        appearance === value && "control-toggle is-active",
-                      )}
-                    >
-                      <Icon size={16} />
-                    </button>
-                  ))}
-                </div>
+                  <AppearanceIcon size={16} />
+                </button>
                 <button
                   type="button"
                   onClick={toggleMode}

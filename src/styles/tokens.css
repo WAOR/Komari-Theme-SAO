@@ -76,10 +76,69 @@
   --status-online: #2f9e65;
   --status-offline: #dc2626;
 
-  --tag-red-bg: #fee2e2;
-  --tag-red-fg: #b91c1c;
-  --tag-gray-bg: #e5e5e5;
-  --tag-gray-fg: #3f3f46;
+  /* Radix UI Color Tokens - Light Mode */
+  --tag-tomato-bg: rgba(229, 77, 46, 0.12);
+  --tag-tomato-fg: #ca3214;
+  --tag-red-bg: rgba(229, 72, 77, 0.12);
+  --tag-red-fg: #cd2b31;
+  --tag-ruby-bg: rgba(229, 70, 102, 0.12);
+  --tag-ruby-fg: #ca244d;
+  --tag-crimson-bg: rgba(233, 61, 130, 0.12);
+  --tag-crimson-fg: #cb1d63;
+  --tag-pink-bg: rgba(214, 64, 159, 0.12);
+  --tag-pink-fg: #ba258c;
+  --tag-plum-bg: rgba(171, 74, 186, 0.12);
+  --tag-plum-fg: #8e259e;
+  --tag-purple-bg: rgba(142, 78, 198, 0.12);
+  --tag-purple-fg: #6e23af;
+  --tag-violet-bg: rgba(110, 86, 207, 0.12);
+  --tag-violet-fg: #5732c5;
+  --tag-iris-bg: rgba(91, 91, 214, 0.12);
+  --tag-iris-fg: #4646be;
+  --tag-indigo-bg: rgba(62, 99, 221, 0.12);
+  --tag-indigo-fg: #2b50bb;
+  --tag-blue-bg: rgba(0, 144, 255, 0.12);
+  --tag-blue-fg: #006adc;
+  --tag-cyan-bg: rgba(0, 162, 199, 0.12);
+  --tag-cyan-fg: #00749e;
+  --tag-teal-bg: rgba(18, 165, 148, 0.12);
+  --tag-teal-fg: #0a7163;
+  --tag-jade-bg: rgba(41, 163, 131, 0.12);
+  --tag-jade-fg: #18795d;
+  --tag-green-bg: rgba(48, 164, 108, 0.12);
+  --tag-green-fg: #18794e;
+  --tag-grass-bg: rgba(70, 167, 88, 0.12);
+  --tag-grass-fg: #207c3b;
+  --tag-bronze-bg: rgba(161, 128, 114, 0.12);
+  --tag-bronze-fg: #79594e;
+  --tag-gold-bg: rgba(151, 131, 101, 0.12);
+  --tag-gold-fg: #6e5d43;
+  --tag-brown-bg: rgba(173, 121, 86, 0.12);
+  --tag-brown-fg: #815437;
+  --tag-orange-bg: rgba(247, 107, 21, 0.12);
+  --tag-orange-fg: #c04b00;
+  --tag-amber-bg: rgba(255, 197, 61, 0.18);
+  --tag-amber-fg: #9e5e00;
+  --tag-yellow-bg: rgba(255, 225, 87, 0.22);
+  --tag-yellow-fg: #8c6700;
+  --tag-lime-bg: rgba(189, 238, 77, 0.20);
+  --tag-lime-fg: #5f7e00;
+  --tag-mint-bg: rgba(134, 234, 212, 0.20);
+  --tag-mint-fg: #00826a;
+  --tag-sky-bg: rgba(124, 226, 254, 0.18);
+  --tag-sky-fg: #00749a;
+  --tag-gray-bg: rgba(139, 141, 152, 0.14);
+  --tag-gray-fg: #60646c;
+  --tag-mauve-bg: rgba(142, 138, 153, 0.14);
+  --tag-mauve-fg: #65616f;
+  --tag-slate-bg: rgba(139, 143, 163, 0.14);
+  --tag-slate-fg: #5f6575;
+  --tag-sage-bg: rgba(134, 143, 139, 0.14);
+  --tag-sage-fg: #5b6560;
+  --tag-olive-bg: rgba(138, 143, 134, 0.14);
+  --tag-olive-fg: #5f655b;
+  --tag-sand-bg: rgba(144, 141, 135, 0.14);
+  --tag-sand-fg: #65625c;
 
   --ring: rgba(59, 130, 246, 0.35);
 
@@ -145,58 +204,105 @@
   --status-online: #57ab5a;
   --status-offline: #f47067;
 
-  --tag-red-bg: rgba(244, 112, 103, 0.16);
-  --tag-red-fg: #ffb8b0;
+  /* Radix UI Color Tokens - Dark Mode */
+  --tag-tomato-bg: rgba(229, 77, 46, 0.18);
+  --tag-tomato-fg: #ff977d;
+  --tag-red-bg: rgba(229, 72, 77, 0.18);
+  --tag-red-fg: #ff9592;
+  --tag-ruby-bg: rgba(229, 70, 102, 0.18);
+  --tag-ruby-fg: #ff94a8;
+  --tag-crimson-bg: rgba(233, 61, 130, 0.18);
+  --tag-crimson-fg: #ff8eb8;
+  --tag-pink-bg: rgba(214, 64, 159, 0.18);
+  --tag-pink-fg: #f68bce;
+  --tag-plum-bg: rgba(171, 74, 186, 0.18);
+  --tag-plum-fg: #da8eed;
+  --tag-purple-bg: rgba(142, 78, 198, 0.18);
+  --tag-purple-fg: #c79bf2;
+  --tag-violet-bg: rgba(110, 86, 207, 0.18);
+  --tag-violet-fg: #ba9bf9;
+  --tag-iris-bg: rgba(91, 91, 214, 0.18);
+  --tag-iris-fg: #aab0ff;
+  --tag-indigo-bg: rgba(62, 99, 221, 0.18);
+  --tag-indigo-fg: #99b4ff;
+  --tag-blue-bg: rgba(0, 144, 255, 0.18);
+  --tag-blue-fg: #70b8ff;
+  --tag-cyan-bg: rgba(0, 162, 199, 0.18);
+  --tag-cyan-fg: #4ccce6;
+  --tag-teal-bg: rgba(18, 165, 148, 0.18);
+  --tag-teal-fg: #4ecbb4;
+  --tag-jade-bg: rgba(41, 163, 131, 0.18);
+  --tag-jade-fg: #57cca8;
+  --tag-green-bg: rgba(48, 164, 108, 0.18);
+  --tag-green-fg: #61d095;
+  --tag-grass-bg: rgba(70, 167, 88, 0.18);
+  --tag-grass-fg: #71d083;
+  --tag-bronze-bg: rgba(161, 128, 114, 0.18);
+  --tag-bronze-fg: #d3b3a6;
+  --tag-gold-bg: rgba(151, 131, 101, 0.18);
+  --tag-gold-fg: #ccba9e;
+  --tag-brown-bg: rgba(173, 121, 86, 0.18);
+  --tag-brown-fg: #de9d74;
+  --tag-orange-bg: rgba(247, 107, 21, 0.18);
+  --tag-orange-fg: #ffa057;
+  --tag-amber-bg: rgba(255, 197, 61, 0.18);
+  --tag-amber-fg: #ffd369;
+  --tag-yellow-bg: rgba(255, 225, 87, 0.18);
+  --tag-yellow-fg: #ffe066;
+  --tag-lime-bg: rgba(189, 238, 77, 0.18);
+  --tag-lime-fg: #c7ea5d;
+  --tag-mint-bg: rgba(134, 234, 212, 0.18);
+  --tag-mint-fg: #64edcc;
+  --tag-sky-bg: rgba(124, 226, 254, 0.18);
+  --tag-sky-fg: #66d3f8;
   --tag-gray-bg: rgba(145, 152, 161, 0.18);
   --tag-gray-fg: #d1d7e0;
+  --tag-mauve-bg: rgba(142, 138, 153, 0.18);
+  --tag-mauve-fg: #c4bfcf;
+  --tag-slate-bg: rgba(139, 143, 163, 0.18);
+  --tag-slate-fg: #bfc4d4;
+  --tag-sage-bg: rgba(134, 143, 139, 0.18);
+  --tag-sage-fg: #bcc5bf;
+  --tag-olive-bg: rgba(138, 143, 134, 0.18);
+  --tag-olive-fg: #c0c5bb;
+  --tag-sand-bg: rgba(144, 141, 135, 0.18);
+  --tag-sand-fg: #c5c2bc;
 
   --ring: rgba(83, 155, 245, 0.5);
 
   --canvas-glow: none;
 }
 
-/* 标签配色 — DStatus 风格 pill,按标签颜色名取色 */
-[data-tag="ruby"],
-[data-tag="red"],
-[data-tag="tomato"],
-[data-tag="crimson"] {
-  --tag-bg: var(--tag-red-bg);
-  --tag-fg: var(--tag-red-fg);}
-[data-tag="gold"],
-[data-tag="amber"],
-[data-tag="yellow"] {
-  --tag-bg: rgba(233, 162, 59, 0.16);
-  --tag-fg: #e9a23b;}
-[data-tag="orange"],
-[data-tag="bronze"],
-[data-tag="brown"] {
-  --tag-bg: rgba(233, 123, 53, 0.16);
-  --tag-fg: #e97b35;}
-[data-tag="green"],
-[data-tag="grass"],
-[data-tag="mint"],
-[data-tag="jade"],
-[data-tag="lime"] {
-  --tag-bg: rgba(84, 180, 132, 0.16);
-  --tag-fg: #54b484;}
-[data-tag="blue"],
-[data-tag="sky"],
-[data-tag="cyan"],
-[data-tag="teal"] {
-  --tag-bg: rgba(78, 129, 238, 0.16);
-  --tag-fg: #4e81ee;}
-[data-tag="violet"],
-[data-tag="purple"],
-[data-tag="plum"],
-[data-tag="iris"],
-[data-tag="indigo"],
-[data-tag="pink"] {
-  --tag-bg: rgba(157, 90, 239, 0.16);
-  --tag-fg: #9d5aef;}
-[data-tag="slate"] {
-  --tag-bg: rgba(100, 116, 139, 0.16);
-  --tag-fg: #64748b;}
+/* 标签配色 — Radix UI Colors 官方 30 色系独立映射 */
+[data-tag="tomato"] { --tag-bg: var(--tag-tomato-bg); --tag-fg: var(--tag-tomato-fg); }
+[data-tag="red"] { --tag-bg: var(--tag-red-bg); --tag-fg: var(--tag-red-fg); }
+[data-tag="ruby"] { --tag-bg: var(--tag-ruby-bg); --tag-fg: var(--tag-ruby-fg); }
+[data-tag="crimson"] { --tag-bg: var(--tag-crimson-bg); --tag-fg: var(--tag-crimson-fg); }
+[data-tag="pink"] { --tag-bg: var(--tag-pink-bg); --tag-fg: var(--tag-pink-fg); }
+[data-tag="plum"] { --tag-bg: var(--tag-plum-bg); --tag-fg: var(--tag-plum-fg); }
+[data-tag="purple"] { --tag-bg: var(--tag-purple-bg); --tag-fg: var(--tag-purple-fg); }
+[data-tag="violet"] { --tag-bg: var(--tag-violet-bg); --tag-fg: var(--tag-violet-fg); }
+[data-tag="iris"] { --tag-bg: var(--tag-iris-bg); --tag-fg: var(--tag-iris-fg); }
+[data-tag="indigo"] { --tag-bg: var(--tag-indigo-bg); --tag-fg: var(--tag-indigo-fg); }
+[data-tag="blue"] { --tag-bg: var(--tag-blue-bg); --tag-fg: var(--tag-blue-fg); }
+[data-tag="cyan"] { --tag-bg: var(--tag-cyan-bg); --tag-fg: var(--tag-cyan-fg); }
+[data-tag="teal"] { --tag-bg: var(--tag-teal-bg); --tag-fg: var(--tag-teal-fg); }
+[data-tag="jade"] { --tag-bg: var(--tag-jade-bg); --tag-fg: var(--tag-jade-fg); }
+[data-tag="green"] { --tag-bg: var(--tag-green-bg); --tag-fg: var(--tag-green-fg); }
+[data-tag="grass"] { --tag-bg: var(--tag-grass-bg); --tag-fg: var(--tag-grass-fg); }
+[data-tag="bronze"] { --tag-bg: var(--tag-bronze-bg); --tag-fg: var(--tag-bronze-fg); }
+[data-tag="gold"] { --tag-bg: var(--tag-gold-bg); --tag-fg: var(--tag-gold-fg); }
+[data-tag="brown"] { --tag-bg: var(--tag-brown-bg); --tag-fg: var(--tag-brown-fg); }
+[data-tag="orange"] { --tag-bg: var(--tag-orange-bg); --tag-fg: var(--tag-orange-fg); }
+[data-tag="amber"] { --tag-bg: var(--tag-amber-bg); --tag-fg: var(--tag-amber-fg); }
+[data-tag="yellow"] { --tag-bg: var(--tag-yellow-bg); --tag-fg: var(--tag-yellow-fg); }
+[data-tag="lime"] { --tag-bg: var(--tag-lime-bg); --tag-fg: var(--tag-lime-fg); }
+[data-tag="mint"] { --tag-bg: var(--tag-mint-bg); --tag-fg: var(--tag-mint-fg); }
+[data-tag="sky"] { --tag-bg: var(--tag-sky-bg); --tag-fg: var(--tag-sky-fg); }
 [data-tag="gray"],
-[data-tag=""] {
-  --tag-bg: var(--tag-gray-bg);
-  --tag-fg: var(--tag-gray-fg);}
+[data-tag=""] { --tag-bg: var(--tag-gray-bg); --tag-fg: var(--tag-gray-fg); }
+[data-tag="mauve"] { --tag-bg: var(--tag-mauve-bg); --tag-fg: var(--tag-mauve-fg); }
+[data-tag="slate"] { --tag-bg: var(--tag-slate-bg); --tag-fg: var(--tag-slate-fg); }
+[data-tag="sage"] { --tag-bg: var(--tag-sage-bg); --tag-fg: var(--tag-sage-fg); }
+[data-tag="olive"] { --tag-bg: var(--tag-olive-bg); --tag-fg: var(--tag-olive-fg); }
+[data-tag="sand"] { --tag-bg: var(--tag-sand-bg); --tag-fg: var(--tag-sand-fg); }

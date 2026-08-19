@@ -180,11 +180,11 @@ function inferPlainTagColor(label: string): string {
   return "violet";
 }
 
-/** 把 `tag1<color>;tag2<color2>` 解析成 [{ label, color }]。 */
+/** 把 `tag1<color>;tag2<color2>` (支持中英文分号/逗号分隔) 解析成 [{ label, color }]。 */
 export function parseTags(raw: string | undefined | null): Array<{ label: string; color: string }> {
   if (!raw) return [];
   return raw
-    .split(";")
+    .split(/[;,；，]/)
     .map((s) => s.trim())
     .filter(Boolean)
     .map((item) => {

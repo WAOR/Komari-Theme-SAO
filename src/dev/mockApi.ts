@@ -464,7 +464,7 @@ export function installDevMockApi() {
   // ?mock=1&admin=1 模拟已登录管理员,连带放开 /api/admin/*,ThemeManage 才可在 dev 调试。
   const adminMode = new URLSearchParams(window.location.search).get("admin") === "1";
   // 保存后的主题设置驻留内存,让「保存 → /api/public refetch」链路在 dev 里闭环。
-  const defaultTheme = "komari-theme-luminaPlus";
+  const defaultTheme = "komari-theme-sao";
   const savedThemeSettings: Record<string, Record<string, unknown>> = {};
 
   window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -521,7 +521,7 @@ export function installDevMockApi() {
       return json({
         sitename: "Lumina Ops",
         description: "全球节点运行状态",
-        theme: "komari-theme-luminaPlus",
+        theme: "komari-theme-sao",
         allow_cors: false,
         disable_password_login: false,
         oauth_enable: false,

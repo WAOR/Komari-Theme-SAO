@@ -5,24 +5,47 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta
       name="keywords"
-      content="Komari-Theme-LuminaPlus, LuminaPlus, server monitor, real-time server status, server performance dashboard, monitoring tool" />
+      content="Komari-Theme-SAO, SAO, server monitor, real-time server status, server performance dashboard, monitoring tool" />
     <meta name="theme-color" content="#000000" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="Komari-Theme-LuminaPlus" />
+    <meta name="apple-mobile-web-app-title" content="Komari-Theme-SAO" />
     <link rel="manifest" href="/manifest.json" crossorigin="use-credentials" />
     <link rel="apple-touch-icon" href="/favicon.ico" />
     <link rel="icon" type="image/png" sizes="192x192" href="/favicon.ico" />
-    <meta property="og:title" content="Komari-Theme-LuminaPlus" />
+    <meta property="og:title" content="Komari-Theme-SAO" />
     <meta property="og:description" content="A Komari monitor theme." />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Komari-Theme-LuminaPlus" />
+    <meta name="twitter:title" content="Komari-Theme-SAO" />
     <meta name="twitter:description" content="A Komari monitor theme." />
-    <title>Komari-Theme-LuminaPlus</title>
+    <title>Komari-Theme-SAO</title>
     <meta name="description" content="A Komari monitor theme." />
     <script>
       (() => {
+        try {
+          const cachedTitle = localStorage.getItem("komaritheme:sitename");
+          if (cachedTitle && cachedTitle.trim()) {
+            document.title = cachedTitle.trim();
+            const setMeta = (sel, val) => {
+              const el = document.querySelector(sel);
+              if (el) el.setAttribute("content", val);
+            };
+            setMeta('meta[name="apple-mobile-web-app-title"]', cachedTitle.trim());
+            setMeta('meta[property="og:title"]', cachedTitle.trim());
+            setMeta('meta[name="twitter:title"]', cachedTitle.trim());
+          }
+          const cachedDesc = localStorage.getItem("komaritheme:description");
+          if (cachedDesc && cachedDesc.trim()) {
+            const setMeta = (sel, val) => {
+              const el = document.querySelector(sel);
+              if (el) el.setAttribute("content", val);
+            };
+            setMeta('meta[name="description"]', cachedDesc.trim());
+            setMeta('meta[property="og:description"]', cachedDesc.trim());
+            setMeta('meta[name="twitter:description"]', cachedDesc.trim());
+          }
+        } catch {}
         const appearances = new Set(["system", "light", "dark"]);
         const readAppearance = (key) => {
           const raw = localStorage.getItem(key);

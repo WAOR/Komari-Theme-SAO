@@ -27,6 +27,10 @@ Komari 探针监控服务端 (komari-monitor/komari)
 
 ## 🛠️ 本分支定制与优化内容
 
+- **服务器价格与资产隐私保护机制**：
+  - **访客价格公开设置**：在主题管理页面「07 花费」中新增「向访客公开价格与资产」配置项。未登录状态下默认隐藏所有节点价格标签，首页资产概览数值显示为 `**` 并隐藏资产评级标签与未登录跳转入口。
+  - **右上角快捷显隐开关**：已登录用户在顶部悬浮工具栏中可通过眼睛图标（`Eye` / `EyeOff`）一键临时切换显示/隐藏节点价格与资产概览，方便日常截图、录屏与分享。
+  - **全局价格联动与访问保护**：大卡、小卡、迷你卡、列表卡及临期弹窗在隐藏状态下直接隐藏价格标签；未登录访客直连 `/assets` 资产页时自动重定向回首页。
 - **Radix UI Colors 官方色彩全量支持**：
   - 完整对齐并独立实现了 Radix 官方全套 30 种色彩体系（如 `Tomato`, `Red`, `Ruby`, `Crimson`, `Pink`, `Plum`, `Purple`, `Violet`, `Iris`, `Indigo`, `Blue`, `Cyan`, `Teal`, `Jade`, `Green`, `Grass`, `Lime`, `Mint`, `Sky`, `Amber`, `Yellow`, `Orange`, `Bronze`, `Gold`, `Brown`, `Gray`, `Mauve`, `Slate`, `Sage`, `Olive`, `Sand`）。
   - 彻底解决了原版中大量颜色被粗暴归并、颜色错位的问题。

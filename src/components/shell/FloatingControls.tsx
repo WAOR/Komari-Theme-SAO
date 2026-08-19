@@ -1,11 +1,28 @@
 import { lazy, Suspense, useEffect, useState } from "react";
-import { AlertTriangle, ChevronLeft, ChevronRight, Grid3x3, LayoutGrid, List, Monitor, Palette, Rows3, Settings, SlidersHorizontal, Sun, Moon } from "lucide-react";
+import {
+  AlertTriangle,
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  EyeOff,
+  Grid3x3,
+  LayoutGrid,
+  List,
+  Monitor,
+  Palette,
+  Rows3,
+  Settings,
+  SlidersHorizontal,
+  Sun,
+  Moon,
+} from "lucide-react";
 import { Link } from "react-router-dom";
 import { usePreferences } from "@/hooks/usePreferences";
 import { useViewMode } from "@/hooks/useViewMode";
 import { useNodeStoreStatus } from "@/hooks/useNode";
 import { useAuth } from "@/hooks/useAuth";
 import { useThemeSettings } from "@/hooks/useThemeSettings";
+import { usePriceVisibility } from "@/hooks/usePriceVisibility";
 import type { NodeViewMode } from "@/utils/themeSettings";
 import { clsx } from "clsx";
 
@@ -37,6 +54,7 @@ export function FloatingControls({
   const { mode, nextMode, toggleMode } = useViewMode();
   const { data: me } = useAuth();
   const themeSettings = useThemeSettings();
+  const { isPriceVisible, togglePriceVisibility } = usePriceVisibility();
   const { failureStreak } = useNodeStoreStatus();
   const [collapsed, setCollapsed] = useState(true);
   const [colorsOpen, setColorsOpen] = useState(false);
@@ -47,6 +65,7 @@ export function FloatingControls({
   const loggedIn = Boolean(me?.logged_in);
   const showThemeManage = loggedIn;
   const showColorPicker = loggedIn;
+  const showPriceToggle = loggedIn;
   const showSyncWarning = failureStreak >= 2;
   const hiddenTabIndex = collapsed ? -1 : undefined;
   const ToggleIcon = collapsed ? ChevronLeft : ChevronRight;
@@ -116,6 +135,22 @@ export function FloatingControls({
                 >
                   <ViewIcon size={16} />
                 </button>
+                {showPriceToggle && (
+                  <button
+                    type="button"
+                    onClick={togglePriceVisibility}
+                    aria-label={isPriceVisible ? "隐藏价格与资产" : "显示价格与资产"}
+                    aria-pressed={!isPriceVisible}
+                    title={isPriceVisible ? "临时隐藏价格与资产" : "临时显示价格与资产"}
+                    tabIndex={hiddenTabIndex}
+                    className={clsx(
+                      "control-button grid h-9 w-9 place-items-center",
+                      !isPriceVisible && "control-toggle is-active",
+                    )}
+                  >
+                    {isPriceVisible ? <Eye size={16} /> : <EyeOff size={16} />}
+                  </button>
+                )}
                 {showColorPicker && (
                   <button
                     type="button"

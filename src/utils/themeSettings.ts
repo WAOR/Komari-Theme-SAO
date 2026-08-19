@@ -54,6 +54,7 @@ export interface ResolvedThemeSettings {
   homeSortDirection: HomeSortDirection;
   showCostSummary: boolean;
   showCostSummaryFloatingButton: boolean;
+  showPriceForGuests: boolean;
   showOverviewRatings: boolean;
   showTrafficRating: boolean;
   showBandwidthRating: boolean;
@@ -100,6 +101,7 @@ export const DEFAULT_THEME_SETTINGS: ResolvedThemeSettings = {
   homeSortDirection: HOME_SORT_NATURAL_DIRECTION.default,
   showCostSummary: true,
   showCostSummaryFloatingButton: true,
+  showPriceForGuests: false,
   showOverviewRatings: true,
   showTrafficRating: true,
   showBandwidthRating: true,
@@ -219,6 +221,8 @@ export function normalizeThemeSettings(
     ...normalizeHomeSortDefault(settings?.homeSortField, settings?.homeSortDirection),
     showCostSummary: enabledUnlessFalse(settings?.showCostSummary),
     showCostSummaryFloatingButton: enabledUnlessFalse(settings?.showCostSummaryFloatingButton),
+    // 默认关闭(需手动开启):向访客展示价格与资产必须由站长显式决定。
+    showPriceForGuests: settings?.showPriceForGuests === true,
     showOverviewRatings: enabledUnlessFalse(settings?.showOverviewRatings),
     showTrafficRating: enabledUnlessFalse(settings?.showTrafficRating),
     showBandwidthRating: enabledUnlessFalse(settings?.showBandwidthRating),

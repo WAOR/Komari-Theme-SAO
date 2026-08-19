@@ -14,6 +14,7 @@ import { useHomepagePingOverview } from "@/hooks/usePingOverview";
 import { usePublicConfig } from "@/hooks/usePublicConfig";
 import { useThemeSettings } from "@/hooks/useThemeSettings";
 import { useViewMode } from "@/hooks/useViewMode";
+import { usePriceVisibility } from "@/hooks/usePriceVisibility";
 import {
   formatBytes,
   formatByteRate,
@@ -153,11 +154,14 @@ function HomeOverviewCards({
     overview.totalNodes > 0 ? (overview.onlineNodes / overview.totalNodes) * 100 : 0;
   const offlinePct =
     overview.totalNodes > 0 ? (overview.offlineNodes / overview.totalNodes) * 100 : 0;
-  const remainingValue = costSummary
-    ? formatCnyMoney(costSummary.remainingCny)
-    : costLoading
-      ? "计算中"
-      : "—";
+  const { isPriceVisible } = usePriceVisibility();
+  const remainingValue = !isPriceVisible
+    ? "**"
+    : costSummary
+      ? formatCnyMoney(costSummary.remainingCny)
+      : costLoading
+        ? "计算中"
+        : "—";
   const trafficDetailLabel = `↑ ${formatBytes(overview.trafficUp)} · ↓ ${formatBytes(overview.trafficDown)}`;
   const trafficCompactLabel = `↑${formatCompactBytes(overview.trafficUp)} ↓${formatCompactBytes(overview.trafficDown)}`;
   const bandwidthDetailLabel = `↑ ${formatByteRateLabel(overview.netUp)} · ↓ ${formatByteRateLabel(overview.netDown)}`;
@@ -179,7 +183,7 @@ function HomeOverviewCards({
         })
       : null;
   const assetRating =
-    showOverviewRatings && showAssetRating && costSummary
+    isPriceVisible && showOverviewRatings && showAssetRating && costSummary
       ? getOverviewRating({
           kind: "asset",
           value: costSummary.remainingCny,
@@ -454,14 +458,17 @@ export function NodeGrid() {
   const showHomeOverview = themeSettings.isReady && themeSettings.showHomeOverview;
   const showTrafficPopover = themeSettings.isReady && themeSettings.showTodayTrafficPopover;
   const hasNodes = visibleMeta.length > 0;
+  const loggedIn = Boolean(me?.logged_in);
+  const canAccessAssets = loggedIn || themeSettings.showPriceForGuests;
   // 卡内入口与悬浮入口互斥，避免重复操作入口。
   const showAssetCard = showHomeOverview && hasNodes;
   const showCostDetailButton =
-    showAssetCard && themeSettings.isReady && themeSettings.showCostSummary;
+    showAssetCard && themeSettings.isReady && themeSettings.showCostSummary && canAccessAssets;
   const showCostFloatingButton =
     themeSettings.isReady &&
     themeSettings.showCostSummaryFloatingButton &&
     hasNodes &&
+    canAccessAssets &&
     !showCostDetailButton;
 
   useEffect(() => {

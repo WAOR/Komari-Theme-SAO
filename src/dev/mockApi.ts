@@ -542,6 +542,7 @@ export function installDevMockApi() {
           enableHomeSort: true,
           showCostSummary: true,
           showCostSummaryFloatingButton: true,
+          showPriceForGuests: false,
           showOverviewRatings: true,
           showTrafficRating: true,
           showBandwidthRating: true,

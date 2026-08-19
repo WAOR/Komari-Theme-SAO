@@ -9,6 +9,7 @@ import { useThemeSettings } from "@/hooks/useThemeSettings";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useHourlyClock } from "@/hooks/useClock";
 import { useVisibleNodes } from "@/hooks/useVisibleNodes";
+import { useAuth } from "@/hooks/useAuth";
 import {
   calculateCostSummary,
   formatCnyMoney,
@@ -185,6 +186,9 @@ export function Assets() {
     }
   };
 
+  const { data: me } = useAuth();
+  const loggedIn = Boolean(me?.logged_in);
+
   if (!themeSettings.isReady) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
@@ -193,8 +197,11 @@ export function Assets() {
     );
   }
 
-  // 两个入口都关闭 = 站长不想暴露资产信息,直连 URL 一并回首页。
-  if (!themeSettings.showCostSummary && !themeSettings.showCostSummaryFloatingButton) {
+  // 两个入口都关闭或对访客隐藏资产时，未登录访客直连 URL 回首页。
+  if (
+    (!themeSettings.showCostSummary && !themeSettings.showCostSummaryFloatingButton) ||
+    (!loggedIn && !themeSettings.showPriceForGuests)
+  ) {
     return <Navigate to="/" replace />;
   }
 

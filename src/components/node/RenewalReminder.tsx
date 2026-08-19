@@ -1,6 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { CircleDollarSign, X } from "lucide-react";
+import { usePriceVisibility } from "@/hooks/usePriceVisibility";
 import {
   EMPTY_RENEWAL_REMINDER_PREFERENCES,
   formatRenewalReminderExpiry,
@@ -64,6 +65,7 @@ export function RenewalReminder({ nodes }: { nodes: RenewalReminderSource[] }) {
   const [open, setOpen] = useState(false);
   const [clock, setClock] = useState(() => Date.now());
   const [preferences, setPreferences] = useState(readPreferences);
+  const { isPriceVisible } = usePriceVisibility();
   const rootRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const closeRef = useRef<HTMLButtonElement | null>(null);
@@ -211,7 +213,7 @@ export function RenewalReminder({ nodes }: { nodes: RenewalReminderSource[] }) {
                 <div className="renewal-reminder-row-main">
                   <strong title={item.name}>{item.name}</strong>
                   <span>{formatRenewalReminderExpiry(item.daysRemaining)}</span>
-                  <span>{item.priceLabel}</span>
+                  {isPriceVisible && item.priceLabel && <span>{item.priceLabel}</span>}
                 </div>
                 <span className="renewal-reminder-status" data-tone={item.tone}>
                   {item.statusLabel}

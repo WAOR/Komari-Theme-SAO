@@ -287,6 +287,7 @@ function pickManagedThemeSettings(settings: ResolvedThemeSettings) {
     homeSortDirection: settings.homeSortDirection,
     showCostSummary: settings.showCostSummary,
     showCostSummaryFloatingButton: settings.showCostSummaryFloatingButton,
+    showPriceForGuests: settings.showPriceForGuests,
     showOverviewRatings: settings.showOverviewRatings,
     showTrafficRating: settings.showTrafficRating,
     showBandwidthRating: settings.showBandwidthRating,
@@ -1855,6 +1856,13 @@ export function ThemeManage() {
               title="显示资产悬浮按钮"
               desc="卡内入口不可用时（总览隐藏或其开关关闭），以悬浮按钮进入资产统计页。"
               checked={draft.showCostSummaryFloatingButton}
+              onPatch={patch}
+            />
+            <ToggleRow
+              field="showPriceForGuests"
+              title="向访客公开价格与资产"
+              desc="默认关闭。开启后，未登录访客也能查看节点续费价格标签与首页资产概览；关闭时对访客隐藏价格标签，资产概览显示为 **。"
+              checked={draft.showPriceForGuests}
               onPatch={patch}
             />
             <label className="flex flex-col gap-2">

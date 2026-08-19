@@ -525,11 +525,13 @@ function CompactNodeInfoStrip({
             value={formatCompactExpire(expire)}
             color={expireColor}
           />
-          <CompactInfoRow
-            icon={<CircleDollarSign size={12} strokeWidth={2.2} />}
-            value={renewalPrice || "未填"}
-            color={renewalPrice ? "var(--status-success)" : "var(--text-tertiary)"}
-          />
+          {renewalPrice && (
+            <CompactInfoRow
+              icon={<CircleDollarSign size={12} strokeWidth={2.2} />}
+              value={renewalPrice}
+              color="var(--status-success)"
+            />
+          )}
         </CompactInfoTile>
       )}
       {showConnections && (

@@ -117,7 +117,7 @@ export function OverviewTrafficChart({
       const paddingLeft = isMobile ? 62 : 68;
       const paddingBottom = 20;
       const paddingTop = 8;
-      const paddingRight = 10;
+      const paddingRight = isMobile ? 28 : 22;
       const plotWidth = width - paddingLeft - paddingRight;
       const plotHeight = height - paddingTop - paddingBottom;
 

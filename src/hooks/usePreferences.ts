@@ -110,28 +110,47 @@ function applyResolvedAppearance(resolvedAppearance: ResolvedAppearance) {
   root.dataset.appearance = resolvedAppearance;
   root.style.colorScheme = resolvedAppearance;
   const isDark = resolvedAppearance === "dark";
+  // These must match the CSS --bg-0 token values exactly
   const color = isDark ? "#09090b" : "#f4f5f7";
+
+  // 1. Paint explicit solid background on <html> and <body>.
+  //    Safari samples the *rendered pixel* at the top of the viewport to
+  //    determine the status-bar / Dynamic Island tint colour — not the meta tag.
   root.style.backgroundColor = color;
-
-  if (typeof document !== "undefined") {
-    if (document.body) {
-      document.body.style.colorScheme = resolvedAppearance;
-      document.body.style.backgroundColor = color;
-    }
-    const existingMetas = document.querySelectorAll('meta[name="theme-color"]');
-    existingMetas.forEach((el) => el.remove());
-    const meta = document.createElement("meta");
-    meta.name = "theme-color";
-    meta.content = color;
-    document.head.appendChild(meta);
-
-    const statusMeta = document.querySelector<HTMLMetaElement>(
-      'meta[name="apple-mobile-web-app-status-bar-style"]',
-    );
-    if (statusMeta) {
-      statusMeta.content = isDark ? "black-translucent" : "default";
-    }
+  if (document.body) {
+    document.body.style.backgroundColor = color;
+    document.body.style.colorScheme = resolvedAppearance;
   }
+
+  // 2. Directly set the sticky navbar's background-color.
+  //    Safari priority: fixed/sticky element > body > default.
+  //    The navbar has backdrop-filter, so we use a high-opacity tint that
+  //    gives a near-solid surface for the compositor to sample from.
+  const navBar = document.querySelector<HTMLElement>(".mao-top-nav-bar");
+  if (navBar) {
+    const bg = isDark ? "rgba(9,9,11,0.97)" : "rgba(244,245,247,0.97)";
+    navBar.style.backgroundColor = bg;
+    // 3. Force WebKit to destroy and rebuild the composited backdrop-filter
+    //    layer so it resamples the new background in the same paint cycle.
+    //    Removing then restoring the property in consecutive rAF frames is the
+    //    only reliable cross-WebKit way to do this without a page reload.
+    const bdFilter = "blur(18px) saturate(180%)";
+    navBar.style.backdropFilter = "none";
+    (navBar.style as CSSStyleDeclaration & { webkitBackdropFilter?: string }).webkitBackdropFilter = "none";
+    requestAnimationFrame(() => {
+      navBar.style.backgroundColor = bg;
+      navBar.style.backdropFilter = bdFilter;
+      (navBar.style as CSSStyleDeclaration & { webkitBackdropFilter?: string }).webkitBackdropFilter = bdFilter;
+    });
+  }
+
+  // 4. Keep theme-color in sync for Android Chrome / older Safari.
+  const existingMetas = document.querySelectorAll('meta[name="theme-color"]');
+  existingMetas.forEach((el) => el.remove());
+  const meta = document.createElement("meta");
+  meta.name = "theme-color";
+  meta.content = color;
+  document.head.appendChild(meta);
 }
 
 function commit(next: Partial<PrefsState>) {

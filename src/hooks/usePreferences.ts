@@ -109,17 +109,28 @@ function applyResolvedAppearance(resolvedAppearance: ResolvedAppearance) {
   const root = document.documentElement;
   root.dataset.appearance = resolvedAppearance;
   root.style.colorScheme = resolvedAppearance;
-  if (typeof document !== "undefined" && document.body) {
-    document.body.style.colorScheme = resolvedAppearance;
-  }
-  const color = resolvedAppearance === "dark" ? "#09090b" : "#f4f5f7";
+  const isDark = resolvedAppearance === "dark";
+  const color = isDark ? "#09090b" : "#f4f5f7";
+  root.style.backgroundColor = color;
+
   if (typeof document !== "undefined") {
+    if (document.body) {
+      document.body.style.colorScheme = resolvedAppearance;
+      document.body.style.backgroundColor = color;
+    }
     const existingMetas = document.querySelectorAll('meta[name="theme-color"]');
     existingMetas.forEach((el) => el.remove());
     const meta = document.createElement("meta");
     meta.name = "theme-color";
     meta.content = color;
     document.head.appendChild(meta);
+
+    const statusMeta = document.querySelector<HTMLMetaElement>(
+      'meta[name="apple-mobile-web-app-status-bar-style"]',
+    );
+    if (statusMeta) {
+      statusMeta.content = isDark ? "black-translucent" : "default";
+    }
   }
 }
 

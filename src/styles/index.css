@@ -62,6 +62,10 @@ html {
   background-position: center top;
 }
 
+body {
+  background-color: var(--bg-0);
+}
+
 * {
   box-sizing: border-box;
 }

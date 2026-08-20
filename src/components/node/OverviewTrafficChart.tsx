@@ -114,7 +114,7 @@ export function OverviewTrafficChart({
       const maxVal = getNiceRateCeiling(peakRate);
 
       const isMobile = width < 420;
-      const paddingLeft = isMobile ? 46 : 54;
+      const paddingLeft = isMobile ? 62 : 68;
       const paddingBottom = 20;
       const paddingTop = 8;
       const paddingRight = 10;

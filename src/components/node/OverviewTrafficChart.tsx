@@ -160,6 +160,13 @@ export function OverviewTrafficChart({
         const x = paddingLeft + (plotWidth / timeSteps) * i;
         const t = new Date(startTime + (timeSpan / timeSteps) * i);
         const timeStr = `${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}:${String(t.getSeconds()).padStart(2, "0")}`;
+        if (i === 0) {
+          ctx.textAlign = "left";
+        } else if (i === timeSteps) {
+          ctx.textAlign = "right";
+        } else {
+          ctx.textAlign = "center";
+        }
         ctx.fillText(timeStr, x, height - paddingBottom + 5);
       }
 

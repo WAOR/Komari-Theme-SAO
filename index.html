@@ -6,10 +6,10 @@
     <meta
       name="keywords"
       content="Komari-Theme-SAO, SAO, server monitor, real-time server status, server performance dashboard, monitoring tool" />
-    <meta name="theme-color" content="#000000" />
+    <meta name="theme-color" content="#f4f5f7" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Komari-Theme-SAO" />
     <link rel="manifest" href="/manifest.json" crossorigin="use-credentials" />
     <link rel="apple-touch-icon" href="/favicon.ico" />
@@ -75,7 +75,7 @@
         document.documentElement.dataset.appearance = resolved;
         document.documentElement.style.colorScheme = resolved;
         const meta = document.querySelector('meta[name="theme-color"]');
-        if (meta) meta.content = resolved === "dark" ? "#000000" : "#F5F5F7";
+        if (meta) meta.content = resolved === "dark" ? "#09090b" : "#f4f5f7";
 
         try {
           const rawDepth = localStorage.getItem("komaritheme:dark-depth");

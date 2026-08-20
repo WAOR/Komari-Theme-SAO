@@ -213,12 +213,13 @@ body::after {
   --app-gutter: 0.75rem;
   padding-left: max(var(--app-gutter), env(safe-area-inset-left, 0px));
   padding-right: max(var(--app-gutter), env(safe-area-inset-right, 0px));
-  padding-top: calc(env(safe-area-inset-top, 0px) + 1.25rem);
+  padding-top: 1.5rem;
+  padding-bottom: max(2rem, env(safe-area-inset-bottom, 0px));
 }
 
 .floating-controls {
   position: fixed;
-  top: 10px;
+  top: calc(env(safe-area-inset-top, 0px) + 10px);
   right: max(calc((100vw - 1720px) / 2 + 1.5rem), max(var(--app-gutter), env(safe-area-inset-right, 16px)));
   /* 快捷栏及其调色盘在顶栏右上角 */
   z-index: 50;

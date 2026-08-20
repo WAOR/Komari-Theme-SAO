@@ -111,7 +111,7 @@ function applyResolvedAppearance(resolvedAppearance: ResolvedAppearance) {
   root.style.colorScheme = resolvedAppearance;
   const meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
   if (meta) {
-    meta.content = resolvedAppearance === "dark" ? "#000000" : "#F5F5F7";
+    meta.content = resolvedAppearance === "dark" ? "#09090b" : "#f4f5f7";
   }
 }
 

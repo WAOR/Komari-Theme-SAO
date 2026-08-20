@@ -111,6 +111,7 @@
   margin-bottom: 24px;
   box-shadow: none;
   position: relative;
+  z-index: 10;
 }
 
 :root[data-appearance="dark"] .mao-dashboard-hero {
@@ -640,6 +641,7 @@
   margin-bottom: 24px;
   box-shadow: none;
   position: relative;
+  z-index: 1;
   gap: 16px;
 }
 
@@ -847,18 +849,48 @@
   }
 }
 
-.renewal-reminder-panel {
+.renewal-reminder-panel,
+.shadcn-hover-card {
   position: absolute;
-  top: calc(100% + 10px);
+  top: calc(100% + 8px);
   right: 0;
-  z-index: 80;
-  width: min(380px, calc(100vw - 32px));
+  z-index: 120;
+  width: min(360px, calc(100vw - 32px));
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--border-strong) 68%, transparent);
+  border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 16px;
-  background: var(--surface-elev);
-  box-shadow: 0 20px 46px -24px rgba(15, 23, 42, 0.42);
+  background: rgba(244, 245, 247, 0.96);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  box-shadow:
+    0 16px 40px -12px rgba(15, 23, 42, 0.2),
+    0 4px 12px -4px rgba(15, 23, 42, 0.08),
+    0 0 0 1px rgba(0, 0, 0, 0.04);
   color: var(--text-primary);
+  transform-origin: top right;
+  animation: shadcn-hover-card-in 180ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+:root[data-appearance="dark"] .renewal-reminder-panel,
+:root[data-appearance="dark"] .shadcn-hover-card {
+  background: rgba(20, 20, 23, 0.94);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 20px 48px -12px rgba(0, 0, 0, 0.85),
+    0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+@keyframes shadcn-hover-card-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 .renewal-reminder-head {
@@ -877,7 +909,7 @@
 
 .renewal-reminder-title-line h2 {
   margin: 0;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 760;
   line-height: 1.2;
   letter-spacing: -0.01em;
@@ -899,7 +931,7 @@
 }
 
 .renewal-reminder-head p {
-  margin: 6px 0 0;
+  margin: 5px 0 0;
   color: var(--text-tertiary);
   font-size: 12px;
   line-height: 1.4;
@@ -907,29 +939,33 @@
 
 .renewal-reminder-close {
   display: grid;
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   flex: 0 0 auto;
   place-items: center;
   border: 0;
-  border-radius: 9px;
+  border-radius: 8px;
   background: transparent;
   color: var(--text-tertiary);
   transition: background 160ms ease, color 160ms ease;
 }
 
 .renewal-reminder-close:hover {
-  background: var(--hover-bg);
+  background: rgba(0, 0, 0, 0.06);
   color: var(--text-primary);
+}
+
+:root[data-appearance="dark"] .renewal-reminder-close:hover {
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .renewal-reminder-list {
   display: flex;
-  max-height: 300px;
+  max-height: 280px;
   flex-direction: column;
-  gap: 7px;
+  gap: 8px;
   overflow-y: auto;
-  padding: 0 12px 12px;
+  padding: 0 14px 14px;
 }
 
 .renewal-reminder-row {
@@ -938,10 +974,17 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  border: 1px solid var(--hairline);
+  border: 1px solid rgba(0, 0, 0, 0.06);
   border-radius: 12px;
-  background: color-mix(in srgb, var(--surface) 86%, transparent);
-  padding: 11px 12px;
+  background: #ffffff;
+  padding: 11px 13px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.03);
+}
+
+:root[data-appearance="dark"] .renewal-reminder-row {
+  background: #161618;
+  border-color: rgba(255, 255, 255, 0.06);
+  box-shadow: none;
 }
 
 .renewal-reminder-row-main {
@@ -1008,17 +1051,23 @@
   align-items: center;
   justify-content: flex-end;
   gap: 7px;
-  border-top: 1px solid var(--hairline);
-  padding: 11px 12px 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  background: rgba(0, 0, 0, 0.02);
+  padding: 10px 14px 12px;
+}
+
+:root[data-appearance="dark"] .renewal-reminder-actions {
+  border-top-color: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .renewal-reminder-actions a,
 .renewal-reminder-actions button {
-  min-height: 32px;
-  border-radius: 9px;
+  min-height: 30px;
+  border-radius: 8px;
   padding: 0 10px;
-  font-size: 11px;
-  font-weight: 680;
+  font-size: 11.5px;
+  font-weight: 600;
   line-height: 1;
   white-space: nowrap;
   transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
@@ -1032,18 +1081,30 @@
 }
 
 .renewal-reminder-detail:hover {
-  background: color-mix(in srgb, var(--accent-500) 8%, transparent);
+  background: rgba(59, 130, 246, 0.08);
 }
 
 .renewal-reminder-later {
-  border: 1px solid var(--border-strong);
-  background: var(--surface);
-  color: var(--text-secondary);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: #ffffff;
+  color: var(--text-primary);
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+}
+
+:root[data-appearance="dark"] .renewal-reminder-later {
+  background: #1c1c1f;
+  border-color: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+  box-shadow: none;
 }
 
 .renewal-reminder-later:hover {
-  background: var(--hover-bg);
+  background: rgba(0, 0, 0, 0.04);
   color: var(--text-primary);
+}
+
+:root[data-appearance="dark"] .renewal-reminder-later:hover {
+  background: #27272a;
 }
 
 .renewal-reminder-dismiss {
@@ -1053,7 +1114,12 @@
 }
 
 .renewal-reminder-dismiss:hover {
-  background: var(--hover-bg);
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--text-secondary);
+}
+
+:root[data-appearance="dark"] .renewal-reminder-dismiss:hover {
+  background: rgba(255, 255, 255, 0.06);
   color: var(--text-secondary);
 }
 

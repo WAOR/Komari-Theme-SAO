@@ -69,6 +69,8 @@ export function RenewalReminder({ nodes }: { nodes: RenewalReminderSource[] }) {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const closeRef = useRef<HTMLButtonElement | null>(null);
+  const openTimerRef = useRef<number | null>(null);
+  const closeTimerRef = useRef<number | null>(null);
   const panelId = useId();
   const titleId = useId();
   const reminders = useMemo(
@@ -80,9 +82,35 @@ export function RenewalReminder({ nodes }: { nodes: RenewalReminderSource[] }) {
     [clock, preferences, reminders],
   );
 
+  const handleMouseEnter = () => {
+    if (closeTimerRef.current) {
+      window.clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+    openTimerRef.current = window.setTimeout(() => {
+      setOpen(true);
+    }, 120);
+  };
+
+  const handleMouseLeave = () => {
+    if (openTimerRef.current) {
+      window.clearTimeout(openTimerRef.current);
+      openTimerRef.current = null;
+    }
+    closeTimerRef.current = window.setTimeout(() => {
+      setOpen(false);
+    }, 200);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (openTimerRef.current) window.clearTimeout(openTimerRef.current);
+      if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current);
+    };
+  }, []);
+
   useEffect(() => {
     if (!open) return;
-    closeRef.current?.focus();
     const onPointerDown = (event: PointerEvent) => {
       if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
     };
@@ -164,7 +192,12 @@ export function RenewalReminder({ nodes }: { nodes: RenewalReminderSource[] }) {
   const hiddenCount = visibleReminders.length - rows.length;
 
   return (
-    <div className="renewal-reminder" ref={rootRef}>
+    <div
+      className="renewal-reminder shadcn-hover-card-root"
+      ref={rootRef}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
       <button
         ref={triggerRef}
         type="button"
@@ -183,7 +216,7 @@ export function RenewalReminder({ nodes }: { nodes: RenewalReminderSource[] }) {
       {open && (
         <section
           id={panelId}
-          className="renewal-reminder-panel"
+          className="renewal-reminder-panel shadcn-hover-card"
           role="dialog"
           aria-labelledby={titleId}
         >
@@ -193,7 +226,7 @@ export function RenewalReminder({ nodes }: { nodes: RenewalReminderSource[] }) {
                 <h2 id={titleId}>续费提醒</h2>
                 <span className="renewal-reminder-count">{visibleReminders.length}</span>
               </div>
-              <p>{visibleReminders.length} 台节点将在 {RENEWAL_WARNING_DAYS} 天内到期</p>
+              <p>{visibleReminders.length} 台服务器将在 {RENEWAL_WARNING_DAYS} 天内到期</p>
             </div>
             <button
               ref={closeRef}
@@ -221,7 +254,7 @@ export function RenewalReminder({ nodes }: { nodes: RenewalReminderSource[] }) {
               </div>
             ))}
             {hiddenCount > 0 && (
-              <p className="renewal-reminder-more">还有 {hiddenCount} 台临期节点</p>
+              <p className="renewal-reminder-more">还有 {hiddenCount} 台临期服务器</p>
             )}
           </div>
 

@@ -60,7 +60,7 @@ import { OverviewTrafficChart } from "./OverviewTrafficChart";
 import { NodeListView } from "./NodeListView";
 import { RenewalReminder } from "./RenewalReminder";
 import type { NodeViewMode } from "@/utils/themeSettings";
-import type { RenewalReminderSource } from "@/utils/renewalReminder";
+import { getRenewalReminders, type RenewalReminderSource } from "@/utils/renewalReminder";
 
 // 卡片视图网格密度；列表档由独立组件布局。
 const GRID_LAYOUT: Record<NodeViewMode, { className: string; minColumnWidth: number }> = {
@@ -149,7 +149,7 @@ function getTimeGreetingInfo(
   if (totalNodes === 0) {
     return {
       greeting,
-      subtitle: "暂无连接节点，等待数据上报。",
+      subtitle: "暂无在线服务器，等待数据上报。",
     };
   }
 
@@ -157,7 +157,7 @@ function getTimeGreetingInfo(
   if (renewalCount > 0) {
     return {
       greeting,
-      subtitle: `当前有 ${renewalCount} 台节点临近到期。`,
+      subtitle: `当前有 ${renewalCount} 台服务器临近到期。`,
     };
   }
 
@@ -177,13 +177,13 @@ function getTimeGreetingInfo(
   if (hour >= 11 && hour < 13) {
     return {
       greeting,
-      subtitle: "全员节点在线，指标运转正常。",
+      subtitle: "全员主机在线，指标运转正常。",
     };
   }
   if (hour >= 13 && hour < 18) {
     return {
       greeting,
-      subtitle: "全员节点通畅，实时监控中。",
+      subtitle: "全员主机通畅，实时监控中。",
     };
   }
   return {
@@ -260,9 +260,10 @@ function HomeOverviewCards({
     ) : null;
 
   const isAllHealthy = overview.offlineNodes === 0 && overview.totalNodes > 0;
-  const renewalCount = renewalNodes.filter(
-    (n) => n.expired_at && new Date(n.expired_at).getTime() - Date.now() < 30 * 86400000,
-  ).length;
+  const renewalReminders = getRenewalReminders(renewalNodes, Date.now(), {
+    requireOnlineForExpired: true,
+  });
+  const renewalCount = renewalReminders.length;
   const greetingInfo = getTimeGreetingInfo(
     overview.totalNodes,
     overview.onlineNodes,
@@ -355,12 +356,12 @@ function HomeOverviewCards({
             </div>
           </div>
 
-          {/* 4. 在线节点 */}
+          {/* 4. 在线比例 */}
           <div className="mao-stat-card" data-metric="online">
             <div className="mao-stat-head">
               <div className="mao-stat-title-wrap">
                 <Server size={15} className="mao-stat-icon text-[var(--status-success)]" />
-                <span className="mao-stat-label">在线节点</span>
+                <span className="mao-stat-label">在线比例</span>
               </div>
             </div>
             <div className="mao-stat-value">
@@ -378,7 +379,7 @@ function HomeOverviewCards({
             <div className="mao-stat-head">
               <div className="mao-stat-title-wrap">
                 <Clock size={15} className="mao-stat-icon text-[var(--status-warning)]" />
-                <span className="mao-stat-label">临期节点</span>
+                <span className="mao-stat-label">临期提醒</span>
               </div>
               {showDetailButton && <RenewalReminder nodes={renewalNodes} />}
             </div>
@@ -387,7 +388,7 @@ function HomeOverviewCards({
             </div>
             <div className="mao-stat-footer">
               <span className="mao-stat-caption">
-                {renewalCount > 0 ? "建议提前处理续费" : "30天内无到期"}
+                {renewalCount > 0 ? "7天内即将到期" : "近期无临期设备"}
               </span>
             </div>
           </div>

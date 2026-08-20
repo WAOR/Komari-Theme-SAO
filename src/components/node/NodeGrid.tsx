@@ -431,7 +431,7 @@ function HomeOverviewCards({
                 <Activity size={17} className="text-[var(--text-primary)]" />
                 <span>集群状态</span>
               </h3>
-              <p className="mao-progress-subtitle">节点在线率与实时网络吞吐</p>
+              <p className="mao-progress-subtitle">主机在线率与实时网络吞吐</p>
             </div>
             <span className={`mao-status-pill ${isAllHealthy ? "is-healthy" : "is-warning"}`}>
               <span className="mao-status-dot" />
@@ -439,7 +439,7 @@ function HomeOverviewCards({
             </span>
           </div>
 
-          {/* 进度模块 1：节点在线状态（一节一节的离散方块/节点格，有多少台就有多少节） */}
+          {/* 进度模块 1：服务器在线状态 */}
           <div className="mao-progress-section">
             <div className="mao-progress-section-header">
               <div className="flex items-baseline gap-1.5">
@@ -447,11 +447,11 @@ function HomeOverviewCards({
                 <span className="mao-progress-unit-label">在线率</span>
               </div>
               <div className="mao-progress-tag-box">
-                <span className="mao-progress-tag-label">离线节点</span>
+                <span className="mao-progress-tag-label">离线服务器</span>
                 <span className="mao-progress-tag-val">{overview.offlineNodes} 台</span>
               </div>
             </div>
-            {/* 一节一节的节点方块 */}
+            {/* 一节一节的服务器方块 */}
             <div className="mao-node-blocks" role="presentation">
               {overview.totalNodes > 0 ? (
                 Array.from({ length: overview.totalNodes }, (_, i) => {
@@ -466,7 +466,7 @@ function HomeOverviewCards({
                     <span
                       key={i}
                       className={`mao-node-block ${statusClass}`}
-                      title={`节点 ${i + 1}: ${isOnline ? "在线" : isOffline ? "离线" : "未知"}`}
+                      title={`服务器 ${i + 1}: ${isOnline ? "在线" : isOffline ? "离线" : "未知"}`}
                     />
                   );
                 })
@@ -503,7 +503,7 @@ function GroupTabs({
   onSelectGroup: (group: string) => void;
 }) {
   return (
-    <div className="home-group-tabs" role="group" aria-label="节点分组">
+    <div className="home-group-tabs" role="group" aria-label="服务器分组">
       <button
         type="button"
         aria-pressed={selectedGroup === HOME_ALL_GROUP}
@@ -912,7 +912,7 @@ export function NodeGrid() {
   return (
     <>
       {homeHeader}
-      <section className="mao-cluster-card" aria-label="服务器集群与节点列表">
+      <section className="mao-cluster-card" aria-label="服务器集群与监控列表">
         {showHomeOverview && (
           <div className="mao-section-header">
             <div className="mao-section-top-row">
@@ -927,9 +927,9 @@ export function NodeGrid() {
               )}
             </div>
             <div className="mao-section-title-wrap">
-              <h2 className="mao-section-title">节点矩阵与实时监控</h2>
+              <h2 className="mao-section-title">服务器矩阵与实时监控</h2>
               <p className="mao-section-sub">
-                实时监控节点负载、资源占用、网络吞吐与在线状态。
+                实时监控服务器负载、资源占用、网络吞吐与在线状态。
               </p>
             </div>
           </div>

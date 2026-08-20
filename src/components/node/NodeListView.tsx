@@ -397,7 +397,7 @@ export function NodeListView({ uuids }: { uuids: string[] }) {
     <div className="node-list-scroll">
       <div className="node-list">
         <div className="node-list-row node-list-head" aria-hidden>
-          <div className="node-list-cell node-list-node">节点</div>
+          <div className="node-list-cell node-list-node">服务器</div>
           <div className="node-list-cell col-os">系统</div>
           <div className="node-list-cell col-metric">CPU</div>
           <div className="node-list-cell col-metric">内存</div>

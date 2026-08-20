@@ -74,8 +74,13 @@
             : appearance;
         document.documentElement.dataset.appearance = resolved;
         document.documentElement.style.colorScheme = resolved;
-        const meta = document.querySelector('meta[name="theme-color"]');
-        if (meta) meta.content = resolved === "dark" ? "#09090b" : "#f4f5f7";
+        const color = resolved === "dark" ? "#09090b" : "#f4f5f7";
+        const metas = document.querySelectorAll('meta[name="theme-color"]');
+        metas.forEach((el) => el.remove());
+        const meta = document.createElement("meta");
+        meta.name = "theme-color";
+        meta.content = color;
+        document.head.appendChild(meta);
 
         try {
           const rawDepth = localStorage.getItem("komaritheme:dark-depth");

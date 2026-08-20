@@ -109,9 +109,17 @@ function applyResolvedAppearance(resolvedAppearance: ResolvedAppearance) {
   const root = document.documentElement;
   root.dataset.appearance = resolvedAppearance;
   root.style.colorScheme = resolvedAppearance;
-  const meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
-  if (meta) {
-    meta.content = resolvedAppearance === "dark" ? "#09090b" : "#f4f5f7";
+  if (typeof document !== "undefined" && document.body) {
+    document.body.style.colorScheme = resolvedAppearance;
+  }
+  const color = resolvedAppearance === "dark" ? "#09090b" : "#f4f5f7";
+  if (typeof document !== "undefined") {
+    const existingMetas = document.querySelectorAll('meta[name="theme-color"]');
+    existingMetas.forEach((el) => el.remove());
+    const meta = document.createElement("meta");
+    meta.name = "theme-color";
+    meta.content = color;
+    document.head.appendChild(meta);
   }
 }
 

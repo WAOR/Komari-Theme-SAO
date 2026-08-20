@@ -59,7 +59,9 @@
 }
 
 .node-list-row.is-offline {
-  background: color-mix(in srgb, var(--status-offline) 5%, var(--surface-a));
+  background: color-mix(in srgb, var(--surface-bg) 60%, var(--surface-elev) 40%);
+  filter: grayscale(1);
+  opacity: 0.72;
 }
 
 .node-list-row.is-loading {

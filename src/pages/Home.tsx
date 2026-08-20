@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Link, Navigate, useSearchParams } from "react-router-dom";
 import { NodeGrid } from "@/components/node/NodeGrid";
 import { FloatingControls } from "@/components/shell/FloatingControls";
@@ -16,6 +16,13 @@ function HomeDashboard() {
   const themeSettings = useThemeSettings();
   const { hydrated: storeHydrated } = useNodeStoreStatus();
   const homeReady = themeSettings.isReady && storeHydrated;
+
+  useEffect(() => {
+    document.body.classList.toggle("is-nav-controls-expanded", controlsExpanded);
+    return () => {
+      document.body.classList.remove("is-nav-controls-expanded");
+    };
+  }, [controlsExpanded]);
 
   return (
     <div

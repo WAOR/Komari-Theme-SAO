@@ -41,23 +41,657 @@
 }
 
 /* 中小屏的完整快捷栏会占用顶部大部分宽度。由 React 同步显式状态类，兼容
-   Chrome 87，并覆盖平板宽度；折叠后站点名立即恢复。 */
+   Chrome 87，并覆盖平板宽度；折叠后站点名立即恢复。PC 端（>= 1024px）保持常驻不撤出。 */
 @media (max-width: 1023px) {
-  .home-dashboard.is-controls-expanded .home-brand {
+  .home-dashboard.is-controls-expanded .home-brand,
+  body.is-nav-controls-expanded .mao-nav-brand-left {
     visibility: hidden;
     opacity: 0;
-    transform: translateX(-8px);
+    transform: translateX(-14px);
+    pointer-events: none;
   }
+}
+
+/* 顶栏左侧标题与图标基础样式与过渡动效 */
+.mao-nav-brand-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition:
+    opacity 200ms cubic-bezier(0.32, 0.72, 0, 1),
+    transform 240ms cubic-bezier(0.32, 0.72, 0, 1),
+    visibility 200ms ease;
+  will-change: opacity, transform;
 }
 
 .home-overview {
   /* 在线/离线配色,块状与柱状共用一处确保同步;比纯 status 色稍淡,贴合主题。 */
   --overview-online: color-mix(in srgb, var(--status-success) 72%, transparent);
-  --overview-offline: color-mix(in srgb, var(--status-error) 55%, transparent);
+  --overview-offline: color-mix(in srgb, var(--status-offline) 75%, transparent);
+}
+
+/* ==========================================================================
+   MAO 风格顶部导航 Bar 框架
+   ========================================================================== */
+.mao-top-nav-bar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  width: 100%;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  transition: border-color 160ms ease, background 160ms ease;
+}
+
+:root[data-appearance="dark"] .mao-top-nav-bar {
+  background: rgba(9, 9, 11, 0.85);
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+.mao-nav-title {
+  font-size: 15px;
+  font-weight: 750;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+/* ==========================================================================
+   MAO Dashboard Hero 容器与指标设计体系
+   ========================================================================== */
+.mao-dashboard-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 22px;
+  background: var(--surface-elev, #eaecf0);
+  padding: clamp(14px, 2vw, 24px);
+  margin-bottom: 24px;
+  box-shadow: none;
+  position: relative;
+}
+
+:root[data-appearance="dark"] .mao-dashboard-hero {
+  background: #121214;
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px -8px rgba(0, 0, 0, 0.6);
+}
+
+@media (min-width: 1024px) {
+  .mao-dashboard-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.48fr) minmax(0, 1fr);
+    gap: 22px;
+  }
+}
+
+.mao-hero-main {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-width: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.mao-hero-header {
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.mao-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 650;
+  color: var(--text-primary);
+  background: rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  width: fit-content;
+}
+
+:root[data-appearance="dark"] .mao-badge {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
+.mao-hero-greeting {
+  margin: 0;
+  font-size: clamp(20px, 2vw, 25px);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1.25;
+  color: var(--text-primary);
+}
+
+/* Dia Text Reveal Entrance -> Seamlessly Continues into MagicUI Aurora Text Flow */
+.mao-hero-username {
+  position: relative;
+  display: inline-block;
+  font-weight: 850;
+  background-image: linear-gradient(
+    135deg,
+    #3b82f6 0%,
+    #8b5cf6 25%,
+    #ec4899 50%,
+    #06b6d4 75%,
+    #3b82f6 100%
+  );
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  letter-spacing: -0.01em;
+  will-change: background-position, filter, opacity;
+  animation:
+    mao-dia-reveal 2.4s cubic-bezier(0.22, 1, 0.36, 1) forwards,
+    mao-aurora-flow 8s ease-in-out 2.4s infinite alternate;
+}
+
+:root[data-appearance="dark"] .mao-hero-username {
+  background-image: linear-gradient(
+    135deg,
+    #60a5fa 0%,
+    #a78bfa 25%,
+    #f472b6 50%,
+    #22d3ee 75%,
+    #60a5fa 100%
+  );
+}
+
+@keyframes mao-dia-reveal {
+  0% {
+    background-position: 200% 50%;
+    filter: drop-shadow(0 0 16px rgba(59, 130, 246, 0.75)) brightness(1.6);
+    opacity: 0.2;
+    transform: translateY(2px);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: drop-shadow(0 0 14px rgba(139, 92, 246, 0.6)) brightness(1.3);
+  }
+  100% {
+    background-position: 100% 50%;
+    filter: drop-shadow(0 0 10px rgba(236, 72, 153, 0.4)) brightness(1);
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes mao-aurora-flow {
+  0% {
+    background-position: 100% 50%;
+    filter: drop-shadow(0 0 10px rgba(236, 72, 153, 0.4));
+  }
+  50% {
+    background-position: 0% 50%;
+    filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.35));
+  }
+  100% {
+    background-position: 100% 50%;
+    filter: drop-shadow(0 0 10px rgba(236, 72, 153, 0.4));
+  }
+}
+
+.mao-hero-subtitle {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-tertiary);
+}
+
+/* 6 宫格指标卡片：填充满左侧垂直高度并与右侧卡片底部严格齐平 */
+.mao-stat-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
   gap: 12px;
-  margin-bottom: 16px;
+  flex: 1;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .mao-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: auto;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 360px) {
+  .mao-stat-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+  }
+}
+
+.mao-stat-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-radius: 14px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  background: #ffffff;
+  padding: 13px 15px;
+  min-height: 96px;
+  height: 100%;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.02);
+  transition: all 180ms ease;
+}
+
+:root[data-appearance="dark"] .mao-stat-card {
+  background: #1c1c1f;
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.25);
+}
+
+.mao-stat-card:hover {
+  border-color: rgba(0, 0, 0, 0.12);
+  box-shadow: 0 4px 14px -3px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
+}
+
+:root[data-appearance="dark"] .mao-stat-card:hover {
+  background: #27272a;
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.45);
+}
+
+.mao-stat-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.mao-stat-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mao-stat-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.mao-stat-action {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  opacity: 0.7;
+}
+
+.mao-stat-action:hover {
+  opacity: 1;
+}
+
+.mao-stat-value {
+  font-size: 16.5px;
+  font-weight: 760;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  margin: 3px 0 1px;
+}
+
+.mao-stat-unit {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+
+.mao-stat-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.mao-stat-caption {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 右侧进度与健康状态侧栏 */
+.mao-hero-side {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.mao-progress-container {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-radius: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  background: #ffffff;
+  padding: clamp(14px, 1.8vw, 18px);
+  gap: 14px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.02);
+}
+
+:root[data-appearance="dark"] .mao-progress-container {
+  background: #1c1c1f;
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.25);
+}
+
+.mao-progress-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.mao-progress-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.mao-progress-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 15px;
+  font-weight: 750;
+  margin: 0;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.mao-progress-subtitle {
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+  margin: 0;
+  line-height: 1.3;
+}
+
+.mao-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 3.5px 9px;
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.mao-status-pill.is-healthy {
+  background: color-mix(in srgb, var(--status-success) 14%, transparent);
+  color: var(--status-success);
+  border: 1px solid color-mix(in srgb, var(--status-success) 30%, transparent);
+}
+
+.mao-status-pill.is-warning {
+  background: color-mix(in srgb, var(--status-warning) 14%, transparent);
+  color: var(--status-warning);
+  border: 1px solid color-mix(in srgb, var(--status-warning) 30%, transparent);
+}
+
+.mao-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.mao-progress-section {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  border-radius: 12px;
+  background: #f9fafb;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  padding: 11px 13px;
+}
+
+:root[data-appearance="dark"] .mao-progress-section {
+  background: #141416;
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+.mao-progress-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mao-progress-big-num {
+  font-size: 24px;
+  font-weight: 850;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.mao-progress-unit-label {
+  font-size: 11px;
+  font-weight: 550;
+  color: var(--text-tertiary);
+}
+
+.mao-progress-tag-box {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.mao-progress-tag-label {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  line-height: 1.2;
+}
+
+.mao-progress-tag-val {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+/* 一节一节的离散节点状态格 */
+.mao-node-blocks {
+  display: flex;
+  align-items: center;
+  gap: 3.5px;
+  width: 100%;
+  padding: 3px 0;
+  min-height: 10px;
+}
+
+.mao-node-block {
+  flex: 1 1 0px;
+  min-width: 4px;
+  height: 8px;
+  border-radius: 3px;
+  transition: transform 140ms ease, opacity 140ms ease;
+}
+
+.mao-node-block.is-online {
+  background: var(--status-success);
+}
+
+.mao-node-block.is-offline {
+  background: var(--status-offline);
+}
+
+.mao-node-block.is-unknown {
+  background: color-mix(in srgb, var(--text-tertiary) 25%, transparent);
+}
+
+.mao-node-block:hover {
+  transform: scaleY(1.35);
+  opacity: 0.9;
+}
+
+.mao-progress-section-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
+
+/* 实时网络动态曲线图卡片 */
+.mao-realtime-chart-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-radius: 12px;
+  background: #f9fafb;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  padding: 10px 12px 6px;
+}
+
+:root[data-appearance="dark"] .mao-realtime-chart-card {
+  background: #141416;
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+.mao-realtime-chart-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mao-realtime-chart-title {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.mao-realtime-chart-stats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+}
+
+.mao-realtime-chart-rates {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12.5px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.mao-realtime-chart-totals {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.mao-realtime-chart-canvas-wrap {
+  position: relative;
+  width: 100%;
+  height: 105px;
+  overflow: hidden;
+}
+
+.mao-realtime-chart-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* 服务器集群大卡片容器（与上方监控总览卡片风格统一） */
+.mao-cluster-card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 22px;
+  background: var(--surface-elev, #eaecf0);
+  padding: clamp(16px, 2vw, 24px);
+  margin-bottom: 24px;
+  box-shadow: none;
+  position: relative;
+  gap: 16px;
+}
+
+:root[data-appearance="dark"] .mao-cluster-card {
+  background: #121214;
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px -8px rgba(0, 0, 0, 0.6);
+}
+
+/* 下层服务器集群板块标题（顶部徽章与右侧操作按钮并排） */
+.mao-section-header {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 0 0 4px;
+  width: 100%;
+}
+
+.mao-section-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+}
+
+.mao-section-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.mao-section-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mao-section-title {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.mao-section-sub {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  margin: 0;
+  line-height: 1.4;
 }
 
 .overview-card {
@@ -626,111 +1260,66 @@
 }
 
 .home-group-tabs {
-  display: flex;
-  /* 渲染在与卡片网格对齐的 grid 里(见 NodeGrid),正好占一个卡片列、边缘与首张卡
-     对齐。min-width:0 让它能在列内收缩,使溢出的 tab 组改为滚动。 */
+  display: inline-flex;
   min-width: 0;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   overflow-x: auto;
-  border: 1px solid color-mix(in srgb, var(--border-strong) 54%, transparent);
-  border-radius: 16px;
-  background: var(--surface-a);
-  box-shadow:
-    0 14px 30px -26px rgba(0, 0, 0, 0.5),
-    inset 0 1px 0 color-mix(in srgb, white 16%, transparent);
-  padding: 5px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 3px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+:root[data-appearance="dark"] .home-group-tabs {
+  background: #1d2535;
+  border-color: rgba(255, 255, 255, 0.06);
 }
 
 .home-group-tabs button {
   display: inline-flex;
-  /* 有空间时均分宽度、从不收缩(溢出时滚动而非挤压)。max-width 上限防止单个长组名
-     独占,同时仍够宽,保证 2 个 tab 也能填满一张卡。 */
   flex: 1 0 auto;
-  min-height: 32px;
+  min-height: 28px;
   max-width: 240px;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  border: 1px solid transparent;
-  border-radius: 11px;
+  border: none;
+  border-radius: 9px;
   color: var(--text-secondary);
   padding: 0 12px;
   font-size: 12px;
-  font-weight: 650;
+  font-weight: 600;
   line-height: 1;
   text-overflow: ellipsis;
   white-space: nowrap;
-  transition:
-    background 160ms ease,
-    border-color 160ms ease,
-    color 160ms ease,
-    transform 160ms ease,
-    box-shadow 160ms ease;
+  background: transparent;
+  cursor: pointer;
+  transition: all 160ms ease;
 }
 
 .home-group-tabs button:hover {
   color: var(--text-primary);
-  background: color-mix(in srgb, var(--hover-bg-a) 72%, transparent);
+  background: rgba(0, 0, 0, 0.04);
 }
 
-/* 激活 tab 的描边+浮起阴影与费用抽屉的排序 tab(cost-summary.css 的 .cost-summary-sort-tab)
-   完全一致,组选择器只定义这一处;背景与文字色两处风格不同(费用抽屉用硬编码固定色,且暗色下
-   不另配阴影),仍各自定义。 */
-.home-group-tabs button[data-active="true"],
-.home-region-chip[data-active="true"],
-.cost-summary-sort-tab[data-active="true"] {
-  border-color: rgba(82, 82, 91, 0.28);
-  box-shadow:
-    0 10px 22px -18px rgba(0, 0, 0, 0.34),
-    inset 0 0 0 1px rgba(82, 82, 91, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.72);
+:root[data-appearance="dark"] .home-group-tabs button:hover {
+  background: rgba(255, 255, 255, 0.05);
 }
 
-[data-appearance="dark"] .home-group-tabs button[data-active="true"],
-[data-appearance="dark"] .home-region-chip[data-active="true"],
-[data-appearance="dark"] .cost-summary-sort-tab[data-active="true"] {
-  border-color: rgba(255, 255, 255, 0.12);
-}
-
-.home-group-tabs button[data-active="true"],
-.home-region-chip[data-active="true"] {
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--surface-elev-a) 96%, white 4%) 0%,
-      color-mix(in srgb, var(--hover-bg-a) 54%, var(--surface-a)) 100%
-    );
+.home-group-tabs button[data-active="true"] {
+  background: #f3f4f6;
   color: var(--text-primary);
+  font-weight: 750;
+  box-shadow: none;
 }
 
-[data-appearance="dark"] .home-group-tabs button[data-active="true"],
-[data-appearance="dark"] .home-region-chip[data-active="true"] {
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--surface-elev-a) 94%, white 6%) 0%,
-      color-mix(in srgb, var(--hover-bg-a) 48%, var(--surface-a)) 100%
-    );
-  box-shadow:
-    0 10px 22px -18px rgba(0, 0, 0, 0.72),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  color: var(--text-primary);
-}
-
-@media (max-width: 1100px) {
-  .home-overview {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+:root[data-appearance="dark"] .home-group-tabs button[data-active="true"] {
+  background: #252f44;
 }
 
 @media (max-width: 680px) {
-  /* 2 列布局已由上面 1100px 断点给出,这里只收紧间距。 */
-  .home-overview {
-    gap: 10px;
-  }
-
   .overview-card {
     min-height: 100px;
     border-radius: 14px;
@@ -792,82 +1381,113 @@
   }
 }
 
-/* 地区筛选栏:与分组栏同一套面板视觉(surface-a + 描边 + 圆角 + 浮起阴影);国旗 chip 换行铺开。
-   chip 的悬停/选中态与分组 tab、费用抽屉排序 tab 共用同一组样式。 */
+/* 地区筛选栏：流式胶囊标签组，去除多余内层厚重大框 */
 .home-region-bar {
-  margin-bottom: 16px;
-  padding: 10px 12px;
-  border: 1px solid color-mix(in srgb, var(--border-strong) 54%, transparent);
-  border-radius: 16px;
-  background: var(--surface-a);
-  box-shadow:
-    0 14px 30px -26px rgba(0, 0, 0, 0.5),
-    inset 0 1px 0 color-mix(in srgb, white 16%, transparent);
+  margin-bottom: 8px;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .home-region-chips {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .home-region-chip {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 32px;
+  min-height: 28px;
   padding: 0 10px;
-  border: 1px solid transparent;
-  border-radius: 11px;
-  background: transparent;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 999px;
+  background: #ffffff;
   color: var(--text-secondary);
-  font-size: 12px;
-  font-weight: 650;
+  font-size: 11.5px;
+  font-weight: 600;
   line-height: 1;
   white-space: nowrap;
   cursor: pointer;
-  transition:
-    background 160ms ease,
-    border-color 160ms ease,
-    color 160ms ease,
-    box-shadow 160ms ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  transition: all 160ms ease;
+}
+
+:root[data-appearance="dark"] .home-region-chip {
+  background: #1d2535;
+  border-color: rgba(255, 255, 255, 0.06);
 }
 
 .home-region-chip:hover {
   color: var(--text-primary);
-  background: color-mix(in srgb, var(--hover-bg-a) 72%, transparent);
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.14);
+}
+
+:root[data-appearance="dark"] .home-region-chip:hover {
+  background: #252f44;
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.home-region-chip[data-active="true"] {
+  background: color-mix(in srgb, var(--accent-500) 14%, #ffffff);
+  color: var(--accent-500, #3b82f6);
+  border-color: color-mix(in srgb, var(--accent-500) 45%, transparent);
+  box-shadow: 0 0 10px -2px color-mix(in srgb, var(--accent-500) 25%, transparent);
+  font-weight: 700;
+}
+
+:root[data-appearance="dark"] .home-region-chip[data-active="true"] {
+  background: color-mix(in srgb, var(--accent-500) 22%, #1d2535);
+  color: color-mix(in srgb, var(--accent-500) 90%, white);
+  border-color: color-mix(in srgb, var(--accent-500) 50%, transparent);
+  box-shadow: 0 0 12px -2px color-mix(in srgb, var(--accent-500) 35%, transparent);
 }
 
 .home-region-chip-code {
   letter-spacing: 0.02em;
 }
 
-/* 数量角标:圆角小胶囊,选中时不额外变色,靠 chip 整体高亮即可。 */
+/* 数量角标:圆角小胶囊 */
 .home-region-chip-count {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 18px;
-  height: 18px;
+  min-width: 17px;
+  height: 17px;
   padding: 0 5px;
-  border-radius: 6px;
-  background: color-mix(in srgb, var(--border-strong) 22%, transparent);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.06);
   color: var(--text-tertiary);
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+  transition: all 160ms ease;
+}
+
+:root[data-appearance="dark"] .home-region-chip-count {
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .home-region-chip[data-active="true"] .home-region-chip-count {
-  background: color-mix(in srgb, var(--accent-500) 20%, transparent);
-  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--accent-500) 25%, transparent);
+  color: var(--accent-500);
+}
+
+:root[data-appearance="dark"] .home-region-chip[data-active="true"] .home-region-chip-count {
+  background: color-mix(in srgb, var(--accent-500) 30%, transparent);
+  color: color-mix(in srgb, var(--accent-500) 95%, white);
 }
 
 @media (max-width: 560px) {
   .home-region-chip {
-    min-height: 30px;
+    min-height: 26px;
     padding: 0 8px;
+    font-size: 11px;
   }
 }
 
@@ -896,35 +1516,47 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 38px;
+  height: 34px;
   padding: 0 12px;
-  border: 1px solid color-mix(in srgb, var(--border-strong) 54%, transparent);
-  border-radius: 14px;
-  background: var(--surface-a);
-  box-shadow:
-    0 14px 30px -26px rgba(0, 0, 0, 0.5),
-    inset 0 1px 0 color-mix(in srgb, white 16%, transparent);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 10px;
+  background: #ffffff;
   color: var(--text-secondary);
   font-size: 12px;
-  font-weight: 650;
+  font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
-  transition:
-    color 160ms ease,
-    border-color 160ms ease,
-    background 160ms ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  transition: all 160ms ease;
 }
 
-.home-sort-trigger svg {
-  display: block;
-  flex: none;
+:root[data-appearance="dark"] .home-sort-trigger {
+  background: #1d2535;
+  border-color: rgba(255, 255, 255, 0.06);
 }
 
 .home-sort-trigger:hover,
 .home-sort-trigger[aria-expanded="true"] {
+  background: #ffffff;
   color: var(--text-primary);
-  border-color: var(--border-strong);
-  background: color-mix(in srgb, var(--hover-bg-a) 60%, var(--surface-a));
+  border-color: rgba(0, 0, 0, 0.14);
+}
+
+:root[data-appearance="dark"] .home-sort-trigger:hover,
+:root[data-appearance="dark"] .home-sort-trigger[aria-expanded="true"] {
+  background: #252f44;
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+:root[data-appearance="dark"] .home-sort-trigger {
+  background: color-mix(in srgb, var(--surface) 60%, var(--surface-elev) 40%);
+}
+
+.home-sort-trigger:hover,
+.home-sort-trigger[aria-expanded="true"] {
+  background: var(--surface-elev);
+  color: var(--text-primary);
+  border-color: color-mix(in srgb, var(--border-strong) 60%, transparent);
 }
 
 /* panel/item 骨架及 hover/激活态与实例切换器共享,见 surface.css 的弹出菜单组选择器;
@@ -1053,4 +1685,23 @@
   width: 22px;
   min-width: 22px;
   height: 22px;
+}
+
+@media (max-width: 480px) {
+  .mao-hero-header {
+    gap: 12px;
+  }
+
+  .mao-section-header {
+    gap: 12px;
+  }
+
+  .mao-hero-subtitle,
+  .mao-section-sub,
+  .mao-progress-subtitle {
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 }

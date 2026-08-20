@@ -217,12 +217,11 @@ body::after {
 }
 
 .floating-controls {
-  position: absolute;
-  top: -14px;
-  right: 0;
-  /* 快捷栏及其调色盘应始终覆盖概览卡内弹层（续费提醒为 70），否则提醒红点
-     会穿透到配色面板上。 */
-  z-index: 90;
+  position: fixed;
+  top: 10px;
+  right: max(calc((100vw - 1720px) / 2 + 1.5rem), max(var(--app-gutter), env(safe-area-inset-right, 16px)));
+  /* 快捷栏及其调色盘在顶栏右上角 */
+  z-index: 50;
   display: inline-flex;
   flex: 0 0 auto;
   justify-content: flex-end;
@@ -592,10 +591,6 @@ body::after {
   .app-main {
     --app-gutter: 2rem;
     padding-top: calc(env(safe-area-inset-top, 0px) + 1.5rem);
-  }
-
-  .floating-controls {
-    top: -18px;
   }
 }
 

@@ -5,24 +5,25 @@
    重新声明 token、把写在 <html> 上的自定义配色覆盖给“盖住”（大卡文字/图标曾因此不生效）。 */
 :root,
 :root[data-appearance="light"] {
-  --bg-0: #f4f4f5;
+  --bg-0: #f4f5f7;
+  --surface-bg: #f4f5f7;
 
   --surface: #ffffff;
-  --surface-elev: #ffffff;
-  --surface-sunken: #f4f4f5;
+  --surface-elev: #eaecf0;
+  --surface-sunken: #f4f5f7;
 
   --border: rgba(24, 24, 27, 0.08);
-  --border-subtle: rgba(24, 24, 27, 0.06);
-  --border-strong: rgba(24, 24, 27, 0.13);
-  --hairline: rgba(24, 24, 27, 0.08);
+  --border-subtle: rgba(24, 24, 27, 0.05);
+  --border-strong: rgba(24, 24, 27, 0.14);
+  --hairline: rgba(24, 24, 27, 0.07);
 
   --text-primary: #18181b;
   --text-secondary: #52525b;
   --text-tertiary: #71717a;
   --text-on-strong: #ffffff;
 
-  --fill-secondary: rgba(24, 24, 27, 0.1);
-  --fill-tertiary: rgba(24, 24, 27, 0.05);
+  --fill-secondary: rgba(24, 24, 27, 0.08);
+  --fill-tertiary: rgba(24, 24, 27, 0.04);
 
   --hover-bg: #f4f4f5;
 
@@ -74,7 +75,7 @@
   --traffic-up: #3b82f6;
   --traffic-down: #2f9e65;
   --status-online: #2f9e65;
-  --status-offline: #dc2626;
+  --status-offline: #71717a;
 
   /* Radix UI Color Tokens - Light Mode */
   --tag-tomato-bg: rgba(234, 88, 12, 0.12);
@@ -142,67 +143,61 @@
 
   --ring: rgba(59, 130, 246, 0.35);
 
-  /* 画布氛围层(只在纯色模式可见——透明模式的 body::before 图片会盖住 <html> 背景)。
-     顶部一道极淡的品牌冷光,给平铺画布一点「顶光」的纵深;亮色下几乎不可察,仅去掉死板。 */
-  --canvas-glow: radial-gradient(
-    1100px 560px at 50% -8%,
-    color-mix(in srgb, var(--accent-500) 5%, transparent) 0%,
-    transparent 60%
-  );
+  --canvas-glow: none;
 }
 
 :root[data-appearance="dark"] {
-  /* --dark-depth 只加深画布，卡片与边框仍保留层级。 */
-  --bg-0: color-mix(in srgb, #212830, #000000 calc(var(--dark-depth, 0) * 1%));
+  --bg-0: #09090b;
+  --surface-bg: #09090b;
 
-  --surface: color-mix(in srgb, #262c36, #080a0d calc(var(--dark-depth, 0) * 1%));
-  --surface-elev: color-mix(in srgb, #2a313c, #101318 calc(var(--dark-depth, 0) * 1%));
-  --surface-sunken: color-mix(in srgb, #151b23, #030405 calc(var(--dark-depth, 0) * 1%));
+  --surface: #1c1c1f;
+  --surface-elev: #121214;
+  --surface-sunken: #09090b;
 
-  --border: color-mix(in srgb, #3d444d, #2d333b calc(var(--dark-depth, 0) * 1%));
-  --border-subtle: color-mix(in srgb, rgba(61, 68, 77, 0.7), rgba(45, 51, 59, 0.72) calc(var(--dark-depth, 0) * 1%));
-  --border-strong: color-mix(in srgb, #656c76, #555b64 calc(var(--dark-depth, 0) * 1%));
-  --hairline: color-mix(in srgb, rgba(61, 68, 77, 0.7), rgba(45, 51, 59, 0.72) calc(var(--dark-depth, 0) * 1%));
+  --border: rgba(255, 255, 255, 0.08);
+  --border-subtle: rgba(255, 255, 255, 0.05);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --hairline: rgba(255, 255, 255, 0.08);
 
-  --text-primary: #d1d7e0;
-  --text-secondary: #b7bdc8;
-  --text-tertiary: #9198a1;
-  --text-on-strong: #151b23;
+  --text-primary: #f4f4f5;
+  --text-secondary: #a1a1aa;
+  --text-tertiary: #71717a;
+  --text-on-strong: #09090b;
 
-  --fill-secondary: rgba(101, 108, 118, 0.2);
-  --fill-tertiary: rgba(101, 108, 118, 0.12);
+  --fill-secondary: rgba(255, 255, 255, 0.08);
+  --fill-tertiary: rgba(255, 255, 255, 0.04);
 
-  --hover-bg: color-mix(in srgb, #2f3742, #171a1f calc(var(--dark-depth, 0) * 1%));
+  --hover-bg: #27272a;
 
-  --progress-bg: color-mix(in srgb, #343b45, #24282e calc(var(--dark-depth, 0) * 1%));
-  --progress-cpu: #539bf5;
-  --progress-memory: #b083f0;
-  --progress-swap: #986ee2;
-  --progress-disk: #e0823d;
-  --progress-network: #57ab5a;
-  --progress-load: #e275ad;
+  --progress-bg: #27272a;
+  --progress-cpu: #3b82f6;
+  --progress-memory: #8b5cf6;
+  --progress-swap: #6366f1;
+  --progress-disk: #f97316;
+  --progress-network: #10b981;
+  --progress-load: #ec4899;
   /* --traffic-heat-spectrum 不重定义,继承 :root 的 OKLCH heat 曲线(dark 轨道上同样清晰)。 */
 
-  --status-success: #57ab5a;
-  --status-warning: #daaa3f;
-  --status-error: #f47067;
-  --status-info: #539bf5;
-  --latency-excellent: #2fc66e;
-  --latency-good: #9fe339;
-  --latency-moderate: #cbd83a;
-  --latency-elevated: #e2a928;
-  --latency-critical: #f47067;
-  --accent-500: #539bf5;
-  --accent-strong: #4184e4;
-  --speed-idle: #57ab5a;
-  --speed-low: #daaa3f;
-  --speed-high: #e0823d;
-  --speed-max: #f47067;
+  --status-success: #10b981;
+  --status-warning: #f59e0b;
+  --status-error: #ef4444;
+  --status-info: #3b82f6;
+  --latency-excellent: #10b981;
+  --latency-good: #84cc16;
+  --latency-moderate: #eab308;
+  --latency-elevated: #f59e0b;
+  --latency-critical: #ef4444;
+  --accent-500: #3b82f6;
+  --accent-strong: #2563eb;
+  --speed-idle: #10b981;
+  --speed-low: #f59e0b;
+  --speed-high: #f97316;
+  --speed-max: #ef4444;
   /* 流量上/下行方向色（图标、出站/入站箭头） */
-  --traffic-up: #539bf5;
-  --traffic-down: #57ab5a;
-  --status-online: #57ab5a;
-  --status-offline: #f47067;
+  --traffic-up: #3b82f6;
+  --traffic-down: #10b981;
+  --status-online: #10b981;
+  --status-offline: #6b7280;
 
   /* Radix UI Color Tokens - Dark Mode */
   --tag-tomato-bg: rgba(249, 115, 22, 0.18);

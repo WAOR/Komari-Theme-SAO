@@ -40,7 +40,7 @@
 
 .mini-node-card.is-offline .mini-node-title,
 .mini-node-card.is-offline .mini-node-title:hover {
-  color: color-mix(in srgb, var(--status-offline) 72%, var(--text-primary) 28%);
+  color: var(--text-secondary);
 }
 
 .mini-node-os {

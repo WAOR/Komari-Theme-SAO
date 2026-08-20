@@ -67,7 +67,7 @@
 
 .compact-node-card.is-offline .compact-node-title,
 .compact-node-card.is-offline .compact-node-title:hover {
-  color: color-mix(in srgb, var(--status-offline) 72%, var(--text-primary) 28%);
+  color: var(--text-secondary);
 }
 
 .compact-node-subtitle {

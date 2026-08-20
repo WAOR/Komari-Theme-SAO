@@ -1,7 +1,16 @@
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CircleDollarSign } from "lucide-react";
+import {
+  Activity,
+  ArrowDownRight,
+  ArrowUpRight,
+  CircleDollarSign,
+  Clock,
+  Server,
+  Sparkles,
+  TrendingUp,
+} from "lucide-react";
 import { Flag } from "@/components/ui/Flag";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -17,12 +26,10 @@ import { useViewMode } from "@/hooks/useViewMode";
 import { usePriceVisibility } from "@/hooks/usePriceVisibility";
 import {
   formatBytes,
-  formatByteRate,
   formatByteRateLabel,
 } from "@/utils/format";
 import { calculateCostSummary, formatCnyMoney, getExchangeRates } from "@/utils/cost";
 import { useHiddenNodeUuids } from "@/hooks/useVisibleNodes";
-import { speedRateColor } from "@/utils/metricTone";
 import {
   getHomeGroupLabel,
   getHomeGroupOptions,
@@ -49,6 +56,7 @@ import {
 import { CompactNodeCard } from "./CompactNodeCard";
 import { MiniNodeCard } from "./MiniNodeCard";
 import { NodeCard } from "./NodeCard";
+import { OverviewTrafficChart } from "./OverviewTrafficChart";
 import { NodeListView } from "./NodeListView";
 import { RenewalReminder } from "./RenewalReminder";
 import type { NodeViewMode } from "@/utils/themeSettings";
@@ -83,11 +91,6 @@ interface HomeOverview {
   netDown: number;
 }
 
-function formatCompactBytes(value: number): string {
-  const [amount, unit = "B"] = formatBytes(value).split(" ");
-  return `${amount}${unit[0]}`;
-}
-
 function TrafficBarsIcon({ size = 19 }: { size?: number }) {
   return (
     <svg
@@ -104,15 +107,89 @@ function TrafficBarsIcon({ size = 19 }: { size?: number }) {
   );
 }
 
-// 站点铭牌由 CSS 放进 AppShell 顶部留白，不占概览卡内容流。
 function HomeBrand({ siteName }: { siteName: string }) {
   return (
-    <header className="home-brand" aria-label="站点名称">
+    <header className="home-brand sr-only" aria-label="站点名称">
       <h1 className="home-brand-title" title={siteName}>
         {siteName}
       </h1>
     </header>
   );
+}
+
+function getTimeGreetingInfo(
+  totalNodes: number,
+  onlineNodes: number,
+  offlineNodes: number,
+  renewalCount: number,
+): { greeting: string; subtitle: string } {
+  const hour = new Date().getHours();
+  let greeting = "早上好";
+  if (hour >= 0 && hour < 5) greeting = "夜深了";
+  else if (hour >= 5 && hour < 11) greeting = "早上好";
+  else if (hour >= 11 && hour < 13) greeting = "中午好";
+  else if (hour >= 13 && hour < 18) greeting = "下午好";
+  else greeting = "晚上好";
+
+  // 1. 存在离线异常时，精准贴合实际情况告警提示
+  if (totalNodes > 0 && offlineNodes > 0) {
+    if (onlineNodes === 0) {
+      return {
+        greeting,
+        subtitle: `集群服务器全部离线，请排查网络。`,
+      };
+    }
+    return {
+      greeting,
+      subtitle: `检测到 ${offlineNodes} 台服务器处于离线状态。`,
+    };
+  }
+
+  // 2. 暂未连接服务器
+  if (totalNodes === 0) {
+    return {
+      greeting,
+      subtitle: "暂无连接节点，等待数据上报。",
+    };
+  }
+
+  // 3. 临期提醒（无离线节点但有临近到期节点）
+  if (renewalCount > 0) {
+    return {
+      greeting,
+      subtitle: `当前有 ${renewalCount} 台节点临近到期。`,
+    };
+  }
+
+  // 4. 全员在线健康：按时段给出贴切的生产/工作问候
+  if (hour >= 0 && hour < 5) {
+    return {
+      greeting,
+      subtitle: "夜间全站运行平稳，实时监控中。",
+    };
+  }
+  if (hour >= 5 && hour < 11) {
+    return {
+      greeting,
+      subtitle: "全站运行健康，实时监控中。",
+    };
+  }
+  if (hour >= 11 && hour < 13) {
+    return {
+      greeting,
+      subtitle: "全员节点在线，指标运转正常。",
+    };
+  }
+  if (hour >= 13 && hour < 18) {
+    return {
+      greeting,
+      subtitle: "全员节点通畅，实时监控中。",
+    };
+  }
+  return {
+    greeting,
+    subtitle: "全站运转良好，实时监控中。",
+  };
 }
 
 function HomeOverviewCards({
@@ -121,15 +198,14 @@ function HomeOverviewCards({
   costLoading,
   showOverviewRatings,
   showTrafficRating,
-  showBandwidthRating,
   showAssetRating,
   trafficRatingLabels,
-  bandwidthRatingLabels,
   assetRatingLabels,
   showDetailButton,
   renewalNodes,
   dense,
   onWarmTraffic,
+  username,
 }: {
   overview: HomeOverview;
   costSummary: { remainingCny: number } | null;
@@ -137,23 +213,19 @@ function HomeOverviewCards({
   dense: boolean;
   showOverviewRatings: boolean;
   showTrafficRating: boolean;
-  showBandwidthRating: boolean;
   showAssetRating: boolean;
   trafficRatingLabels: string;
-  bandwidthRatingLabels: string;
   assetRatingLabels: string;
   showDetailButton: boolean;
   renewalNodes: RenewalReminderSource[];
   onWarmTraffic: () => void;
+  username: string;
 }) {
   const [trafficValue, trafficUnit] = formatBytes(
     overview.trafficUp + overview.trafficDown,
   ).split(" ");
-  const rate = formatByteRate(overview.netUp + overview.netDown);
   const onlinePct =
     overview.totalNodes > 0 ? (overview.onlineNodes / overview.totalNodes) * 100 : 0;
-  const offlinePct =
-    overview.totalNodes > 0 ? (overview.offlineNodes / overview.totalNodes) * 100 : 0;
   const { isPriceVisible } = usePriceVisibility();
   const remainingValue = !isPriceVisible
     ? "**"
@@ -163,23 +235,12 @@ function HomeOverviewCards({
         ? "计算中"
         : "—";
   const trafficDetailLabel = `↑ ${formatBytes(overview.trafficUp)} · ↓ ${formatBytes(overview.trafficDown)}`;
-  const trafficCompactLabel = `↑${formatCompactBytes(overview.trafficUp)} ↓${formatCompactBytes(overview.trafficDown)}`;
-  const bandwidthDetailLabel = `↑ ${formatByteRateLabel(overview.netUp)} · ↓ ${formatByteRateLabel(overview.netDown)}`;
-  const bandwidthCompactLabel = `↑${formatCompactBytes(overview.netUp)} ↓${formatCompactBytes(overview.netDown)}`;
   const trafficRating =
     showOverviewRatings && showTrafficRating
       ? getOverviewRating({
           kind: "traffic",
           value: overview.trafficUp + overview.trafficDown,
           customLabels: trafficRatingLabels,
-        })
-      : null;
-  const bandwidthRating =
-    showOverviewRatings && showBandwidthRating
-      ? getOverviewRating({
-          kind: "bandwidth",
-          value: overview.netUp + overview.netDown,
-          customLabels: bandwidthRatingLabels,
         })
       : null;
   const assetRating =
@@ -198,101 +259,235 @@ function HomeOverviewCards({
       </span>
     ) : null;
 
+  const isAllHealthy = overview.offlineNodes === 0 && overview.totalNodes > 0;
+  const renewalCount = renewalNodes.filter(
+    (n) => n.expired_at && new Date(n.expired_at).getTime() - Date.now() < 30 * 86400000,
+  ).length;
+  const greetingInfo = getTimeGreetingInfo(
+    overview.totalNodes,
+    overview.onlineNodes,
+    overview.offlineNodes,
+    renewalCount,
+  );
+
   return (
-    <section className={`home-overview${dense ? " is-dense" : ""}`} aria-label="首页总览">
-      <article className="overview-card" data-metric="online">
-        <span className="overview-card-label">在线节点</span>
-        <div className="overview-card-main">
-          <p className="overview-card-value">
-            {overview.onlineNodes}
-            <span className="overview-card-unit">/ {overview.totalNodes}</span>
-          </p>
-        </div>
-        {overview.totalNodes >= 5 && overview.totalNodes <= 10 ? (
-          // 节点数 5–10 时改用块状:每台一格,在线格在左、离线格在右、未知格居中,
-          // 与条状的「左绿右红」完全同步。颜色复用同一组 token,避免该红却绿。
-          <div className="overview-blocks" role="presentation">
-            {Array.from({ length: overview.totalNodes }, (_, i) => {
-              const cls =
-                i < overview.onlineNodes
-                  ? "overview-block is-online"
-                  : i >= overview.totalNodes - overview.offlineNodes
-                    ? "overview-block is-offline"
-                    : "overview-block";
-              return <span key={i} className={cls} />;
-            })}
+    <section className={`mao-dashboard-hero home-overview${dense ? " is-dense" : ""}`} aria-label="首页总览">
+      {/* 左侧主要区域：问候语 + 6 宫格指标小卡片 */}
+      <div className="mao-hero-main">
+        <div className="mao-hero-header">
+          <div className="mao-badge">
+            <Sparkles size={12} className="text-[var(--text-primary)]" />
+            <span>监控总览</span>
           </div>
-        ) : (
-          <div className="overview-bar" role="presentation">
-            <span className="overview-bar-online" style={{ width: `${onlinePct}%` }} />
-            <span className="overview-bar-offline" style={{ width: `${offlinePct}%` }} />
+          <h1 className="mao-hero-greeting">
+            {greetingInfo.greeting}，<span className="mao-hero-username">{username || "Visitors"}</span>
+          </h1>
+          <p className="mao-hero-subtitle">
+            {greetingInfo.subtitle}
+          </p>
+        </div>
+
+        {/* 6 宫格指标卡片 */}
+        <div className="mao-stat-grid">
+          {/* 1. 实时上行 */}
+          <div className="mao-stat-card" data-metric="net-up">
+            <div className="mao-stat-head">
+              <div className="mao-stat-title-wrap">
+                <ArrowUpRight size={15} className="mao-stat-icon text-[var(--traffic-up,var(--status-success))]" />
+                <span className="mao-stat-label">实时上行</span>
+              </div>
+            </div>
+            <div className="mao-stat-value">
+              {formatByteRateLabel(overview.netUp)}
+            </div>
+            <div className="mao-stat-footer">
+              <span className="mao-stat-caption" title={`累计上行: ${formatBytes(overview.trafficUp)}`}>
+                累计 ↑ {formatBytes(overview.trafficUp)}
+              </span>
+            </div>
           </div>
-        )}
-      </article>
 
-      <article className="overview-card" data-metric="bandwidth">
-        <span className="overview-card-label">实时带宽</span>
-        <div className="overview-card-main">
-          <p
-            className="overview-card-value"
-            style={{ color: speedRateColor(rate.unit) }}
-          >
-            {rate.value}
-            <span className="overview-card-unit">{rate.unit}</span>
-          </p>
-        </div>
-        <div className="overview-card-footer">
-          <p className="overview-card-sub" title={bandwidthDetailLabel}>
-            <span className="overview-card-sub-full">{bandwidthDetailLabel}</span>
-            <span className="overview-card-sub-compact">{bandwidthCompactLabel}</span>
-          </p>
-          {renderRating(bandwidthRating)}
-        </div>
-      </article>
+          {/* 2. 实时下行 */}
+          <div className="mao-stat-card" data-metric="net-down">
+            <div className="mao-stat-head">
+              <div className="mao-stat-title-wrap">
+                <ArrowDownRight size={15} className="mao-stat-icon text-[var(--speed-high,var(--accent-500))]" />
+                <span className="mao-stat-label">实时下行</span>
+              </div>
+            </div>
+            <div className="mao-stat-value">
+              {formatByteRateLabel(overview.netDown)}
+            </div>
+            <div className="mao-stat-footer">
+              <span className="mao-stat-caption" title={`累计下行: ${formatBytes(overview.trafficDown)}`}>
+                累计 ↓ {formatBytes(overview.trafficDown)}
+              </span>
+            </div>
+          </div>
 
-      <article className="overview-card" data-metric="traffic">
-        <div className="overview-card-head">
-          <span className="overview-card-label">累计流量</span>
-          <Link
-            to="/traffic"
-            className="overview-card-action"
-            aria-label="打开今日流量统计页"
-            title="今日流量统计"
-            onPointerEnter={onWarmTraffic}
-            onFocus={onWarmTraffic}
-            onClick={onWarmTraffic}
-          >
-            <TrafficBarsIcon />
-          </Link>
-        </div>
-        <div className="overview-card-main">
-          <p className="overview-card-value">
-            {trafficValue}
-            <span className="overview-card-unit">{trafficUnit}</span>
-          </p>
-        </div>
-        <div className="overview-card-footer">
-          <p className="overview-card-sub" title={trafficDetailLabel}>
-            <span className="overview-card-sub-full">{trafficDetailLabel}</span>
-            <span className="overview-card-sub-compact">{trafficCompactLabel}</span>
-          </p>
-          {renderRating(trafficRating)}
-        </div>
-      </article>
+          {/* 3. 全站总流量 */}
+          <div className="mao-stat-card" data-metric="traffic">
+            <div className="mao-stat-head">
+              <div className="mao-stat-title-wrap">
+                <TrendingUp size={15} className="mao-stat-icon text-[var(--traffic-up,var(--status-info))]" />
+                <span className="mao-stat-label">全站流量</span>
+              </div>
+              <Link
+                to="/traffic"
+                className="overview-card-action mao-stat-action"
+                aria-label="打开今日流量统计页"
+                title="今日流量统计"
+                onPointerEnter={onWarmTraffic}
+                onFocus={onWarmTraffic}
+                onClick={onWarmTraffic}
+              >
+                <TrafficBarsIcon size={14} />
+              </Link>
+            </div>
+            <div className="mao-stat-value">
+              {trafficValue} <span className="mao-stat-unit">{trafficUnit}</span>
+            </div>
+            <div className="mao-stat-footer">
+              <span className="mao-stat-caption truncate" title={trafficDetailLabel}>
+                双向总计流量
+              </span>
+              {renderRating(trafficRating)}
+            </div>
+          </div>
 
-      <article className="overview-card" data-metric="asset">
-        <div className="overview-card-head">
-          <span className="overview-card-label">资产概览</span>
-          {showDetailButton && <RenewalReminder nodes={renewalNodes} />}
+          {/* 4. 在线节点 */}
+          <div className="mao-stat-card" data-metric="online">
+            <div className="mao-stat-head">
+              <div className="mao-stat-title-wrap">
+                <Server size={15} className="mao-stat-icon text-[var(--status-success)]" />
+                <span className="mao-stat-label">在线节点</span>
+              </div>
+            </div>
+            <div className="mao-stat-value">
+              {overview.onlineNodes} <span className="mao-stat-unit">/ {overview.totalNodes}</span>
+            </div>
+            <div className="mao-stat-footer">
+              <span className="mao-stat-caption">
+                在线率 {onlinePct.toFixed(0)}%
+              </span>
+            </div>
+          </div>
+
+          {/* 5. 临期 / 到期提醒 */}
+          <div className="mao-stat-card" data-metric="renewal">
+            <div className="mao-stat-head">
+              <div className="mao-stat-title-wrap">
+                <Clock size={15} className="mao-stat-icon text-[var(--status-warning)]" />
+                <span className="mao-stat-label">临期节点</span>
+              </div>
+              {showDetailButton && <RenewalReminder nodes={renewalNodes} />}
+            </div>
+            <div className="mao-stat-value">
+              {renewalCount > 0 ? `${renewalCount} 台临期` : "运行正常"}
+            </div>
+            <div className="mao-stat-footer">
+              <span className="mao-stat-caption">
+                {renewalCount > 0 ? "建议提前处理续费" : "30天内无到期"}
+              </span>
+            </div>
+          </div>
+
+          {/* 6. 资产概览 */}
+          <div className="mao-stat-card" data-metric="asset">
+            <div className="mao-stat-head">
+              <div className="mao-stat-title-wrap">
+                <CircleDollarSign size={15} className="mao-stat-icon text-[var(--accent-500)]" />
+                <span className="mao-stat-label">资产总值</span>
+              </div>
+              {showDetailButton && (
+                <Link
+                  to="/assets"
+                  className="overview-card-action mao-stat-action"
+                  aria-label="打开资产统计页"
+                  title="资产统计"
+                >
+                  <CircleDollarSign size={14} />
+                </Link>
+              )}
+            </div>
+            <div className="mao-stat-value">
+              {remainingValue}
+            </div>
+            <div className="mao-stat-footer">
+              <span className="mao-stat-caption">实时汇率折算</span>
+              {renderRating(assetRating)}
+            </div>
+          </div>
         </div>
-        <div className="overview-card-main">
-          <p className="overview-card-value">{remainingValue}</p>
+      </div>
+
+      {/* 右侧集群状态区域 */}
+      <div className="mao-hero-side">
+        <div className="mao-progress-container">
+          <div className="mao-progress-head">
+            <div className="mao-progress-title-wrap">
+              <h3 className="mao-progress-title">
+                <Activity size={17} className="text-[var(--text-primary)]" />
+                <span>集群状态</span>
+              </h3>
+              <p className="mao-progress-subtitle">节点在线率与实时网络吞吐</p>
+            </div>
+            <span className={`mao-status-pill ${isAllHealthy ? "is-healthy" : "is-warning"}`}>
+              <span className="mao-status-dot" />
+              {isAllHealthy ? "状态健康" : overview.totalNodes === 0 ? "未连接" : `存在离线 (${overview.offlineNodes})`}
+            </span>
+          </div>
+
+          {/* 进度模块 1：节点在线状态（一节一节的离散方块/节点格，有多少台就有多少节） */}
+          <div className="mao-progress-section">
+            <div className="mao-progress-section-header">
+              <div className="flex items-baseline gap-1.5">
+                <span className="mao-progress-big-num">{onlinePct.toFixed(0)}%</span>
+                <span className="mao-progress-unit-label">在线率</span>
+              </div>
+              <div className="mao-progress-tag-box">
+                <span className="mao-progress-tag-label">离线节点</span>
+                <span className="mao-progress-tag-val">{overview.offlineNodes} 台</span>
+              </div>
+            </div>
+            {/* 一节一节的节点方块 */}
+            <div className="mao-node-blocks" role="presentation">
+              {overview.totalNodes > 0 ? (
+                Array.from({ length: overview.totalNodes }, (_, i) => {
+                  const isOnline = i < overview.onlineNodes;
+                  const isOffline = i >= overview.totalNodes - overview.offlineNodes;
+                  const statusClass = isOnline
+                    ? "is-online"
+                    : isOffline
+                      ? "is-offline"
+                      : "is-unknown";
+                  return (
+                    <span
+                      key={i}
+                      className={`mao-node-block ${statusClass}`}
+                      title={`节点 ${i + 1}: ${isOnline ? "在线" : isOffline ? "离线" : "未知"}`}
+                    />
+                  );
+                })
+              ) : (
+                <span className="mao-node-block is-unknown" />
+              )}
+            </div>
+            <div className="mao-progress-section-footer">
+              <span>在线 {overview.onlineNodes} 台</span>
+              <span>总计 {overview.totalNodes} 台</span>
+            </div>
+          </div>
+
+          {/* 进度模块 2：实时动态网络曲线图 */}
+          <OverviewTrafficChart
+            netUp={overview.netUp}
+            netDown={overview.netDown}
+            trafficUp={overview.trafficUp}
+            trafficDown={overview.trafficDown}
+          />
         </div>
-        <div className="overview-card-footer">
-          <p className="overview-card-caption">实时汇率计算</p>
-          {renderRating(assetRating)}
-        </div>
-      </article>
+      </div>
     </section>
   );
 }
@@ -691,12 +886,11 @@ export function NodeGrid() {
           costLoading={costLoading}
           showOverviewRatings={themeSettings.showOverviewRatings}
           showTrafficRating={themeSettings.showTrafficRating}
-          showBandwidthRating={themeSettings.showBandwidthRating}
           showAssetRating={themeSettings.showAssetRating}
           trafficRatingLabels={themeSettings.trafficRatingLabels}
-          bandwidthRatingLabels={themeSettings.bandwidthRatingLabels}
           assetRatingLabels={themeSettings.assetRatingLabels}
           onWarmTraffic={warmTrafficPage}
+          username={me?.username || (me?.logged_in ? "Admin" : "Visitors")}
         />
       )}
     </>
@@ -717,35 +911,57 @@ export function NodeGrid() {
   return (
     <>
       {homeHeader}
-      {(showGroupTabs || showHomeSort) && (
-        // 分组标签落首列、排序钉在末列右侧；窄屏时两者保持在同一控件栏内。
-        <div className={controlsWrapClassName} style={controlsStyle}>
-          {showGroupTabs && (
-            <GroupTabs
-              groups={groupOptions}
-              selectedGroup={selectedGroup}
-              onSelectGroup={setSelectedGroup}
-            />
-          )}
-          {showHomeSort && <HomeSortControl state={sort} />}
-        </div>
-      )}
-      {showRegionBar && (
-        <RegionTabs
-          regions={regionOptions}
-          selectedRegion={selectedRegion}
-          onSelectRegion={setSelectedRegion}
-        />
-      )}
-      {isList ? (
-        <NodeListView uuids={orderedUuids} />
-      ) : showTrafficPopover ? (
-        <TodayTrafficStatsProvider uuids={trafficUuids}>
-          {gridElement}
-        </TodayTrafficStatsProvider>
-      ) : (
-        gridElement
-      )}
+      <section className="mao-cluster-card" aria-label="服务器集群与节点列表">
+        {showHomeOverview && (
+          <div className="mao-section-header">
+            <div className="mao-section-top-row">
+              <div className="mao-badge">
+                <Server size={12} className="text-[var(--text-primary)]" />
+                <span>服务器集群</span>
+              </div>
+              {showHomeSort && (
+                <div className="mao-section-header-actions">
+                  <HomeSortControl state={sort} />
+                </div>
+              )}
+            </div>
+            <div className="mao-section-title-wrap">
+              <h2 className="mao-section-title">节点矩阵与实时监控</h2>
+              <p className="mao-section-sub">
+                实时监控节点负载、资源占用、网络吞吐与在线状态。
+              </p>
+            </div>
+          </div>
+        )}
+        {((!showHomeOverview && showHomeSort) || showGroupTabs) && (
+          <div className={controlsWrapClassName} style={controlsStyle}>
+            {showGroupTabs && (
+              <GroupTabs
+                groups={groupOptions}
+                selectedGroup={selectedGroup}
+                onSelectGroup={setSelectedGroup}
+              />
+            )}
+            {!showHomeOverview && showHomeSort && <HomeSortControl state={sort} />}
+          </div>
+        )}
+        {showRegionBar && (
+          <RegionTabs
+            regions={regionOptions}
+            selectedRegion={selectedRegion}
+            onSelectRegion={setSelectedRegion}
+          />
+        )}
+        {isList ? (
+          <NodeListView uuids={orderedUuids} />
+        ) : showTrafficPopover ? (
+          <TodayTrafficStatsProvider uuids={trafficUuids}>
+            {gridElement}
+          </TodayTrafficStatsProvider>
+        ) : (
+          gridElement
+        )}
+      </section>
     </>
   );
 }

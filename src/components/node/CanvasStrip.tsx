@@ -133,7 +133,7 @@ const CANVAS_COLOR_FALLBACKS = {
     "--status-error": "#dc2626",
     "--status-info": "#3b82f6",
     "--status-online": "#2f9e65",
-    "--status-offline": "#dc2626",
+    "--status-offline": "#71717a",
     "--text-tertiary": "#71717a",
   },
   // 与 tokens.css 深色 token 保持同值(color-mix 变量取 depth=0 的基色),只在首帧/样式
@@ -157,7 +157,7 @@ const CANVAS_COLOR_FALLBACKS = {
     "--status-error": "#f47067",
     "--status-info": "#539bf5",
     "--status-online": "#57ab5a",
-    "--status-offline": "#f47067",
+    "--status-offline": "#8b949e",
     "--text-tertiary": "#9198a1",
   },
 } as const;

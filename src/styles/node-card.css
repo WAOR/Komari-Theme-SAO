@@ -1,39 +1,79 @@
-/* 大卡、小卡与迷你卡共用的运维面板基底。层级依赖表面色与描边，不使用阴影、顶光或悬浮位移。 */
+/* 大卡、小卡与迷你卡共用的运维面板基底：纯白卡片镶嵌在灰色大卡片容器中 */
 .server-card,
 .compact-node-card,
 .mini-node-card {
   position: relative;
-  background: var(--surface-a);
-  border: 1px solid var(--border);
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.06);
   border-radius: 14px;
   content-visibility: auto;
-  box-shadow: none;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.02);
   overflow: hidden;
+  transition:
+    border-color 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms cubic-bezier(0.32, 0.72, 0, 1);
 }
+
+:root[data-appearance="dark"] .server-card,
+:root[data-appearance="dark"] .compact-node-card,
+:root[data-appearance="dark"] .mini-node-card {
+  background: #1c1c1f;
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.25);
+}
+
 .server-card {
   contain-intrinsic-size: auto 438px;
-  transition:
-    border-color 160ms ease,
-    background 160ms ease;
 }
+
 .server-card::before,
 .compact-node-card::before,
 .mini-node-card::before {
   content: none;
 }
+
 .server-card:hover,
 .compact-node-card:hover,
 .mini-node-card:hover {
-  border-color: var(--border-strong);
-  background: color-mix(in srgb, var(--hover-bg-a) 38%, var(--surface-a));
+  border-color: rgba(0, 0, 0, 0.14);
+  background: #ffffff;
+  box-shadow: 0 10px 24px -6px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+}
+
+:root[data-appearance="dark"] .server-card:hover,
+:root[data-appearance="dark"] .compact-node-card:hover,
+:root[data-appearance="dark"] .mini-node-card:hover {
+  background: #27272a;
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.6);
 }
 
 .server-card.is-offline,
 .compact-node-card.is-offline,
 .mini-node-card.is-offline {
-  background: color-mix(in srgb, var(--status-offline) 5%, var(--surface-a));
-  border-color: color-mix(in srgb, var(--status-offline) 48%, var(--border));
+  background: #f9fafb;
+  border-color: rgba(0, 0, 0, 0.05);
   box-shadow: none;
+  filter: grayscale(1);
+  opacity: 0.72;
+  transition: opacity 160ms ease, filter 160ms ease, border-color 160ms ease;
+}
+
+:root[data-appearance="dark"] .server-card.is-offline,
+:root[data-appearance="dark"] .compact-node-card.is-offline,
+:root[data-appearance="dark"] .mini-node-card.is-offline {
+  background: #141416;
+  border-color: rgba(255, 255, 255, 0.04);
+}
+
+.server-card.is-offline:hover,
+.compact-node-card.is-offline:hover,
+.mini-node-card.is-offline:hover {
+  opacity: 0.88;
+  border-color: var(--border-strong);
 }
 
 .server-card-content {
@@ -91,7 +131,7 @@
 
 .server-card.is-offline .server-card-title-link,
 .server-card.is-offline .server-card-title-link:hover {
-  color: color-mix(in srgb, var(--status-offline) 72%, var(--text-primary) 28%);
+  color: var(--text-secondary);
 }
 
 .server-card-detail-link {

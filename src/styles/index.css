@@ -45,8 +45,6 @@ body {
   margin: 0;
   padding: 0;
   min-height: 100vh;
-  overflow-y: scroll;
-  scrollbar-gutter: stable;
   color: var(--text-primary);
 }
 

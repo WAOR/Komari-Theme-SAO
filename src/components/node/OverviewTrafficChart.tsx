@@ -41,14 +41,10 @@ function getNiceRateCeiling(value: number): number {
 export function OverviewTrafficChart({
   netUp,
   netDown,
-  trafficUp: _trafficUp,
-  trafficDown: _trafficDown,
   bandwidthRating,
 }: {
   netUp: number;
   netDown: number;
-  trafficUp: number;
-  trafficDown: number;
   bandwidthRating?: { level: 0 | 1 | 2 | 3; label: string } | null;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);

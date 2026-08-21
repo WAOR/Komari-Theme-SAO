@@ -498,8 +498,6 @@ function HomeOverviewCards({
           <OverviewTrafficChart
             netUp={overview.netUp}
             netDown={overview.netDown}
-            trafficUp={overview.trafficUp}
-            trafficDown={overview.trafficDown}
             bandwidthRating={bandwidthRating}
           />
         </div>

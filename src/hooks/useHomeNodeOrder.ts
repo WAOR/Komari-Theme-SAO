@@ -76,9 +76,21 @@ export function useHomeNodeOrder({
     }
     const recompute = () => {
       const current = nodesRef.current;
+      const ring = ringRef.current;
+
+      // If the ring buffer is empty (e.g. just switched to speed sort before the
+      // companion effect had a chance to accumulate samples), seed it with the
+      // current instant values so the first recompute is not working with zeroes.
+      if (ring.size === 0 && current.length > 0) {
+        for (const node of current) {
+          const total = (node.netUp || 0) + (node.netDown || 0);
+          ring.set(node.uuid, [total]);
+        }
+      }
+
       const avg = new Map<string, number>();
       for (const node of current) {
-        const arr = ringRef.current.get(node.uuid);
+        const arr = ring.get(node.uuid);
         avg.set(node.uuid, arr && arr.length ? arr.reduce((sum, v) => sum + v, 0) / arr.length : 0);
       }
       const next = new Set<string>();

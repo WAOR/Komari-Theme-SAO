@@ -277,6 +277,7 @@ export function OverviewTrafficChart({
             data-rating-level={bandwidthRating.level}
             title={`实时带宽评级: ${bandwidthRating.label}`}
           >
+            <span className="mao-status-dot" />
             {bandwidthRating.label}
           </span>
         )}

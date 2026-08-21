@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { CircleDollarSign, X } from "lucide-react";
+import { CalendarClock, X } from "lucide-react";
 import { usePriceVisibility } from "@/hooks/usePriceVisibility";
 import {
   EMPTY_RENEWAL_REMINDER_PREFERENCES,
@@ -46,19 +46,6 @@ function storePreferences(value: RenewalReminderPreferences) {
   } catch {
     // 隐私模式或存储配额异常时仍允许本次页面内关闭，持久化失败不打断提醒交互。
   }
-}
-
-function AssetLink() {
-  return (
-    <Link
-      to="/assets"
-      className="overview-card-action"
-      aria-label="打开资产统计页"
-      title="资产统计"
-    >
-      <CircleDollarSign size={15} aria-hidden />
-    </Link>
-  );
 }
 
 export function RenewalReminder({ nodes }: { nodes: RenewalReminderSource[] }) {
@@ -186,7 +173,7 @@ export function RenewalReminder({ nodes }: { nodes: RenewalReminderSource[] }) {
     closeAndRestoreFocus();
   };
 
-  if (visibleReminders.length === 0) return <AssetLink />;
+  if (visibleReminders.length === 0) return null;
 
   const rows = visibleReminders.slice(0, MAX_VISIBLE_ROWS);
   const hiddenCount = visibleReminders.length - rows.length;
@@ -209,7 +196,7 @@ export function RenewalReminder({ nodes }: { nodes: RenewalReminderSource[] }) {
         title={`${visibleReminders.length} 个续费提醒`}
         onClick={() => setOpen((value) => !value)}
       >
-        <CircleDollarSign size={15} aria-hidden />
+        <CalendarClock size={15} aria-hidden />
         <span className="renewal-reminder-dot" aria-hidden />
       </button>
 

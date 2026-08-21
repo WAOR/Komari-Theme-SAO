@@ -1290,6 +1290,45 @@
   color: color-mix(in srgb, #f43f5e 90%, var(--text-primary));
 }
 
+/* 指示圆点呼吸闪烁效果，频率跟随流量评级自动调整 */
+.overview-card-rating.is-bandwidth-badge .mao-status-dot {
+  animation: bandwidth-dot-pulse 2s ease-in-out infinite;
+  will-change: opacity, box-shadow;
+}
+
+.overview-card-rating.is-bandwidth-badge[data-rating-level="0"] .mao-status-dot {
+  animation-duration: 3.2s; /* 闲置：舒缓低频呼吸 */
+}
+
+.overview-card-rating.is-bandwidth-badge[data-rating-level="1"] .mao-status-dot {
+  animation-duration: 2.0s; /* 轻载：标准节奏 */
+}
+
+.overview-card-rating.is-bandwidth-badge[data-rating-level="2"] .mao-status-dot {
+  animation-duration: 1.1s; /* 活跃：高频跳动 */
+}
+
+.overview-card-rating.is-bandwidth-badge[data-rating-level="3"] .mao-status-dot {
+  animation-duration: 0.55s; /* 爆发：极速警示脉冲 */
+}
+
+@keyframes bandwidth-dot-pulse {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 60%, transparent);
+  }
+  50% {
+    opacity: 0.28;
+    box-shadow: 0 0 5px 1.5px color-mix(in srgb, currentColor 35%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overview-card-rating.is-bandwidth-badge .mao-status-dot {
+    animation: none;
+  }
+}
+
 /* 在线条:左绿=在线、右红=离线,中间中性轨道=未知。初始用中性而非红色,避免指标
    到达前首帧闪红;随后绿/红从两端同时长入。准确的「12 / 14」就在其上方,所以这条
    只作快速一瞥用。 */

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { formatByteRateLabel, formatBytes } from "@/utils/format";
+import { formatByteRateLabel } from "@/utils/format";
 
 interface TrafficPoint {
   time: number;
@@ -41,13 +41,15 @@ function getNiceRateCeiling(value: number): number {
 export function OverviewTrafficChart({
   netUp,
   netDown,
-  trafficUp,
-  trafficDown,
+  trafficUp: _trafficUp,
+  trafficDown: _trafficDown,
+  bandwidthRating,
 }: {
   netUp: number;
   netDown: number;
   trafficUp: number;
   trafficDown: number;
+  bandwidthRating?: { level: 0 | 1 | 2 | 3; label: string } | null;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const historyRef = useRef<TrafficPoint[]>([]);
@@ -269,17 +271,20 @@ export function OverviewTrafficChart({
           </svg>
           <span>网络</span>
         </div>
-        <div className="mao-realtime-chart-stats">
-          <div className="mao-realtime-chart-rates">
-            <span style={{ color: "var(--traffic-up, #3b82f6)" }}>↑ {formatByteRateLabel(netUp)}</span>
-            <span className="text-[var(--text-tertiary)]">/</span>
-            <span style={{ color: "var(--traffic-down, #2f9e65)" }}>↓ {formatByteRateLabel(netDown)}</span>
-          </div>
-          <div className="mao-realtime-chart-totals">
-            <span>↓ {formatBytes(trafficDown)}</span>
-            <span>↑ {formatBytes(trafficUp)}</span>
-          </div>
-        </div>
+        {bandwidthRating && (
+          <span
+            className="overview-card-rating"
+            data-rating-level={bandwidthRating.level}
+            title={`实时带宽评级: ${bandwidthRating.label}`}
+          >
+            {bandwidthRating.label}
+          </span>
+        )}
+      </div>
+      <div className="mao-realtime-chart-rates">
+        <span style={{ color: "var(--traffic-up, #3b82f6)" }}>↑ {formatByteRateLabel(netUp)}</span>
+        <span className="text-[var(--text-tertiary)]">/</span>
+        <span style={{ color: "var(--traffic-down, #2f9e65)" }}>↓ {formatByteRateLabel(netDown)}</span>
       </div>
       <div className="mao-realtime-chart-canvas-wrap">
         <canvas ref={canvasRef} className="mao-realtime-chart-canvas" />

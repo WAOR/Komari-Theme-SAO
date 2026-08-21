@@ -198,8 +198,10 @@ function HomeOverviewCards({
   costLoading,
   showOverviewRatings,
   showTrafficRating,
+  showBandwidthRating,
   showAssetRating,
   trafficRatingLabels,
+  bandwidthRatingLabels,
   assetRatingLabels,
   showDetailButton,
   renewalNodes,
@@ -213,8 +215,10 @@ function HomeOverviewCards({
   dense: boolean;
   showOverviewRatings: boolean;
   showTrafficRating: boolean;
+  showBandwidthRating: boolean;
   showAssetRating: boolean;
   trafficRatingLabels: string;
+  bandwidthRatingLabels: string;
   assetRatingLabels: string;
   showDetailButton: boolean;
   renewalNodes: RenewalReminderSource[];
@@ -241,6 +245,14 @@ function HomeOverviewCards({
           kind: "traffic",
           value: overview.trafficUp + overview.trafficDown,
           customLabels: trafficRatingLabels,
+        })
+      : null;
+  const bandwidthRating =
+    showOverviewRatings && showBandwidthRating
+      ? getOverviewRating({
+          kind: "bandwidth",
+          value: overview.netUp + overview.netDown,
+          customLabels: bandwidthRatingLabels,
         })
       : null;
   const assetRating =
@@ -486,6 +498,7 @@ function HomeOverviewCards({
             netDown={overview.netDown}
             trafficUp={overview.trafficUp}
             trafficDown={overview.trafficDown}
+            bandwidthRating={bandwidthRating}
           />
         </div>
       </div>
@@ -887,8 +900,10 @@ export function NodeGrid() {
           costLoading={costLoading}
           showOverviewRatings={themeSettings.showOverviewRatings}
           showTrafficRating={themeSettings.showTrafficRating}
+          showBandwidthRating={themeSettings.showBandwidthRating}
           showAssetRating={themeSettings.showAssetRating}
           trafficRatingLabels={themeSettings.trafficRatingLabels}
+          bandwidthRatingLabels={themeSettings.bandwidthRatingLabels}
           assetRatingLabels={themeSettings.assetRatingLabels}
           onWarmTraffic={warmTrafficPage}
           username={me?.username || (me?.logged_in ? "Admin" : "Visitors")}

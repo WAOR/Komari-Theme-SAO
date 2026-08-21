@@ -132,6 +132,14 @@ function applyResolvedAppearance(resolvedAppearance: ResolvedAppearance) {
   meta.name = "theme-color";
   meta.content = color;
   document.head.appendChild(meta);
+
+  // Sync apple status-bar style so iOS Dynamic Island / status bar tint follows theme.
+  const statusMeta = document.querySelector<HTMLMetaElement>(
+    'meta[name="apple-mobile-web-app-status-bar-style"]',
+  );
+  if (statusMeta) {
+    statusMeta.content = isDark ? "black-translucent" : "default";
+  }
 }
 
 function commit(next: Partial<PrefsState>) {

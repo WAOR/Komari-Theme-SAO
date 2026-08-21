@@ -63,14 +63,14 @@ export function MetricBar({
   return (
     <div className="metric-item">
       <div className="flex justify-between items-center gap-3 min-w-0">
-        <div className="flex items-center gap-1.5 text-[var(--text-secondary)] flex-shrink-0">
+        <div className="flex items-center gap-1.5 text-(--text-secondary) flex-shrink-0">
           <span>{icon}</span>
           <span className="text-[11px] font-medium tracking-[0.02em]">{label}</span>
         </div>
-        <div className="tabular text-[13px] text-[var(--text-primary)] whitespace-nowrap overflow-hidden text-ellipsis max-w-full text-right">
+        <div className="tabular text-[13px] text-(--text-primary) whitespace-nowrap overflow-hidden text-ellipsis max-w-full text-right">
           <span className="font-semibold">{valueText}</span>
           {unit && (
-            <span className="ml-[1px] text-[11px] text-[var(--text-tertiary)]">{unit}</span>
+            <span className="ml-[1px] text-[11px] text-(--text-tertiary)">{unit}</span>
           )}
         </div>
       </div>

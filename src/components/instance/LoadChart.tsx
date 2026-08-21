@@ -361,7 +361,7 @@ const ChartCard = memo(function ChartCard({
         </div>
         <div className="instance-series-stats">
           <span className="tabular">{value}</span>
-          {note != null && <span className="tabular text-[var(--text-tertiary)]">{note}</span>}
+          {note != null && <span className="tabular text-(--text-tertiary)">{note}</span>}
         </div>
       </header>
       <div ref={chartSizeRef} className="instance-uplot-wrap">

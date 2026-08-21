@@ -257,7 +257,7 @@ export function OverviewTrafficChart({
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
-            className="text-[var(--status-success)]"
+            className="text-(--status-success)"
           >
             <rect width="6" height="6" x="9" y="2" rx="1" />
             <rect width="6" height="6" x="2" y="16" rx="1" />
@@ -280,7 +280,7 @@ export function OverviewTrafficChart({
       </div>
       <div className="mao-realtime-chart-rates">
         <span style={{ color: "var(--traffic-up, #3b82f6)" }}>↑ {formatByteRateLabel(netUp)}</span>
-        <span className="text-[var(--text-tertiary)]">/</span>
+        <span className="text-(--text-tertiary)">/</span>
         <span style={{ color: "var(--traffic-down, #2f9e65)" }}>↓ {formatByteRateLabel(netDown)}</span>
       </div>
       <div className="mao-realtime-chart-canvas-wrap">

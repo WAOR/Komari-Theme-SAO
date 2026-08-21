@@ -10,7 +10,7 @@ export function Spinner({
       role={label ? "status" : undefined}
       aria-label={label || undefined}
       aria-hidden={label ? undefined : true}
-      className="inline-block animate-spin rounded-full border-2 border-[var(--border-subtle)] border-t-[var(--accent-500)] motion-reduce:animate-none"
+      className="inline-block animate-spin rounded-full border-2 border-(--border-subtle) border-t-(--accent-500) motion-reduce:animate-none"
       style={{ width: size, height: size }}
     />
   );

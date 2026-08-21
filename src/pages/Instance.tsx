@@ -119,10 +119,10 @@ export function Instance() {
         <div className="flex min-h-[50vh] flex-col items-center justify-center gap-3 text-center">
           {message ? (
             <>
-              <div className="text-[15px] font-semibold text-[var(--text-primary)]">
+              <div className="text-[15px] font-semibold text-(--text-primary)">
                 {storeStatus.hydrated ? "实例不存在" : "暂时无法加载实例"}
               </div>
-              <p className="text-[13px] text-[var(--text-secondary)]">{message}</p>
+              <p className="text-[13px] text-(--text-secondary)">{message}</p>
             </>
           ) : (
             <Spinner size={24} label="正在加载实例" />

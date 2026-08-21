@@ -51,7 +51,7 @@ export function AppShell() {
       <BackgroundLayer />
       {/* MAO 风格顶部导航 Bar 框架 */}
       <header className="mao-top-nav-bar">
-        <div className="mx-auto flex h-14 w-full max-w-[1720px] items-center justify-between px-3 sm:px-5 md:px-6 lg:px-8">
+        <div className="mx-auto flex h-14 w-full max-w-430 items-center justify-between px-3 sm:px-5 md:px-6 lg:px-8">
           <div className="mao-nav-brand-left flex items-center gap-2.5">
             <svg
               width="20"
@@ -62,7 +62,7 @@ export function AppShell() {
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="text-[var(--text-primary)]"
+              className="text-(--text-primary)"
             >
               <path stroke="none" d="M0 0h24v24H0z" fill="none" />
               <path d="M12 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" />
@@ -73,11 +73,11 @@ export function AppShell() {
               {siteName}
             </span>
           </div>
-          <div className="flex items-center gap-2 min-w-[36px]" />
+          <div className="flex items-center gap-2 min-w-9" />
         </div>
       </header>
       <main className="app-main flex-1 px-3 pb-8 pt-6 sm:px-5 md:px-6 lg:px-8">
-        <div className="mx-auto w-full max-w-[1720px]">
+        <div className="mx-auto w-full max-w-430">
           {isCheckingShell ? (
             <div className="flex min-h-[60vh] items-center justify-center">
               <Spinner size={24} />
@@ -99,10 +99,10 @@ function AccessError({ onRetry }: { onRetry: () => void }) {
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 text-center">
       <div className="space-y-2">
-        <div className="text-[15px] font-semibold text-[var(--text-primary)]">
+        <div className="text-[15px] font-semibold text-(--text-primary)">
           无法读取站点配置
         </div>
-        <p className="text-[13px] text-[var(--text-secondary)]">请检查网络后重试。</p>
+        <p className="text-[13px] text-(--text-secondary)">请检查网络后重试。</p>
       </div>
       <button type="button" onClick={onRetry} className="control-button px-4 py-2 text-[13px] font-medium">
         重试
@@ -114,12 +114,12 @@ function AccessError({ onRetry }: { onRetry: () => void }) {
 function PrivateSiteGate() {
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 text-center">
-      <div className="grid h-12 w-12 place-items-center rounded-full bg-[var(--surface-elev)] text-[var(--text-tertiary)]">
+      <div className="grid h-12 w-12 place-items-center rounded-full bg-(--surface-elev) text-(--text-tertiary)">
         <Lock size={22} strokeWidth={2} />
       </div>
       <div className="space-y-2">
-        <div className="text-[15px] font-semibold text-[var(--text-primary)]">站点已设为私有</div>
-        <p className="max-w-[32rem] text-[13px] text-[var(--text-secondary)]">
+        <div className="text-[15px] font-semibold text-(--text-primary)">站点已设为私有</div>
+        <p className="max-w-lg text-[13px] text-(--text-secondary)">
           登录后即可查看节点数据。
         </p>
       </div>

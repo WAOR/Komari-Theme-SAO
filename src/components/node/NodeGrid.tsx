@@ -299,7 +299,7 @@ function HomeOverviewCards({
       <div className="mao-hero-main">
         <div className="mao-hero-header">
           <div className="mao-badge">
-            <Sparkles size={12} className="text-[var(--text-primary)]" />
+            <Sparkles size={12} className="text-(--text-primary)" />
             <span>监控总览</span>
           </div>
           <h1 className="mao-hero-greeting flex items-center gap-1.5 flex-wrap">
@@ -317,7 +317,7 @@ function HomeOverviewCards({
           <div className="mao-stat-card" data-metric="net-up">
             <div className="mao-stat-head">
               <div className="mao-stat-title-wrap">
-                <ArrowUpRight size={15} className="mao-stat-icon text-[var(--traffic-up,var(--status-success))]" />
+                <ArrowUpRight size={15} className="mao-stat-icon text-(--traffic-up,var(--status-success))" />
                 <span className="mao-stat-label">实时上行</span>
               </div>
             </div>
@@ -335,7 +335,7 @@ function HomeOverviewCards({
           <div className="mao-stat-card" data-metric="net-down">
             <div className="mao-stat-head">
               <div className="mao-stat-title-wrap">
-                <ArrowDownRight size={15} className="mao-stat-icon text-[var(--speed-high,var(--accent-500))]" />
+                <ArrowDownRight size={15} className="mao-stat-icon text-(--speed-high,var(--accent-500))" />
                 <span className="mao-stat-label">实时下行</span>
               </div>
             </div>
@@ -353,7 +353,7 @@ function HomeOverviewCards({
           <div className="mao-stat-card" data-metric="online">
             <div className="mao-stat-head">
               <div className="mao-stat-title-wrap">
-                <Server size={15} className="mao-stat-icon text-[var(--status-success)]" />
+                <Server size={15} className="mao-stat-icon text-(--status-success)" />
                 <span className="mao-stat-label">在线比例</span>
               </div>
             </div>
@@ -371,7 +371,7 @@ function HomeOverviewCards({
           <div className={`mao-stat-card${renewalPopoverOpen ? " is-popover-open" : ""}`} data-metric="renewal">
             <div className="mao-stat-head">
               <div className="mao-stat-title-wrap">
-                <Clock size={15} className="mao-stat-icon text-[var(--status-warning)]" />
+                <Clock size={15} className="mao-stat-icon text-(--status-warning)" />
                 <span className="mao-stat-label">临期提醒</span>
               </div>
               {showDetailButton && <RenewalReminder nodes={renewalNodes} onOpenChange={setRenewalPopoverOpen} />}
@@ -390,7 +390,7 @@ function HomeOverviewCards({
           <div className="mao-stat-card" data-metric="traffic">
             <div className="mao-stat-head">
               <div className="mao-stat-title-wrap">
-                <TrendingUp size={15} className="mao-stat-icon text-[var(--traffic-up,var(--status-info))]" />
+                <TrendingUp size={15} className="mao-stat-icon text-(--traffic-up,var(--status-info))" />
                 <span className="mao-stat-label">今日流量</span>
               </div>
               <Link
@@ -420,7 +420,7 @@ function HomeOverviewCards({
           <div className="mao-stat-card" data-metric="asset">
             <div className="mao-stat-head">
               <div className="mao-stat-title-wrap">
-                <CircleDollarSign size={15} className="mao-stat-icon text-[var(--accent-500)]" />
+                <CircleDollarSign size={15} className="mao-stat-icon text-(--accent-500)" />
                 <span className="mao-stat-label">资产总值</span>
               </div>
               {showDetailButton && (
@@ -451,7 +451,7 @@ function HomeOverviewCards({
           <div className="mao-progress-head">
             <div className="mao-progress-title-wrap">
               <h3 className="mao-progress-title">
-                <Activity size={17} className="text-[var(--text-primary)]" />
+                <Activity size={17} className="text-(--text-primary)" />
                 <span>集群状态</span>
               </h3>
               <p className="mao-progress-subtitle">主机在线率与实时网络吞吐</p>
@@ -883,7 +883,7 @@ export function NodeGrid() {
     if (!nodeInfoError) return null;
     return (
       <div
-        className="flex h-[40vh] flex-col items-center justify-center gap-2 text-[var(--text-tertiary)]"
+        className="flex h-[40vh] flex-col items-center justify-center gap-2 text-(--text-tertiary)"
         aria-live="polite"
       >
         <span className="text-[14px]">节点数据暂时无法加载</span>
@@ -936,7 +936,7 @@ export function NodeGrid() {
     return (
       <>
         {homeHeader}
-        <div className="flex h-[40vh] flex-col items-center justify-center gap-2 text-[var(--text-tertiary)]">
+        <div className="flex h-[40vh] flex-col items-center justify-center gap-2 text-(--text-tertiary)">
           <span className="text-[15px]">尚未连接到任何节点</span>
           <span className="text-[12px]">等待后端推送或前往管理后台添加</span>
         </div>
@@ -952,7 +952,7 @@ export function NodeGrid() {
           <div className="mao-section-header">
             <div className="mao-section-top-row">
               <div className="mao-badge">
-                <Server size={12} className="text-[var(--text-primary)]" />
+                <Server size={12} className="text-(--text-primary)" />
                 <span>服务器集群</span>
               </div>
               {showHomeSort && (

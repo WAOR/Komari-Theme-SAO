@@ -273,7 +273,7 @@ export function Assets() {
       </div>
 
       {nodes.length === 0 ? (
-        <div className="flex h-[40vh] flex-col items-center justify-center gap-2 text-[var(--text-tertiary)]">
+        <div className="flex h-[40vh] flex-col items-center justify-center gap-2 text-(--text-tertiary)">
           <span className="text-[15px]">暂无节点数据</span>
           <span className="text-[12px]">等待后端推送或前往管理后台添加</span>
         </div>

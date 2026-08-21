@@ -386,14 +386,14 @@ const ToggleRow = memo(function ToggleRow({
   return (
     <label className="surface-inset flex items-center justify-between gap-3 px-4 py-3">
       <span className="min-w-0">
-        <span className="block text-[13px] font-medium text-[var(--text-primary)]">{title}</span>
-        <span className="mt-1 block text-[11px] text-[var(--text-tertiary)]">{desc}</span>
+        <span className="block text-[13px] font-medium text-(--text-primary)">{title}</span>
+        <span className="mt-1 block text-[11px] text-(--text-tertiary)">{desc}</span>
       </span>
       <input
         type="checkbox"
         checked={checked}
         onChange={(event) => onPatch(field, event.target.checked)}
-        className="h-4 w-4 shrink-0 accent-[var(--accent-500)]"
+        className="h-4 w-4 shrink-0 accent-(--accent-500)"
       />
     </label>
   );
@@ -445,27 +445,27 @@ const TaskBindingSection = memo(function TaskBindingSection({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className="text-[15px] font-semibold text-[var(--text-primary)]">
+            <h3 className="text-[15px] font-semibold text-(--text-primary)">
               {task.name || `任务 #${task.id}`}
             </h3>
-            <span className="rounded-full border border-[var(--hairline)] px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.08em] text-[var(--text-tertiary)]">
+            <span className="rounded-full border border-(--hairline) px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.08em] text-(--text-tertiary)">
               {task.type || "icmp"}
             </span>
-            <span className="rounded-full border border-[var(--hairline)] px-2 py-0.5 text-[10px] font-medium text-[var(--text-tertiary)]">
+            <span className="rounded-full border border-(--hairline) px-2 py-0.5 text-[10px] font-medium text-(--text-tertiary)">
               {task.interval}s
             </span>
-            <span className="rounded-full border border-[var(--hairline)] px-2 py-0.5 text-[10px] font-medium text-[var(--text-tertiary)]">
+            <span className="rounded-full border border-(--hairline) px-2 py-0.5 text-[10px] font-medium text-(--text-tertiary)">
               ID {task.id}
             </span>
           </div>
-          <div className="mt-2 text-[12px] text-[var(--text-secondary)]">
-            <span className="font-medium text-[var(--text-primary)]">
+          <div className="mt-2 text-[12px] text-(--text-secondary)">
+            <span className="font-medium text-(--text-primary)">
               已绑定 {assigned.length} 个节点
             </span>
-            <span className="mx-2 text-[var(--text-tertiary)]">·</span>
+            <span className="mx-2 text-(--text-tertiary)">·</span>
             <span title={task.target || ""}>{task.target || "未填写目标"}</span>
           </div>
-          <p className="mt-2 text-[12px] text-[var(--text-tertiary)]" title={assignedSummary}>
+          <p className="mt-2 text-[12px] text-(--text-tertiary)" title={assignedSummary}>
             {assignedSummary}
           </p>
         </div>
@@ -516,15 +516,15 @@ const TaskBindingSection = memo(function TaskBindingSection({
       </div>
 
       {expanded && (
-        <div className="mt-4 border-t border-[var(--hairline)] pt-4">
+        <div className="mt-4 border-t border-(--hairline) pt-4">
           <label className="surface-inset flex items-center gap-2 px-3 py-2">
-            <Search size={14} className="text-[var(--text-tertiary)]" />
+            <Search size={14} className="text-(--text-tertiary)" />
             <input
               value={nodeSearch}
               onChange={(event) => onNodeSearch(event.target.value)}
               placeholder="搜索节点名称 / UUID / 分组 / 地区"
               aria-label="搜索节点"
-              className="min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-[var(--text-tertiary)]"
+              className="min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-(--text-tertiary)"
             />
           </label>
 
@@ -536,10 +536,10 @@ const TaskBindingSection = memo(function TaskBindingSection({
                 <label
                   key={client.uuid}
                   className={clsx(
-                    "flex cursor-pointer items-start gap-3 rounded-[12px] border px-3 py-3 transition-colors",
+                    "flex cursor-pointer items-start gap-3 rounded-xl border px-3 py-3 transition-colors",
                     checked
-                      ? "border-[var(--border-strong)] bg-[color-mix(in_srgb,var(--hover-bg)_72%,transparent)]"
-                      : "border-[var(--hairline)] bg-transparent hover:bg-[var(--hover-bg)]",
+                      ? "border-(--border-strong) bg-[color-mix(in_srgb,var(--hover-bg)_72%,transparent)]"
+                      : "border-(--hairline) bg-transparent hover:bg-(--hover-bg)",
                   )}
                 >
                   <input
@@ -551,16 +551,16 @@ const TaskBindingSection = memo(function TaskBindingSection({
                         applyClientAssignment(prev, task.id, client.uuid, nextChecked),
                       );
                     }}
-                    className="mt-1 h-4 w-4 shrink-0 accent-[var(--accent-500)]"
+                    className="mt-1 h-4 w-4 shrink-0 accent-(--accent-500)"
                   />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <Flag region={client.region} size={14} />
-                      <span className="truncate text-[13px] font-medium text-[var(--text-primary)]">
+                      <span className="truncate text-[13px] font-medium text-(--text-primary)">
                         {client.name}
                       </span>
                     </div>
-                    <div className="mt-1 text-[11px] text-[var(--text-tertiary)]">
+                    <div className="mt-1 text-[11px] text-(--text-tertiary)">
                       {subtitle || client.region || "未设置分组"}
                     </div>
                   </div>
@@ -596,7 +596,7 @@ const PremiumList = memo(function PremiumList({
   onPatchAcquiredAt: (uuid: string, rawValue: string) => void;
 }) {
   return (
-    <div className="surface-inset max-h-[320px] overflow-y-auto">
+    <div className="surface-inset max-h-80 overflow-y-auto">
       {clients.map((client) => {
         const entry = costPremiums[client.uuid];
         const detail = detailByUuid.get(client.uuid);
@@ -611,18 +611,18 @@ const PremiumList = memo(function PremiumList({
         return (
           <div
             key={client.uuid}
-            className="flex items-center justify-between gap-3 border-b border-[var(--hairline)] px-3 py-2 last:border-b-0"
+            className="flex items-center justify-between gap-3 border-b border-(--hairline) px-3 py-2 last:border-b-0"
           >
             <div className="flex min-w-0 items-center gap-2">
               <Flag region={client.region ?? ""} size={13} />
               <span
-                className="truncate text-[13px] text-[var(--text-primary)]"
+                className="truncate text-[13px] text-(--text-primary)"
                 title={client.name}
               >
                 {client.name}
               </span>
               <span
-                className="shrink-0 text-[11px] text-[var(--text-tertiary)]"
+                className="shrink-0 text-[11px] text-(--text-tertiary)"
                 title="该节点当前剩余价值（按账单周期折算，不含溢价）"
               >
                 {referenceLabel}
@@ -684,7 +684,7 @@ const PremiumList = memo(function PremiumList({
                     ? "收购日期：修改后会按当前价格、周期、到期日和汇率回算该日剩余价值，重新计算并固化溢价"
                     : "该节点已忽略或汇率缺失，无法折算剩余价值"
                 }
-                className="surface-inset w-[8.75rem] px-2 py-1 text-[12px] outline-none disabled:opacity-45"
+                className="surface-inset w-35 px-2 py-1 text-[12px] outline-none disabled:opacity-45"
               />
             </div>
           </div>
@@ -1134,10 +1134,10 @@ export function ThemeManage() {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 text-center">
         <div role="alert" className="space-y-2">
-          <div className="text-[15px] font-semibold text-[var(--text-primary)]">
+          <div className="text-[15px] font-semibold text-(--text-primary)">
             无法读取主题配置
           </div>
-          <p className="max-w-[32rem] text-[13px] text-[var(--text-secondary)]">
+          <p className="max-w-lg text-[13px] text-(--text-secondary)">
             {configError instanceof Error ? configError.message : "请稍后重试。"}
           </p>
         </div>
@@ -1264,7 +1264,7 @@ export function ThemeManage() {
             <div
               role="status"
               aria-live="polite"
-              className="rounded-[12px] border border-[color-mix(in_srgb,var(--status-online)_28%,transparent)] bg-[color-mix(in_srgb,var(--status-online)_11%,var(--surface))] px-4 py-3 text-[13px] text-[var(--status-online)]"
+              className="rounded-xl border border-[color-mix(in_srgb,var(--status-online)_28%,transparent)] bg-[color-mix(in_srgb,var(--status-online)_11%,var(--surface))] px-4 py-3 text-[13px] text-(--status-online)"
             >
               {message}
             </div>
@@ -1272,7 +1272,7 @@ export function ThemeManage() {
           {error && (
             <div
               role="alert"
-              className="rounded-[12px] border border-[color-mix(in_srgb,var(--status-offline)_28%,transparent)] bg-[color-mix(in_srgb,var(--status-offline)_11%,var(--surface))] px-4 py-3 text-[13px] text-[var(--status-offline)]"
+              className="rounded-xl border border-[color-mix(in_srgb,var(--status-offline)_28%,transparent)] bg-[color-mix(in_srgb,var(--status-offline)_11%,var(--surface))] px-4 py-3 text-[13px] text-(--status-offline)"
             >
               {error}
             </div>
@@ -1280,7 +1280,7 @@ export function ThemeManage() {
           {adminError && (
             <div
               role="alert"
-              className="rounded-[12px] border border-[color-mix(in_srgb,var(--status-offline)_28%,transparent)] bg-[color-mix(in_srgb,var(--status-offline)_11%,var(--surface))] px-4 py-3 text-[13px] text-[var(--status-offline)]"
+              className="rounded-xl border border-[color-mix(in_srgb,var(--status-offline)_28%,transparent)] bg-[color-mix(in_srgb,var(--status-offline)_11%,var(--surface))] px-4 py-3 text-[13px] text-(--status-offline)"
             >
               无法读取后台 Ping 任务或节点列表: {adminError}
             </div>
@@ -1320,10 +1320,10 @@ export function ThemeManage() {
         <div className="grid gap-4 md:grid-cols-2">
           <div className="surface-inset flex min-w-0 flex-col gap-3 px-4 py-4">
             <div>
-              <div className="text-[13px] font-semibold text-[var(--text-primary)]">
+              <div className="text-[13px] font-semibold text-(--text-primary)">
                 桌面端默认
               </div>
-              <div className="mt-1 text-[11px] text-[var(--text-tertiary)]">
+              <div className="mt-1 text-[11px] text-(--text-tertiary)">
                 适用于宽度大于 720px 的浏览器窗口。
               </div>
             </div>
@@ -1345,10 +1345,10 @@ export function ThemeManage() {
           </div>
           <div className="surface-inset flex min-w-0 flex-col gap-3 px-4 py-4">
             <div>
-              <div className="text-[13px] font-semibold text-[var(--text-primary)]">
+              <div className="text-[13px] font-semibold text-(--text-primary)">
                 移动端默认
               </div>
-              <div className="mt-1 text-[11px] text-[var(--text-tertiary)]">
+              <div className="mt-1 text-[11px] text-(--text-tertiary)">
                 适用于宽度小于等于 720px 的手机或窄屏窗口。
               </div>
             </div>
@@ -1387,7 +1387,7 @@ export function ThemeManage() {
           />
 
           <div className="surface-inset flex flex-col gap-3 px-4 py-4">
-            <div className="text-[13px] font-semibold text-[var(--text-primary)]">桌面端背景类型</div>
+            <div className="text-[13px] font-semibold text-(--text-primary)">桌面端背景类型</div>
             <div className="instance-segmented">
               {BACKGROUND_MEDIA_TYPE_OPTIONS.map(({ value, label, icon: Icon }) => (
                 <button
@@ -1407,7 +1407,7 @@ export function ThemeManage() {
 
           <div className="grid gap-4 md:grid-cols-2">
             <label className="flex min-w-0 flex-col gap-2">
-              <span className="text-[12px] font-medium text-[var(--text-secondary)]">
+              <span className="text-[12px] font-medium text-(--text-secondary)">
                 桌面端背景图
               </span>
               <input
@@ -1416,12 +1416,12 @@ export function ThemeManage() {
                 placeholder="https://example.com/bg.webp"
                 className="surface-inset w-full px-3 py-2 text-[13px] outline-none"
               />
-              <span className="text-[11px] text-[var(--text-tertiary)]">
+              <span className="text-[11px] text-(--text-tertiary)">
                 留空则不显示背景图；可用 <code>浅色图|深色图</code> 分别设置两种外观。
               </span>
             </label>
             <label className="flex min-w-0 flex-col gap-2">
-              <span className="text-[12px] font-medium text-[var(--text-secondary)]">
+              <span className="text-[12px] font-medium text-(--text-secondary)">
                 移动端背景图
               </span>
               <input
@@ -1430,7 +1430,7 @@ export function ThemeManage() {
                 placeholder="留空则沿用桌面端背景图"
                 className="surface-inset w-full px-3 py-2 text-[13px] outline-none"
               />
-              <span className="text-[11px] text-[var(--text-tertiary)]">
+              <span className="text-[11px] text-(--text-tertiary)">
                 屏宽不超过 720px 时生效；同样支持 <code>浅色图|深色图</code>。
               </span>
             </label>
@@ -1439,7 +1439,7 @@ export function ThemeManage() {
           {draft.backgroundMediaType === "video" && (
             <div className="grid gap-4 md:grid-cols-2">
               <label className="flex min-w-0 flex-col gap-2">
-                <span className="text-[12px] font-medium text-[var(--text-secondary)]">
+                <span className="text-[12px] font-medium text-(--text-secondary)">
                   浅色模式视频
                 </span>
                 <input
@@ -1450,7 +1450,7 @@ export function ThemeManage() {
                   className="surface-inset w-full px-3 py-2 text-[13px] outline-none"
                 />
                 {backgroundVideoLightInvalid && (
-                  <span className="text-[12px] text-[var(--status-offline)]">
+                  <span className="text-[12px] text-(--status-offline)">
                     {backgroundVideoLightMalformed
                       ? "请输入 HTTP(S) 或以 / 开头的站内视频直链"
                       : `视频模式需要浅色视频地址，可使用 ${DEFAULT_BACKGROUND_VIDEO_URL}`}
@@ -1458,7 +1458,7 @@ export function ThemeManage() {
                 )}
               </label>
               <label className="flex min-w-0 flex-col gap-2">
-                <span className="text-[12px] font-medium text-[var(--text-secondary)]">
+                <span className="text-[12px] font-medium text-(--text-secondary)">
                   深色模式视频（可选）
                 </span>
                 <input
@@ -1469,7 +1469,7 @@ export function ThemeManage() {
                   className="surface-inset w-full px-3 py-2 text-[13px] outline-none"
                 />
                 {backgroundVideoDarkInvalid && (
-                  <span className="text-[12px] text-[var(--status-offline)]">
+                  <span className="text-[12px] text-(--status-offline)">
                     请输入 HTTP(S) 或以 / 开头的站内视频直链
                   </span>
                 )}
@@ -1479,7 +1479,7 @@ export function ThemeManage() {
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="surface-inset flex flex-col gap-3 px-4 py-4">
-              <div className="text-[13px] font-semibold text-[var(--text-primary)]">缩放方式</div>
+              <div className="text-[13px] font-semibold text-(--text-primary)">缩放方式</div>
               <div className="instance-segmented is-scrollable">
                 {BACKGROUND_SIZE_OPTIONS.map(({ value, label }) => (
                   <button
@@ -1495,7 +1495,7 @@ export function ThemeManage() {
               </div>
             </div>
             <div className="surface-inset flex flex-col gap-3 px-4 py-4">
-              <div className="text-[13px] font-semibold text-[var(--text-primary)]">对齐位置</div>
+              <div className="text-[13px] font-semibold text-(--text-primary)">对齐位置</div>
               <div className="instance-segmented is-scrollable">
                 {BACKGROUND_POSITION_OPTIONS.map(({ value, label }) => (
                   <button
@@ -1514,7 +1514,7 @@ export function ThemeManage() {
 
           <div className="surface-inset flex flex-col gap-3 px-4 py-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <span className="text-[13px] font-semibold text-[var(--text-primary)]">
+              <span className="text-[13px] font-semibold text-(--text-primary)">
                 卡片不透明度
               </span>
               <span className="inline-flex items-center gap-1.5">
@@ -1535,10 +1535,10 @@ export function ThemeManage() {
                   aria-label="卡片不透明度百分比"
                   className="surface-inset w-20 px-3 py-2 text-right text-[13px] tabular outline-none"
                 />
-                <span className="text-[13px] font-medium text-[var(--text-tertiary)]">%</span>
+                <span className="text-[13px] font-medium text-(--text-tertiary)">%</span>
               </span>
             </div>
-            <span className="text-[11px] leading-relaxed text-[var(--text-tertiary)]">
+            <span className="text-[11px] leading-relaxed text-(--text-tertiary)">
               输入 0–100 的整数。100 = 完全不透明（与默认主题一致），数值越低卡片越通透、越能透出自定义背景。
               {hasBackgroundMedia
                 ? " 低于 95 时会自动在背景上叠加可读性遮罩，保证文字清晰；卡片本身保持纯半透明。"
@@ -1595,8 +1595,8 @@ export function ThemeManage() {
         <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,0.6fr)]">
           <div>
             <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-              <span className="text-[13px] font-medium text-[var(--text-primary)]">默认排序维度</span>
-              <span className="text-[11px] text-[var(--text-tertiary)]">
+              <span className="text-[13px] font-medium text-(--text-primary)">默认排序维度</span>
+              <span className="text-[11px] text-(--text-tertiary)">
                 首次访问时的初始排序；访客可临时切换。
               </span>
             </div>
@@ -1616,7 +1616,7 @@ export function ThemeManage() {
             </div>
           </div>
           <div>
-            <div className="mb-2 text-[13px] font-medium text-[var(--text-primary)]">默认方向</div>
+            <div className="mb-2 text-[13px] font-medium text-(--text-primary)">默认方向</div>
             <div className="instance-segmented">
               <button
                 type="button"
@@ -1642,13 +1642,13 @@ export function ThemeManage() {
 
         <div className="mt-4">
           <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-            <span className="text-[13px] font-medium text-[var(--text-primary)]">分组排序</span>
-            <span className="text-[11px] text-[var(--text-tertiary)]">
+            <span className="text-[13px] font-medium text-(--text-primary)">分组排序</span>
+            <span className="text-[11px] text-(--text-tertiary)">
               调整首页分组 Tab 的显示顺序；未列出的分组按后端顺序排在后面。
             </span>
           </div>
           {orderedDraftGroups.length === 0 ? (
-            <p className="surface-inset mt-2 px-4 py-3 text-[12px] text-[var(--text-tertiary)]">
+            <p className="surface-inset mt-2 px-4 py-3 text-[12px] text-(--text-tertiary)">
               {clientsLoading ? "正在加载分组…" : "暂无分组（节点未设置分组时无需排序）"}
             </p>
           ) : (
@@ -1659,11 +1659,11 @@ export function ThemeManage() {
                   className="surface-inset flex items-center justify-between gap-3 px-4 py-2.5"
                 >
                   <span className="flex min-w-0 items-center gap-2">
-                    <span className="tabular text-[12px] text-[var(--text-tertiary)]">
+                    <span className="tabular text-[12px] text-(--text-tertiary)">
                       {index + 1}
                     </span>
                     <span
-                      className="truncate text-[13px] text-[var(--text-primary)]"
+                      className="truncate text-[13px] text-(--text-primary)"
                       title={group}
                     >
                       {group}
@@ -1698,20 +1698,20 @@ export function ThemeManage() {
         <div className="mt-4 surface-inset px-4 py-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <span className="min-w-0">
-              <span className="block text-[13px] font-semibold text-[var(--text-primary)]">
+              <span className="block text-[13px] font-semibold text-(--text-primary)">
                 总览评级
               </span>
-              <span className="mt-1 block text-[11px] text-[var(--text-tertiary)]">
+              <span className="mt-1 block text-[11px] text-(--text-tertiary)">
                 在累计流量、实时带宽、资产概览右下角显示文字评级；名称用英文逗号分隔，只取前四个。
               </span>
             </span>
-            <label className="inline-flex shrink-0 items-center gap-2 text-[12px] font-medium text-[var(--text-secondary)]">
+            <label className="inline-flex shrink-0 items-center gap-2 text-[12px] font-medium text-(--text-secondary)">
               <span>启用</span>
               <input
                 type="checkbox"
                 checked={draft.showOverviewRatings}
                 onChange={(event) => patch("showOverviewRatings", event.target.checked)}
-                className="h-4 w-4 accent-[var(--accent-500)]"
+                className="h-4 w-4 accent-(--accent-500)"
               />
             </label>
           </div>
@@ -1722,14 +1722,14 @@ export function ThemeManage() {
               const ratingEnabled = draft.showOverviewRatings && draft[field.toggleKey];
               return (
                 <div key={field.key} className="flex min-w-0 flex-col gap-2">
-                  <label className="flex items-center justify-between gap-2 text-[12px] font-medium text-[var(--text-secondary)]">
+                  <label className="flex items-center justify-between gap-2 text-[12px] font-medium text-(--text-secondary)">
                     <span>{field.title}</span>
                     <input
                       type="checkbox"
                       checked={draft[field.toggleKey]}
                       disabled={!draft.showOverviewRatings}
                       onChange={(event) => patch(field.toggleKey, event.target.checked)}
-                      className="h-4 w-4 shrink-0 accent-[var(--accent-500)]"
+                      className="h-4 w-4 shrink-0 accent-(--accent-500)"
                     />
                   </label>
                   <input
@@ -1740,7 +1740,7 @@ export function ThemeManage() {
                     aria-label={`${field.title}评级名称`}
                     className="surface-inset w-full px-3 py-2 text-[13px] outline-none disabled:opacity-60"
                   />
-                  <span className="text-[11px] text-[var(--text-tertiary)]">
+                  <span className="text-[11px] text-(--text-tertiary)">
                     例如: {defaultLabel}
                   </span>
                 </div>
@@ -1757,16 +1757,16 @@ export function ThemeManage() {
         aside={<EyeOff size={16} />}
       >
         <label className="flex min-w-0 flex-col gap-2">
-          <span className="text-[12px] font-medium text-[var(--text-secondary)]">
+          <span className="text-[12px] font-medium text-(--text-secondary)">
             隐藏列表
           </span>
           <textarea
             value={draft.hiddenNodesText}
             onChange={(event) => patch("hiddenNodesText", event.target.value)}
             placeholder="每行一个节点名称 / UUID，也可以用逗号分隔"
-            className="surface-inset min-h-[112px] w-full resize-y px-3 py-2 text-[13px] outline-none"
+            className="surface-inset min-h-28 w-full resize-y px-3 py-2 text-[13px] outline-none"
           />
-          <span className="text-[11px] text-[var(--text-tertiary)]">
+          <span className="text-[11px] text-(--text-tertiary)">
             已隐藏 {draftHiddenNodes.length} 个节点。按名称或 UUID 匹配，大小写不敏感。
           </span>
         </label>
@@ -1780,8 +1780,8 @@ export function ThemeManage() {
       >
         <div>
           <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-            <span className="text-[13px] font-medium text-[var(--text-primary)]">跨视图设置</span>
-            <span className="text-[11px] text-[var(--text-tertiary)]">
+            <span className="text-[13px] font-medium text-(--text-primary)">跨视图设置</span>
+            <span className="text-[11px] text-(--text-tertiary)">
               适用于多个卡片尺寸，具体范围以每项说明为准。
             </span>
           </div>
@@ -1805,8 +1805,8 @@ export function ThemeManage() {
 
         <div className="mt-4">
           <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-            <span className="text-[13px] font-medium text-[var(--text-primary)]">小卡片专属</span>
-            <span className="text-[11px] text-[var(--text-tertiary)]">
+            <span className="text-[13px] font-medium text-(--text-primary)">小卡片专属</span>
+            <span className="text-[11px] text-(--text-tertiary)">
               控制小卡片中间信息块的密度；实时速率始终显示。
             </span>
           </div>
@@ -1866,7 +1866,7 @@ export function ThemeManage() {
               onPatch={patch}
             />
             <label className="flex flex-col gap-2">
-              <span className="text-[12px] font-medium text-[var(--text-secondary)]">
+              <span className="text-[12px] font-medium text-(--text-secondary)">
                 实时汇率接口
               </span>
               <input
@@ -1877,21 +1877,21 @@ export function ThemeManage() {
                 className="surface-inset w-full px-3 py-2 text-[13px] outline-none"
               />
               {draftCostRateApiUrlInvalid && (
-                <span className="text-[12px] text-[var(--status-offline)]">
+                <span className="text-[12px] text-(--status-offline)">
                   请输入 http(s) 链接，保存后将回退默认接口
                 </span>
               )}
             </label>
           </div>
           <label className="flex min-w-0 flex-col gap-2">
-            <span className="text-[12px] font-medium text-[var(--text-secondary)]">
+            <span className="text-[12px] font-medium text-(--text-secondary)">
               忽略计费节点
             </span>
             <textarea
               value={draft.costIgnoredText}
               onChange={(event) => patch("costIgnoredText", event.target.value)}
               placeholder="每行一个节点名称 / UUID，也可以用逗号分隔"
-              className="surface-inset min-h-[112px] w-full resize-y px-3 py-2 text-[13px] outline-none"
+              className="surface-inset min-h-28 w-full resize-y px-3 py-2 text-[13px] outline-none"
             />
           </label>
         </div>
@@ -1902,20 +1902,20 @@ export function ThemeManage() {
         title="收购溢价"
         description="填写实际收购价（人民币），系统使用当前价格、周期、到期日和汇率回算收购日的剩余价值，再固化溢价（收购价 − 收购日剩余价值，可正可负）。后续续费和汇率变化不会自动改写；主动修改收购日期时会重新计算并固化。收购日期同时用于溢价月摊与尚未摊销价值；免费节点的收购价全额记为溢价，留空即清除记录。"
         aside={
-          <div className="text-[11px] text-[var(--text-tertiary)]">
+          <div className="text-[11px] text-(--text-tertiary)">
             {clientsLoading ? "载入中" : `已设置 ${premiumConfiguredCount} 个节点`}
           </div>
         }
       >
         <div className="flex flex-col gap-3">
           <label className="surface-inset flex items-center gap-2 px-3 py-2">
-            <Search size={14} className="text-[var(--text-tertiary)]" />
+            <Search size={14} className="text-(--text-tertiary)" />
             <input
               value={premiumSearch}
               onChange={(event) => setPremiumSearch(event.target.value)}
               placeholder="搜索节点名称 / UUID / 分组 / 地区"
               aria-label="搜索节点"
-              className="min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-[var(--text-tertiary)]"
+              className="min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-(--text-tertiary)"
             />
           </label>
 
@@ -1932,7 +1932,7 @@ export function ThemeManage() {
           )}
 
           {!clientsLoading && sortedClients.length > 0 && filteredPremiumClients.length === 0 && (
-            <div className="surface-inset px-4 py-5 text-[13px] text-[var(--text-secondary)]">
+            <div className="surface-inset px-4 py-5 text-[13px] text-(--text-secondary)">
               没有匹配的节点。
             </div>
           )}
@@ -1968,7 +1968,7 @@ export function ThemeManage() {
           </>
         }
         aside={
-          <div className="text-[11px] text-[var(--text-tertiary)]">
+          <div className="text-[11px] text-(--text-tertiary)">
             {tasksLoading || clientsLoading
               ? "载入中"
               : draft.enableHomepageMultiPing
@@ -1987,10 +1987,10 @@ export function ThemeManage() {
           >
             <label className="flex items-start justify-between gap-4">
               <span className="min-w-0">
-                <span className="block text-[13px] font-medium text-[var(--text-primary)]">
+                <span className="block text-[13px] font-medium text-(--text-primary)">
                   开启三网模式
                 </span>
-                <span className="mt-1 block text-[11px] leading-relaxed text-[var(--text-tertiary)]">
+                <span className="mt-1 block text-[11px] leading-relaxed text-(--text-tertiary)">
                   默认关闭。开启后大卡片和小卡片统一显示下面三项 Ping
                   任务；迷你卡片与列表继续使用原有单线路绑定。
                 </span>
@@ -2006,12 +2006,12 @@ export function ThemeManage() {
                 onChange={(event) =>
                   patch("enableHomepageMultiPing", event.target.checked)
                 }
-                className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--accent-500)]"
+                className="mt-0.5 h-4 w-4 shrink-0 accent-(--accent-500)"
               />
             </label>
 
             {draft.enableHomepageMultiPing && (
-              <div className="mt-4 border-t border-[var(--hairline)] pt-4">
+              <div className="mt-4 border-t border-(--hairline) pt-4">
                 <div className="grid gap-3 md:grid-cols-3">
                   {Array.from(
                     { length: HOMEPAGE_MULTI_PING_TASK_COUNT },
@@ -2020,7 +2020,7 @@ export function ThemeManage() {
                         draft.homepageMultiPingTaskIds[slot];
                       return (
                         <label key={slot} className="min-w-0">
-                          <span className="mb-1.5 block text-[11px] font-medium text-[var(--text-secondary)]">
+                          <span className="mb-1.5 block text-[11px] font-medium text-(--text-secondary)">
                             线路 {slot + 1}
                           </span>
                           <select
@@ -2029,7 +2029,7 @@ export function ThemeManage() {
                               patchMultiPingTask(slot, event.target.value)
                             }
                             aria-label={`三网线路 ${slot + 1}`}
-                            className="surface-inset w-full px-3 py-2 text-[13px] text-[var(--text-primary)] outline-none"
+                            className="surface-inset w-full px-3 py-2 text-[13px] text-(--text-primary) outline-none"
                           >
                             <option value="">选择 Ping 任务</option>
                             {selectedTaskId != null &&
@@ -2060,8 +2060,8 @@ export function ThemeManage() {
                   className={clsx(
                     "mt-3 text-[11px] leading-relaxed",
                     draftMultiPingInvalid
-                      ? "text-[var(--status-error)]"
-                      : "text-[var(--text-tertiary)]",
+                      ? "text-(--status-error)"
+                      : "text-(--text-tertiary)",
                   )}
                   role={draftMultiPingInvalid ? "alert" : undefined}
                 >
@@ -2075,18 +2075,18 @@ export function ThemeManage() {
 
           <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(240px,320px)]">
             <label className="surface-inset flex items-center gap-2 px-3 py-2">
-              <Search size={14} className="text-[var(--text-tertiary)]" />
+              <Search size={14} className="text-(--text-tertiary)" />
               <input
                 value={taskSearch}
                 onChange={(event) => setTaskSearch(event.target.value)}
                 placeholder="搜索 Ping 任务名称 / ID / 类型 / 目标"
                 aria-label="搜索 Ping 任务"
-                className="min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-[var(--text-tertiary)]"
+                className="min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-(--text-tertiary)"
               />
             </label>
-            <div className="surface-inset flex items-center justify-between gap-3 px-3 py-2 text-[12px] text-[var(--text-secondary)]">
+            <div className="surface-inset flex items-center justify-between gap-3 px-3 py-2 text-[12px] text-(--text-secondary)">
               <span>首页绑定总数</span>
-              <strong className="text-[var(--text-primary)]">
+              <strong className="text-(--text-primary)">
                 {draft.enableHomepageMultiPing
                   ? `${draft.homepageMultiPingTaskIds.length} / 3 条线路`
                   : `${assignedNodeCount} / ${sortedClients.length}`}
@@ -2095,7 +2095,7 @@ export function ThemeManage() {
           </div>
 
           {draft.enableHomepageMultiPing && (
-            <div className="text-[11px] text-[var(--text-tertiary)]">
+            <div className="text-[11px] text-(--text-tertiary)">
               下方单线路绑定继续用于迷你卡片和列表；大卡片与小卡片使用上方三项任务。
             </div>
           )}
@@ -2124,7 +2124,7 @@ export function ThemeManage() {
           )}
 
           {noFilteredTaskMatch && (
-            <div className="surface-inset px-4 py-5 text-[13px] text-[var(--text-secondary)]">
+            <div className="surface-inset px-4 py-5 text-[13px] text-(--text-secondary)">
               没有匹配的 Ping 任务。
             </div>
           )}

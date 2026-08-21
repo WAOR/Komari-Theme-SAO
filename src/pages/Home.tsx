@@ -72,10 +72,10 @@ export function Home() {
       return (
         <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 text-center">
           <div className="space-y-2">
-            <div className="text-[15px] font-semibold text-[var(--text-primary)]">
+            <div className="text-[15px] font-semibold text-(--text-primary)">
               无法确认当前登录状态
             </div>
-            <p className="max-w-[32rem] text-[13px] text-[var(--text-secondary)]">
+            <p className="max-w-lg text-[13px] text-(--text-secondary)">
               {authError instanceof Error ? authError.message : "请稍后重试。"}
             </p>
           </div>

@@ -241,7 +241,7 @@ export function FloatingControls({
           </Suspense>
         )}
         {showSyncWarning && !collapsed && !colorsOpen && (
-          <div className="floating-controls-sync-warning pointer-events-none flex items-center gap-2 rounded-full border border-[color-mix(in_srgb,var(--status-offline)_32%,transparent)] bg-[color-mix(in_srgb,var(--surface-a)_90%,transparent)] px-3 py-1 text-[11px] font-medium text-[var(--status-offline)] shadow-[0_10px_25px_-18px_rgba(0,0,0,0.8)] backdrop-blur">
+          <div className="floating-controls-sync-warning pointer-events-none flex items-center gap-2 rounded-full border border-[color-mix(in_srgb,var(--status-offline)_32%,transparent)] bg-[color-mix(in_srgb,var(--surface-a)_90%,transparent)] px-3 py-1 text-[11px] font-medium text-(--status-offline) shadow-[0_10px_25px_-18px_rgba(0,0,0,0.8)] backdrop-blur">
             <AlertTriangle size={12} />
             <span>实时状态同步异常，当前展示的是最近缓存</span>
           </div>

@@ -273,7 +273,7 @@ export function OverviewTrafficChart({
         </div>
         {bandwidthRating && (
           <span
-            className="overview-card-rating"
+            className="overview-card-rating is-bandwidth-badge"
             data-rating-level={bandwidthRating.level}
             title={`实时带宽评级: ${bandwidthRating.label}`}
           >

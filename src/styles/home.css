@@ -1256,6 +1256,22 @@
   color: color-mix(in srgb, #f5b84b 82%, var(--text-primary));
 }
 
+/* 带宽评级徽章变体：整个徽章跟随等级变色 */
+.overview-card-rating.is-bandwidth-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  border: 1px solid currentColor;
+  background: color-mix(in srgb, currentColor 10%, transparent);
+  color: inherit;
+  max-width: none;
+  line-height: 1.6;
+}
+
 /* 在线条:左绿=在线、右红=离线,中间中性轨道=未知。初始用中性而非红色,避免指标
    到达前首帧闪红;随后绿/红从两端同时长入。准确的「12 / 14」就在其上方,所以这条
    只作快速一瞥用。 */

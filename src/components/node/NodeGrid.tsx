@@ -61,6 +61,7 @@ import { NodeListView } from "./NodeListView";
 import { RenewalReminder } from "./RenewalReminder";
 import type { NodeViewMode } from "@/utils/themeSettings";
 import { getRenewalReminders, type RenewalReminderSource } from "@/utils/renewalReminder";
+import { DiaTextReveal } from "@/components/ui/DiaTextReveal";
 
 // 卡片视图网格密度；列表档由独立组件布局。
 const GRID_LAYOUT: Record<NodeViewMode, { className: string; minColumnWidth: number }> = {
@@ -292,8 +293,9 @@ function HomeOverviewCards({
             <Sparkles size={12} className="text-[var(--text-primary)]" />
             <span>监控总览</span>
           </div>
-          <h1 className="mao-hero-greeting">
-            {greetingInfo.greeting}，<span className="mao-hero-username">{username || "Visitors"}</span>
+          <h1 className="mao-hero-greeting flex items-center gap-1.5 flex-wrap">
+            <span>{greetingInfo.greeting}，</span>
+            <DiaTextReveal text={username || "Visitors"} />
           </h1>
           <p className="mao-hero-subtitle">
             {greetingInfo.subtitle}

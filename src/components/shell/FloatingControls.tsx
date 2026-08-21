@@ -94,16 +94,23 @@ export function FloatingControls({
     return () => onExpandedChange?.(false);
   }, [onExpandedChange]);
 
-  // 用户滑动屏幕时自动收起菜单栏
+  // 仅监听用户主动的滚轮/触摸滑动手势（wheel / touchmove），100% 免疫任何 DOM 尺寸变化或重排引发的 scroll 事件
   useEffect(() => {
     if (collapsed) return;
-    const collapse = () => {
+
+    const handleUserScroll = () => {
       setCollapsed(true);
       setColorsOpen(false);
       onExpandedChange?.(false);
     };
-    window.addEventListener("scroll", collapse, { passive: true, once: true });
-    return () => window.removeEventListener("scroll", collapse);
+
+    window.addEventListener("wheel", handleUserScroll, { passive: true });
+    window.addEventListener("touchmove", handleUserScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener("wheel", handleUserScroll);
+      window.removeEventListener("touchmove", handleUserScroll);
+    };
   }, [collapsed, onExpandedChange]);
 
   const toggleControls = () => {

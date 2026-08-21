@@ -43,6 +43,7 @@
 /* 中小屏的完整快捷栏会占用顶部大部分宽度。由 React 同步显式状态类，兼容
    Chrome 87，并覆盖平板宽度；折叠后站点名立即恢复。PC 端（>= 1024px）保持常驻不撤出。 */
 @media (max-width: 1023px) {
+
   .home-dashboard.is-controls-expanded .home-brand,
   body.is-nav-controls-expanded .mao-nav-brand-left {
     visibility: hidden;
@@ -172,75 +173,119 @@
   color: var(--text-primary);
 }
 
-/* Dia Text Reveal Entrance -> Seamlessly Continues into MagicUI Aurora Text Flow */
-.mao-hero-username {
-  position: relative;
-  display: inline-block;
-  font-weight: 850;
-  background-image: linear-gradient(
-    135deg,
-    #3b82f6 0%,
-    #8b5cf6 25%,
-    #ec4899 50%,
-    #06b6d4 75%,
-    #3b82f6 100%
-  );
-  background-size: 200% 200%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
-  letter-spacing: -0.01em;
-  will-change: background-position, filter, opacity;
-  animation:
-    mao-dia-reveal 2.4s cubic-bezier(0.22, 1, 0.36, 1) forwards,
-    mao-aurora-flow 8s ease-in-out 2.4s infinite alternate;
-}
-
-:root[data-appearance="dark"] .mao-hero-username {
-  background-image: linear-gradient(
-    135deg,
-    #60a5fa 0%,
-    #a78bfa 25%,
-    #f472b6 50%,
-    #22d3ee 75%,
-    #60a5fa 100%
-  );
-}
-
-@keyframes mao-dia-reveal {
+/* Exact 1:1 Dia Text Reveal Sweep & Aurora Flow from MAO_Theme */
+@keyframes dia-text-reveal-once {
   0% {
-    background-position: 200% 50%;
-    filter: drop-shadow(0 0 16px rgba(59, 130, 246, 0.75)) brightness(1.6);
-    opacity: 0.2;
-    transform: translateY(2px);
-  }
-  30% {
-    opacity: 1;
-    transform: translateY(0);
-    filter: drop-shadow(0 0 14px rgba(139, 92, 246, 0.6)) brightness(1.3);
+    background-position: 250% 0;
   }
   100% {
-    background-position: 100% 50%;
-    filter: drop-shadow(0 0 10px rgba(236, 72, 153, 0.4)) brightness(1);
-    opacity: 1;
-    transform: translateY(0);
+    background-position: -150% 0;
   }
 }
 
-@keyframes mao-aurora-flow {
+@keyframes dia-sweep-fade-out {
   0% {
-    background-position: 100% 50%;
-    filter: drop-shadow(0 0 10px rgba(236, 72, 153, 0.4));
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+@keyframes aurora-fade-in {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes dia-text-reveal-sweep {
+  0% {
+    background-position: 250% 0;
+  }
+  65%, 100% {
+    background-position: -150% 0;
+  }
+}
+
+@keyframes aurora-text-flow {
+  0% {
+    background-position: 0% 50%;
   }
   50% {
-    background-position: 0% 50%;
-    filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.35));
+    background-position: 100% 50%;
   }
   100% {
-    background-position: 100% 50%;
-    filter: drop-shadow(0 0 10px rgba(236, 72, 153, 0.4));
+    background-position: 0% 50%;
   }
+}
+
+.dia-text-reveal-container {
+  display: inline-grid;
+  place-items: start;
+  width: max-content;
+  white-space: nowrap;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transform: translateZ(0);
+}
+
+.dia-sweep-layer,
+.aurora-text-layer {
+  grid-column: 1 / 2;
+  grid-row: 1 / 2;
+  display: inline-block;
+  white-space: nowrap;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transform: translateZ(0);
+  will-change: opacity;
+}
+
+.dia-text-reveal-once {
+  background: var(--dia-gradient, linear-gradient(110deg, currentColor 0%, currentColor 25%, #c679c4 35%, #fa3d1d 42%, #ffb005 50%, #8b5cf6 58%, #0358f7 65%, currentColor 75%, currentColor 100%));
+  background-size: 250% 100%;
+  background-position: 250% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: 
+    dia-text-reveal-once var(--dia-duration, 2.5s) cubic-bezier(0.35, 0, 0.25, 1) var(--dia-delay, 0.2s) both,
+    dia-sweep-fade-out 0.8s ease-in-out calc(var(--dia-delay, 0.2s) + var(--dia-duration, 2.5s) - 0.7s) forwards;
+}
+
+.dia-text-reveal-repeat {
+  background: var(--dia-gradient, linear-gradient(110deg, currentColor 0%, currentColor 25%, #c679c4 35%, #fa3d1d 42%, #ffb005 50%, #8b5cf6 58%, #0358f7 65%, currentColor 75%, currentColor 100%));
+  background-size: 250% 100%;
+  background-position: 250% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: dia-text-reveal-sweep var(--dia-duration, 3.5s) cubic-bezier(0.35, 0, 0.25, 1) var(--dia-delay, 0s) infinite;
+}
+
+.aurora-text-layer-animated {
+  background-image: var(--aurora-gradient, linear-gradient(135deg, #c679c4 0%, #fa3d1d 25%, #ffb005 50%, #8b5cf6 75%, #0358f7 90%, #c679c4 100%));
+  background-size: 250% 250%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  opacity: 0;
+  animation:
+    aurora-fade-in 1.0s ease-in-out calc(var(--dia-delay, 0.2s) + var(--dia-duration, 2.5s) - 0.8s) 1 forwards,
+    aurora-text-flow var(--aurora-speed, 8s) ease-in-out infinite;
+}
+
+.aurora-text-layer-only {
+  background-image: var(--aurora-gradient, linear-gradient(135deg, #c679c4 0%, #fa3d1d 25%, #ffb005 50%, #8b5cf6 75%, #0358f7 90%, #c679c4 100%));
+  background-size: 250% 250%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: aurora-text-flow var(--aurora-speed, 8s) ease-in-out infinite;
 }
 
 .mao-hero-subtitle {
@@ -693,23 +738,30 @@
   border: 1px solid var(--hairline);
   border-radius: 16px;
   background:
-    radial-gradient(
-      120% 100% at 0% 0%,
+    radial-gradient(120% 100% at 0% 0%,
       color-mix(in srgb, var(--metric-accent) 6%, transparent) 0%,
-      transparent 52%
-    ),
-    linear-gradient(
-      180deg,
+      transparent 52%),
+    linear-gradient(180deg,
       color-mix(in srgb, var(--surface-elev-a) 96%, white 4%) 0%,
-      var(--surface-a) 100%
-  );
+      var(--surface-a) 100%);
   padding: 14px 16px;
 }
 
-.overview-card[data-metric="online"] { --metric-accent: var(--status-success); }
-.overview-card[data-metric="traffic"] { --metric-accent: var(--traffic-up); }
-.overview-card[data-metric="bandwidth"] { --metric-accent: var(--speed-high); }
-.overview-card[data-metric="asset"] { --metric-accent: var(--accent-500); }
+.overview-card[data-metric="online"] {
+  --metric-accent: var(--status-success);
+}
+
+.overview-card[data-metric="traffic"] {
+  --metric-accent: var(--traffic-up);
+}
+
+.overview-card[data-metric="bandwidth"] {
+  --metric-accent: var(--speed-high);
+}
+
+.overview-card[data-metric="asset"] {
+  --metric-accent: var(--accent-500);
+}
 
 /* 暗色依靠表面色阶建立层级，不叠白色顶光或指标色氛围。背景图模式仍由 --surface-a
    保留用户配置的透明度。 */
@@ -808,11 +860,13 @@
 }
 
 @keyframes renewal-reminder-breathe {
+
   0%,
   100% {
     opacity: 0.72;
     transform: scale(0.9);
   }
+
   50% {
     opacity: 1;
     transform: scale(1.08);
@@ -820,14 +874,17 @@
 }
 
 @keyframes renewal-reminder-ring {
+
   0%,
   24% {
     opacity: 0;
     transform: scale(0.72);
   }
+
   46% {
     opacity: 0.42;
   }
+
   76%,
   100% {
     opacity: 0;
@@ -873,6 +930,7 @@
     opacity: 0;
     transform: scale(0.96) translateY(-4px);
   }
+
   to {
     opacity: 1;
     transform: scale(1) translateY(0);
@@ -1138,6 +1196,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   .renewal-reminder-dot,
   .renewal-reminder-dot::after {
     animation: none;
@@ -1297,26 +1356,33 @@
 }
 
 .overview-card-rating.is-bandwidth-badge[data-rating-level="0"] .mao-status-dot {
-  animation-duration: 3.2s; /* 闲置：舒缓低频呼吸 */
+  animation-duration: 3.2s;
+  /* 闲置：舒缓低频呼吸 */
 }
 
 .overview-card-rating.is-bandwidth-badge[data-rating-level="1"] .mao-status-dot {
-  animation-duration: 2.0s; /* 轻载：标准节奏 */
+  animation-duration: 2.0s;
+  /* 轻载：标准节奏 */
 }
 
 .overview-card-rating.is-bandwidth-badge[data-rating-level="2"] .mao-status-dot {
-  animation-duration: 1.1s; /* 活跃：高频跳动 */
+  animation-duration: 1.1s;
+  /* 活跃：高频跳动 */
 }
 
 .overview-card-rating.is-bandwidth-badge[data-rating-level="3"] .mao-status-dot {
-  animation-duration: 0.55s; /* 爆发：极速警示脉冲 */
+  animation-duration: 0.55s;
+  /* 爆发：极速警示脉冲 */
 }
 
 @keyframes bandwidth-dot-pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
     box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 60%, transparent);
   }
+
   50% {
     opacity: 0.28;
     box-shadow: 0 0 5px 1.5px color-mix(in srgb, currentColor 35%, transparent);

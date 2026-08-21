@@ -94,6 +94,18 @@ export function FloatingControls({
     return () => onExpandedChange?.(false);
   }, [onExpandedChange]);
 
+  // 用户滑动屏幕时自动收起菜单栏
+  useEffect(() => {
+    if (collapsed) return;
+    const collapse = () => {
+      setCollapsed(true);
+      setColorsOpen(false);
+      onExpandedChange?.(false);
+    };
+    window.addEventListener("scroll", collapse, { passive: true, once: true });
+    return () => window.removeEventListener("scroll", collapse);
+  }, [collapsed, onExpandedChange]);
+
   const toggleControls = () => {
     // 收起快捷栏时同时结束子面板状态，避免下次展开时调色盘自动复现。
     const nextCollapsed = !collapsed;

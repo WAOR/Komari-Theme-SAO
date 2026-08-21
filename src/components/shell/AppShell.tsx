@@ -6,6 +6,7 @@ import { useAppearance } from "@/hooks/useAppearance";
 import { useAuth } from "@/hooks/useAuth";
 import { usePublicConfig } from "@/hooks/usePublicConfig";
 import { useSiteMetadata } from "@/hooks/useSiteMetadata";
+import { readStoredSiteMetadata } from "@/hooks/useSiteMetadata";
 import { useMetricColorsSync } from "@/hooks/useMetricColors";
 import { useNodeStoreStatus } from "@/hooks/useNode";
 
@@ -16,7 +17,11 @@ export function AppShell() {
   const { pathname, search } = useLocation();
   const publicConfig = usePublicConfig();
   const auth = useAuth();
-  const siteName = publicConfig.data?.sitename?.trim() || "Komari";
+  const cachedMeta = readStoredSiteMetadata();
+  const siteName =
+    publicConfig.data?.sitename?.trim() ||
+    cachedMeta.siteName ||
+    (publicConfig.isPending ? "" : "Komari");
   const normalizedPath = (pathname.replace(/\/+$/, "") || "/").toLowerCase();
   const isDataRoute =
     normalizedPath === "/" ||

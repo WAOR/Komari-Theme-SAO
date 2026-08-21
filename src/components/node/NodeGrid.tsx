@@ -136,12 +136,12 @@ function getTimeGreetingInfo(
     if (onlineNodes === 0) {
       return {
         greeting,
-        subtitle: `集群服务器全部离线，请排查网络。`,
+        subtitle: "集群服务器已全部离线，请及时排查网络与连接状态。",
       };
     }
     return {
       greeting,
-      subtitle: `检测到 ${offlineNodes} 台服务器处于离线状态。`,
+      subtitle: `检测到 ${offlineNodes} 台服务器处于离线状态，建议排查处理。`,
     };
   }
 
@@ -149,7 +149,7 @@ function getTimeGreetingInfo(
   if (totalNodes === 0) {
     return {
       greeting,
-      subtitle: "暂无在线服务器，等待数据上报。",
+      subtitle: "暂未检测到在线服务器，等待节点客户端数据上报。",
     };
   }
 
@@ -157,38 +157,38 @@ function getTimeGreetingInfo(
   if (renewalCount > 0) {
     return {
       greeting,
-      subtitle: `当前有 ${renewalCount} 台服务器临近到期。`,
+      subtitle: `当前有 ${renewalCount} 台服务器临近到期，请留意续费维护。`,
     };
   }
 
-  // 4. 全员在线健康：按时段给出贴切的生产/工作问候
+  // 4. 全员在线健康：按时段给出贴切且长度均衡的生产/工作问候
   if (hour >= 0 && hour < 5) {
     return {
       greeting,
-      subtitle: "夜间全站运行平稳，实时监控中。",
+      subtitle: "夜间全站服务器运行平稳，各项指标持续实时监控中。",
     };
   }
   if (hour >= 5 && hour < 11) {
     return {
       greeting,
-      subtitle: "全站运行健康，实时监控中。",
+      subtitle: "全站服务器运行健康，系统资源与网络指标持续监控中。",
     };
   }
   if (hour >= 11 && hour < 13) {
     return {
       greeting,
-      subtitle: "全员主机在线，指标运转正常。",
+      subtitle: "全员服务器保持在线，节点负载与核心指标运转正常。",
     };
   }
   if (hour >= 13 && hour < 18) {
     return {
       greeting,
-      subtitle: "全员主机通畅，实时监控中。",
+      subtitle: "全员服务器连接通畅，集群状态与网络吞吐持续监控中。",
     };
   }
   return {
     greeting,
-    subtitle: "全站运转良好，实时监控中。",
+    subtitle: "全站服务器运转良好，集群网络与系统资源持续监控中。",
   };
 }
 

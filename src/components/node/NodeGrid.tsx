@@ -42,11 +42,12 @@ import {
 import { getDisplayRegionCode } from "@/utils/geo";
 import { useHomeSort } from "@/hooks/useHomeSort";
 import { useHomeNodeOrder } from "@/hooks/useHomeNodeOrder";
-import { useHourlyClock } from "@/hooks/useClock";
+import { useHourlyClock, useMinuteClock } from "@/hooks/useClock";
 import { preloadAssetsPage } from "@/services/assetsPageLoader";
 import {
   preloadTodayTrafficStats,
   TodayTrafficStatsProvider,
+  useTodayTrafficStats,
 } from "@/hooks/useTodayTrafficStats";
 import { HomeSortControl } from "./HomeSortControl";
 import {
@@ -209,6 +210,8 @@ function HomeOverviewCards({
   dense,
   onWarmTraffic,
   username,
+  todayTrafficTotal,
+  todayTrafficLoading,
 }: {
   overview: HomeOverview;
   costSummary: { remainingCny: number } | null;
@@ -225,10 +228,14 @@ function HomeOverviewCards({
   renewalNodes: RenewalReminderSource[];
   onWarmTraffic: () => void;
   username: string;
+  todayTrafficTotal: number | null;
+  todayTrafficLoading: boolean;
 }) {
-  const [trafficValue, trafficUnit] = formatBytes(
-    overview.trafficUp + overview.trafficDown,
-  ).split(" ");
+  const [renewalPopoverOpen, setRenewalPopoverOpen] = useState(false);
+  const todayTrafficBytes = todayTrafficTotal ?? 0;
+  const [trafficValue, trafficUnit] = todayTrafficLoading && todayTrafficTotal === null
+    ? ["—", ""]
+    : formatBytes(todayTrafficBytes).split(" ");
   const onlinePct =
     overview.totalNodes > 0 ? (overview.onlineNodes / overview.totalNodes) * 100 : 0;
   const { isPriceVisible } = usePriceVisibility();
@@ -239,7 +246,9 @@ function HomeOverviewCards({
       : costLoading
         ? "计算中"
         : "—";
-  const trafficDetailLabel = `↑ ${formatBytes(overview.trafficUp)} · ↓ ${formatBytes(overview.trafficDown)}`;
+  const trafficDetailLabel = todayTrafficTotal !== null
+    ? `今日全节点出入站累计 ${formatBytes(todayTrafficTotal)}`
+    : "今日流量统计中...";
   const trafficRating =
     showOverviewRatings && showTrafficRating
       ? getOverviewRating({
@@ -340,37 +349,7 @@ function HomeOverviewCards({
             </div>
           </div>
 
-          {/* 3. 全站总流量 */}
-          <div className="mao-stat-card" data-metric="traffic">
-            <div className="mao-stat-head">
-              <div className="mao-stat-title-wrap">
-                <TrendingUp size={15} className="mao-stat-icon text-[var(--traffic-up,var(--status-info))]" />
-                <span className="mao-stat-label">全站流量</span>
-              </div>
-              <Link
-                to="/traffic"
-                className="overview-card-action mao-stat-action"
-                aria-label="打开今日流量统计页"
-                title="今日流量统计"
-                onPointerEnter={onWarmTraffic}
-                onFocus={onWarmTraffic}
-                onClick={onWarmTraffic}
-              >
-                <TrafficBarsIcon size={14} />
-              </Link>
-            </div>
-            <div className="mao-stat-value">
-              {trafficValue} <span className="mao-stat-unit">{trafficUnit}</span>
-            </div>
-            <div className="mao-stat-footer">
-              <span className="mao-stat-caption truncate" title={trafficDetailLabel}>
-                双向总计流量
-              </span>
-              {renderRating(trafficRating)}
-            </div>
-          </div>
-
-          {/* 4. 在线比例 */}
+          {/* 3. 在线比例 */}
           <div className="mao-stat-card" data-metric="online">
             <div className="mao-stat-head">
               <div className="mao-stat-title-wrap">
@@ -388,14 +367,14 @@ function HomeOverviewCards({
             </div>
           </div>
 
-          {/* 5. 临期 / 到期提醒 */}
-          <div className="mao-stat-card" data-metric="renewal">
+          {/* 4. 临期 / 到期提醒 */}
+          <div className={`mao-stat-card${renewalPopoverOpen ? " is-popover-open" : ""}`} data-metric="renewal">
             <div className="mao-stat-head">
               <div className="mao-stat-title-wrap">
                 <Clock size={15} className="mao-stat-icon text-[var(--status-warning)]" />
                 <span className="mao-stat-label">临期提醒</span>
               </div>
-              {showDetailButton && <RenewalReminder nodes={renewalNodes} />}
+              {showDetailButton && <RenewalReminder nodes={renewalNodes} onOpenChange={setRenewalPopoverOpen} />}
             </div>
             <div className="mao-stat-value">
               {renewalCount > 0 ? `${renewalCount} 台临期` : "运行正常"}
@@ -404,6 +383,36 @@ function HomeOverviewCards({
               <span className="mao-stat-caption">
                 {renewalCount > 0 ? "7天内即将到期" : "近期无临期设备"}
               </span>
+            </div>
+          </div>
+
+          {/* 5. 今日流量 */}
+          <div className="mao-stat-card" data-metric="traffic">
+            <div className="mao-stat-head">
+              <div className="mao-stat-title-wrap">
+                <TrendingUp size={15} className="mao-stat-icon text-[var(--traffic-up,var(--status-info))]" />
+                <span className="mao-stat-label">今日流量</span>
+              </div>
+              <Link
+                to="/traffic"
+                className="overview-card-action mao-stat-action"
+                aria-label="打开今日流量统计页"
+                title="今日流量详情"
+                onPointerEnter={onWarmTraffic}
+                onFocus={onWarmTraffic}
+                onClick={onWarmTraffic}
+              >
+                <TrafficBarsIcon size={14} />
+              </Link>
+            </div>
+            <div className="mao-stat-value">
+              {trafficValue}{trafficUnit && <span className="mao-stat-unit"> {trafficUnit}</span>}
+            </div>
+            <div className="mao-stat-footer">
+              <span className="mao-stat-caption truncate" title={trafficDetailLabel}>
+                全节点出入站累计
+              </span>
+              {renderRating(trafficRating)}
             </div>
           </div>
 
@@ -632,6 +641,15 @@ export function NodeGrid() {
   const warmTrafficPage = useCallback(() => {
     void preloadTodayTrafficStats(queryClient, trafficUuids, Date.now());
   }, [queryClient, trafficUuids]);
+  const todayTrafficClock = useMinuteClock();
+  const todayTrafficQuery = useTodayTrafficStats(trafficUuids, todayTrafficClock, "summary");
+  const todayTrafficTotal = useMemo(() => {
+    if (!todayTrafficQuery.data) return null;
+    return todayTrafficQuery.data.rows.reduce(
+      (sum, row) => sum + row.trafficUp + row.trafficDown,
+      0,
+    );
+  }, [todayTrafficQuery.data]);
   // 「名称」排序需要展示名(摘要无 name),从 meta 注入。
   const nameByUuid = useMemo(() => {
     const map = new Map<string, string>();
@@ -907,6 +925,8 @@ export function NodeGrid() {
           assetRatingLabels={themeSettings.assetRatingLabels}
           onWarmTraffic={warmTrafficPage}
           username={me?.username || (me?.logged_in ? "Admin" : "Visitors")}
+          todayTrafficTotal={todayTrafficTotal}
+          todayTrafficLoading={todayTrafficQuery.isPending}
         />
       )}
     </>

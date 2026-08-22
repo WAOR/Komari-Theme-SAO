@@ -138,12 +138,12 @@ function getTimeGreetingInfo(
     if (onlineNodes === 0) {
       return {
         greeting,
-        subtitle: "集群服务器已全部离线，请及时排查网络与连接状态。",
+        subtitle: "您的服务器已全部离线，请及时排查网络与连接状态。",
       };
     }
     return {
       greeting,
-      subtitle: `检测到 ${offlineNodes} 台服务器处于离线状态，建议排查处理。`,
+      subtitle: `检测到 ${offlineNodes} 台服务器处于离线状态，请及时排查处理。`,
     };
   }
 
@@ -179,18 +179,18 @@ function getTimeGreetingInfo(
   if (hour >= 11 && hour < 13) {
     return {
       greeting,
-      subtitle: "全员服务器保持在线，节点负载与核心指标运转正常。",
+      subtitle: "当前所有服务器运行平稳，系统负载与核心指标持续采集中。",
     };
   }
   if (hour >= 13 && hour < 18) {
     return {
       greeting,
-      subtitle: "全员服务器连接通畅，集群状态与网络吞吐持续监控中。",
+      subtitle: "所有服务器运行稳定，系统负载与网络吞吐持续监控中。",
     };
   }
   return {
     greeting,
-    subtitle: "全站服务器运转良好，集群网络与系统资源持续监控中。",
+    subtitle: "全站服务器运行良好，网络状态与系统负载数据持续采集中。",
   };
 }
 
@@ -252,26 +252,26 @@ function HomeOverviewCards({
   const trafficRating =
     showOverviewRatings && showTrafficRating
       ? getOverviewRating({
-          kind: "traffic",
-          value: overview.trafficUp + overview.trafficDown,
-          customLabels: trafficRatingLabels,
-        })
+        kind: "traffic",
+        value: overview.trafficUp + overview.trafficDown,
+        customLabels: trafficRatingLabels,
+      })
       : null;
   const bandwidthRating =
     showOverviewRatings && showBandwidthRating
       ? getOverviewRating({
-          kind: "bandwidth",
-          value: overview.netUp + overview.netDown,
-          customLabels: bandwidthRatingLabels,
-        })
+        kind: "bandwidth",
+        value: overview.netUp + overview.netDown,
+        customLabels: bandwidthRatingLabels,
+      })
       : null;
   const assetRating =
     isPriceVisible && showOverviewRatings && showAssetRating && costSummary
       ? getOverviewRating({
-          kind: "asset",
-          value: costSummary.remainingCny,
-          customLabels: assetRatingLabels,
-        })
+        kind: "asset",
+        value: costSummary.remainingCny,
+        customLabels: assetRatingLabels,
+      })
       : null;
 
   const renderRating = (rating: OverviewRating | null) =>
@@ -454,7 +454,7 @@ function HomeOverviewCards({
                 <Activity size={17} className="text-(--text-primary)" />
                 <span>集群状态</span>
               </h3>
-              <p className="mao-progress-subtitle">主机在线率与实时网络吞吐</p>
+              <p className="mao-progress-subtitle">服务器在线率与实时网络吞吐</p>
             </div>
             <span className={`mao-status-pill ${isAllHealthy ? "is-healthy" : "is-warning"}`}>
               <span className="mao-status-dot" />
@@ -726,12 +726,12 @@ export function NodeGrid() {
     () =>
       rateQuery.data
         ? calculateCostSummary(
-            visibleMeta,
-            themeSettings.costIgnoredNodes,
-            rateQuery.data.rates,
-            themeSettings.costPremiums,
-            now,
-          )
+          visibleMeta,
+          themeSettings.costIgnoredNodes,
+          rateQuery.data.rates,
+          themeSettings.costPremiums,
+          now,
+        )
         : null,
     [now, visibleMeta, themeSettings.costIgnoredNodes, themeSettings.costPremiums, rateQuery.data],
   );
@@ -826,25 +826,25 @@ export function NodeGrid() {
       mode === "list"
         ? null
         : orderedUuids.map((uuid) => (
-            <div key={uuid} className="min-w-0">
-              {mode === "mini" ? (
-                <MiniNodeCard
-                  uuid={uuid}
-                  showTodayTraffic={showTrafficPopover}
-                />
-              ) : mode === "compact" ? (
-                <CompactNodeCard
-                  uuid={uuid}
-                  showTodayTraffic={showTrafficPopover}
-                />
-              ) : (
-                <NodeCard
-                  uuid={uuid}
-                  showTodayTraffic={showTrafficPopover}
-                />
-              )}
-            </div>
-          )),
+          <div key={uuid} className="min-w-0">
+            {mode === "mini" ? (
+              <MiniNodeCard
+                uuid={uuid}
+                showTodayTraffic={showTrafficPopover}
+              />
+            ) : mode === "compact" ? (
+              <CompactNodeCard
+                uuid={uuid}
+                showTodayTraffic={showTrafficPopover}
+              />
+            ) : (
+              <NodeCard
+                uuid={uuid}
+                showTodayTraffic={showTrafficPopover}
+              />
+            )}
+          </div>
+        )),
     [orderedUuids, mode, showTrafficPopover],
   );
   const showGroupTabs =
@@ -875,8 +875,8 @@ export function NodeGrid() {
     : `${gridWrapClassName} home-controls-bar mb-4`;
   const controlsStyle = borrowControlsGrid
     ? {
-        gridTemplateColumns: `repeat(auto-fill, minmax(min(100%, ${GRID_LAYOUT.compact.minColumnWidth}px), 1fr))`,
-      }
+      gridTemplateColumns: `repeat(auto-fill, minmax(min(100%, ${GRID_LAYOUT.compact.minColumnWidth}px), 1fr))`,
+    }
     : gridStyle;
 
   if (!themeSettings.isReady || !storeHydrated) {

@@ -104,7 +104,7 @@
   border-radius: 22px;
   background: var(--surface-elev, #eaecf0);
   padding: clamp(14px, 2vw, 24px);
-  margin-bottom: 24px;
+  margin-bottom: 40px;
   box-shadow: none;
   position: relative;
   z-index: 10;
@@ -1732,7 +1732,7 @@
 /* 首页顶部为 36px 快捷设置按钮保留最小 48px 控制区：上下各约 6px。
    iOS PWA 的状态栏安全区由 app-main 统一叠加。 */
 .home-dashboard {
-  padding-top: 28px;
+  padding-top: 0px;
 }
 
 /* 首页控件条复用卡片网格列定义：分组标签落在第一列，排序控件钉在最后一列。 */
@@ -1851,7 +1851,7 @@
   }
 
   .home-dashboard {
-    padding-top: 24px;
+    padding-top: 0px;
   }
 }
 

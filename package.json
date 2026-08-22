@@ -23,7 +23,7 @@
     "lucide-react": "^0.473.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-router-dom": "^7.17.0",
+    "react-router-dom": "^7.18.2",
     "uplot": "^1.6.32",
     "uplot-react": "^1.2.4",
     "zod": "^3.24.1"

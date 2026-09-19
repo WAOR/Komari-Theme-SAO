@@ -304,7 +304,7 @@ function HomeOverviewCards({
           </div>
           <h1 className="mao-hero-greeting flex items-center gap-1.5 flex-wrap">
             <span>{greetingInfo.greeting}，</span>
-            <DiaTextReveal text={username || "Visitors"} />
+            <DiaTextReveal text={username || "Guest"} />
           </h1>
           <p className="mao-hero-subtitle">
             {greetingInfo.subtitle}
@@ -936,7 +936,7 @@ export function NodeGrid() {
           bandwidthRatingLabels={themeSettings.bandwidthRatingLabels}
           assetRatingLabels={themeSettings.assetRatingLabels}
           onWarmTraffic={warmTrafficPage}
-          username={me?.username || (me?.logged_in ? "Admin" : "Visitors")}
+          username={me?.username || (me?.logged_in ? "Admin" : "Guest")}
           todayTrafficTotal={todayTrafficTotal}
           todayTrafficLoading={todayTrafficQuery.isPending}
         />

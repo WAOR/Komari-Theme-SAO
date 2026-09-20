@@ -703,7 +703,7 @@ export const CompactNodeCard = memo(function CompactNodeCard({
     homepagePingLines,
     compactFooterTags: footerTags,
     subtitle,
-    renewalPrice,
+    compactRenewalPrice,
     isPriceVisible,
     expire,
     expireColor,
@@ -744,7 +744,7 @@ export const CompactNodeCard = memo(function CompactNodeCard({
         showConnections={showConnections}
         expire={expire}
         expireColor={expireColor}
-        renewalPrice={renewalPrice}
+        renewalPrice={compactRenewalPrice}
         isPriceVisible={isPriceVisible}
       />
       <CompactTrafficBar traffic={traffic} uptimeLabel={uptimeLabel} />

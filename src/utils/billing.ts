@@ -8,8 +8,51 @@ const DECIMAL_PRICE_FORMATTER = new Intl.NumberFormat("zh-CN", {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
 });
+const COMPACT_PRICE_FORMATTER = new Intl.NumberFormat("zh-CN", {
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 2,
+});
 
-function formatPriceNumber(value: number) {
+export const COMMON_CURRENCY_SYMBOLS: Record<string, string> = {
+  USD: "$",
+  "US$": "$",
+  "$US": "$",
+  "USD$": "$",
+  "$USD": "$",
+  CAD: "C$",
+  "C$": "C$",
+  EUR: "€",
+  GBP: "£",
+  JPY: "¥",
+  CNY: "¥",
+  RMB: "¥",
+  "CN¥": "¥",
+  HKD: "HK$",
+  "HK$": "HK$",
+  TWD: "NT$",
+  "NT$": "NT$",
+  AUD: "A$",
+  "A$": "A$",
+  SGD: "S$",
+  "S$": "S$",
+  NZD: "NZ$",
+  "NZ$": "NZ$",
+  KRW: "₩",
+  RUB: "₽",
+  THB: "฿",
+};
+
+export function resolveCurrencySymbol(currency?: string | null): string {
+  if (!currency) return "¥";
+  const trimmed = currency.trim();
+  if (!trimmed) return "¥";
+  return COMMON_CURRENCY_SYMBOLS[trimmed.toUpperCase()] || trimmed;
+}
+
+function formatPriceNumber(value: number, compact = false) {
+  if (compact) {
+    return COMPACT_PRICE_FORMATTER.format(value);
+  }
   return (Number.isInteger(value) ? INT_PRICE_FORMATTER : DECIMAL_PRICE_FORMATTER).format(value);
 }
 
@@ -171,6 +214,25 @@ export function formatBillingCycle(value: string | number | null | undefined) {
   }
 }
 
+/** 格式化紧凑小卡片等高密度场景的周期后缀（如 $71/3年 或 $5.8/月） */
+export function formatCompactBillingCycleText(value: string | number | null | undefined) {
+  const cycle = normalizeBillingCycle(value);
+  switch (cycle.kind) {
+    case "lifetime":
+      return "一次";
+    case "month":
+      return "月";
+    case "quarter":
+      return "季";
+    case "halfYear":
+      return "半年";
+    case "year":
+      return cycle.years && cycle.years > 1 ? `${cycle.years}年` : "年";
+    case "days":
+      return `${cycle.days}天`;
+  }
+}
+
 export function formatRenewalPrice({
   price,
   currency,
@@ -191,3 +253,25 @@ export function formatRenewalPrice({
   const cycle = formatBillingCycle(billing_cycle);
   return `${symbol}${formatPriceNumber(price)}/${cycle}`;
 }
+
+export function formatCompactRenewalPrice({
+  price,
+  currency,
+  billing_cycle,
+  expired_at,
+}: {
+  price: number;
+  currency: string;
+  billing_cycle?: string | number | null;
+  expired_at?: string | number | null;
+}) {
+  if (!Number.isFinite(price)) return null;
+  if (price === -1) return "免费";
+  if (price === 0) return isLongTermExpire(expired_at) ? "免费" : null;
+  if (price < 0) return null;
+
+  const symbol = resolveCurrencySymbol(currency);
+  const cycle = formatCompactBillingCycleText(billing_cycle);
+  return `${symbol}${formatPriceNumber(price, true)}/${cycle}`;
+}
+

@@ -11,7 +11,7 @@ import {
 import { useThemeSettings } from "@/hooks/useThemeSettings";
 import { usePriceVisibility } from "@/hooks/usePriceVisibility";
 import type { HomepagePingDisplayLine, HomepagePingLine } from "@/types/komari";
-import { formatRenewalPrice } from "@/utils/billing";
+import { formatCompactRenewalPrice, formatRenewalPrice } from "@/utils/billing";
 import { getExpireTextColor } from "@/utils/expireStatus";
 import {
   formatBytes,
@@ -157,6 +157,7 @@ export function useNodeCardModel(
       expireColor: getExpireTextColor(meta.expired_at, now),
       isPriceVisible,
       renewalPrice: isPriceVisible ? formatRenewalPrice(meta) : null,
+      compactRenewalPrice: isPriceVisible ? formatCompactRenewalPrice(meta) : null,
       osName: resolveOsInfo(meta.os).name,
       loadBaseline: meta.cpu_cores > 0 ? meta.cpu_cores : 4,
     };

@@ -1,5 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { formatBillingCycle, formatRenewalPrice } from "@/utils/billing";
+import {
+  formatBillingCycle,
+  formatCompactRenewalPrice,
+  formatRenewalPrice,
+} from "@/utils/billing";
 
 function inDays(days: number) {
   return new Date(Date.now() + days * 86_400_000).toISOString();
@@ -92,5 +96,17 @@ describe("formatRenewalPrice", () => {
     expect(formatRenewalPrice({ price: 19.9, currency: "¥", billing_cycle: -1 })).toBe("¥19.90/一次性");
     expect(formatRenewalPrice({ price: 71.08, currency: "$", billing_cycle: 1095 })).toBe("$71.08/三年");
     expect(formatRenewalPrice({ price: 120, currency: "¥", billing_cycle: 730 })).toBe("¥120/两年");
+  });
+});
+
+describe("formatCompactRenewalPrice", () => {
+  it("compacts currency codes into symbols and removes trailing zeroes", () => {
+    expect(formatCompactRenewalPrice({ price: 4.5, currency: "CAD", billing_cycle: 365 })).toBe("C$4.5/年");
+    expect(formatCompactRenewalPrice({ price: 5.8, currency: "USD", billing_cycle: 30 })).toBe("$5.8/月");
+    expect(formatCompactRenewalPrice({ price: 71, currency: "USD", billing_cycle: 1095 })).toBe("$71/3年");
+    expect(formatCompactRenewalPrice({ price: 71.08, currency: "USD", billing_cycle: 1095 })).toBe("$71.08/3年");
+    expect(formatCompactRenewalPrice({ price: 18.6, currency: "USD", billing_cycle: 365 })).toBe("$18.6/年");
+    expect(formatCompactRenewalPrice({ price: 4, currency: "USD", billing_cycle: 30 })).toBe("$4/月");
+    expect(formatCompactRenewalPrice({ price: 19.9, currency: "CNY", billing_cycle: -1 })).toBe("¥19.9/一次");
   });
 });

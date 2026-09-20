@@ -132,10 +132,26 @@ const OVERVIEW_RATING_LABEL_FIELDS: Array<{
   key: OverviewRatingKind;
   title: string;
   toggleKey: "showTrafficRating" | "showBandwidthRating" | "showAssetRating";
+  tierHint: string;
 }> = [
-  { key: "traffic", title: "今日流量", toggleKey: "showTrafficRating" },
-  { key: "bandwidth", title: "实时带宽", toggleKey: "showBandwidthRating" },
-  { key: "asset", title: "资产概览", toggleKey: "showAssetRating" },
+  {
+    key: "traffic",
+    title: "今日流量",
+    toggleKey: "showTrafficRating",
+    tierHint: "对应阶梯：≤10GB、≤50GB、≤200GB、>200GB",
+  },
+  {
+    key: "bandwidth",
+    title: "实时带宽",
+    toggleKey: "showBandwidthRating",
+    tierHint: "对应阶梯：≤1Mbps、≤10Mbps、≤100Mbps、>100Mbps",
+  },
+  {
+    key: "asset",
+    title: "资产概览",
+    toggleKey: "showAssetRating",
+    tierHint: "对应阶梯：≤500元、≤1500元、≤3000元、>3000元",
+  },
 ];
 
 function sortTasks(tasks: PingTask[]) {
@@ -1847,7 +1863,7 @@ export function ThemeManage() {
                             className="surface-inset w-full px-3 py-2 text-[13px] outline-none disabled:opacity-60"
                           />
                           <span className="setting-hint">
-                            例如: {defaultLabel}
+                            {field.tierHint}
                           </span>
                         </div>
                       );

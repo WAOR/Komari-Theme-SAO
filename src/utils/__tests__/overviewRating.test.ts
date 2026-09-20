@@ -10,30 +10,30 @@ describe("overview ratings", () => {
   it("rates assets by the configured CNY ranges", () => {
     expect(getOverviewRating({ kind: "asset", value: 500 })).toEqual({
       level: 0,
-      label: "入门",
+      label: "Nano",
     });
     expect(getOverviewRating({ kind: "asset", value: 1500 })).toEqual({
       level: 1,
-      label: "标准",
+      label: "Micro",
     });
     expect(getOverviewRating({ kind: "asset", value: 3000 })).toEqual({
       level: 2,
-      label: "顶级",
+      label: "Medium",
     });
     expect(getOverviewRating({ kind: "asset", value: 3000.01 })).toEqual({
       level: 3,
-      label: "富佬",
+      label: "High-Spec",
     });
   });
 
   it("rates traffic and bandwidth on their native byte inputs", () => {
     expect(getOverviewRating({ kind: "traffic", value: 35 * GB })).toEqual({
       level: 1,
-      label: "常规",
+      label: "MED",
     });
-    expect(getOverviewRating({ kind: "bandwidth", value: 672 * 1024 / 8 })).toEqual({
+    expect(getOverviewRating({ kind: "bandwidth", value: (672 * 1024) / 8 })).toEqual({
       level: 0,
-      label: "流量闲置",
+      label: "IDLE",
     });
   });
 
@@ -59,8 +59,8 @@ describe("overview ratings", () => {
     expect(normalizeOverviewRatingLabels("asset", "萌新,进阶")).toEqual([
       "萌新",
       "进阶",
-      "顶级",
-      "富佬",
+      "Medium",
+      "High-Spec",
     ]);
   });
 });

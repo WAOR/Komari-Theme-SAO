@@ -9,9 +9,9 @@ const GB = 1024 ** 3;
 const MBPS_IN_BYTES_PER_SECOND = 1_000_000 / 8;
 
 const DEFAULT_LABELS: Record<OverviewRatingKind, readonly string[]> = {
-  traffic: ["轻量", "常规", "重度", "海量"],
-  bandwidth: ["流量闲置", "流量轻载", "流量活跃", "流量爆发"],
-  asset: ["入门", "标准", "顶级", "富佬"],
+  traffic: ["LOW", "MED", "HIGH", "ULTRA"],
+  bandwidth: ["IDLE", "LIGHT", "ACTIVE", "SURGE"],
+  asset: ["Nano", "Micro", "Medium", "High-Spec"],
 };
 
 export function getDefaultOverviewRatingLabelText(kind: OverviewRatingKind) {

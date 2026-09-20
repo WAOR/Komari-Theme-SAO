@@ -1732,5 +1732,276 @@ body::after {
   .instance-ping-tasks {
     gap: 6px;
   }
+}
 
+/* ==========================================================================
+   Theme Manage & Settings Layout (CFSM-SAO Style)
+   ========================================================================== */
+
+.setting-control {
+  width: 100%;
+}
+
+.setting-select {
+  position: relative;
+  display: flex;
+  min-width: 0;
+}
+
+.setting-select > select {
+  width: 100%;
+  min-width: 0;
+  padding: 8px 34px 8px 12px;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+  text-overflow: ellipsis;
+}
+
+.setting-select-icon {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  color: var(--text-secondary);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.setting-hint {
+  color: var(--text-tertiary);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.setting-subhead-title {
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.theme-manage-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--border-strong) 62%, transparent);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--surface-elev) 94%, white 6%) 0%,
+      color-mix(in srgb, var(--surface) 100%, transparent) 100%
+    );
+  box-shadow:
+    0 14px 28px -24px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 color-mix(in srgb, white 18%, transparent);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  transition:
+    transform 160ms ease,
+    background 160ms ease,
+    color 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.theme-manage-button:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--border-strong) 88%, transparent);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--surface-elev) 90%, var(--hover-bg) 10%) 0%,
+      color-mix(in srgb, var(--hover-bg) 54%, var(--surface)) 100%
+    );
+  box-shadow:
+    0 18px 32px -24px rgba(0, 0, 0, 0.52),
+    inset 0 1px 0 color-mix(in srgb, white 22%, transparent);
+}
+
+.theme-manage-button:active {
+  transform: translateY(0);
+}
+
+.theme-manage-button:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.theme-manage-button.is-primary {
+  color: var(--text-on-strong);
+  border-color: color-mix(in srgb, var(--accent-strong) 70%, black 30%);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--accent-500) 94%, white 6%) 0%,
+      var(--accent-strong) 100%
+    );
+  box-shadow:
+    0 18px 34px -24px color-mix(in srgb, var(--accent-strong) 54%, black 46%),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+
+.theme-manage-button.is-primary:hover {
+  border-color: color-mix(in srgb, var(--accent-500) 76%, white 24%);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--accent-500) 100%, white 8%) 0%,
+      color-mix(in srgb, var(--accent-strong) 92%, white 8%) 100%
+    );
+}
+
+.theme-manage-button.is-compact {
+  min-height: 32px;
+  padding: 0 12px;
+  gap: 6px;
+  font-size: 11px;
+}
+
+.theme-manage-button.is-danger {
+  color: color-mix(in srgb, var(--status-offline) 76%, var(--text-primary) 24%);
+  border-color: color-mix(in srgb, var(--status-offline) 22%, transparent);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--status-offline) 9%, var(--surface-elev)) 0%,
+      color-mix(in srgb, var(--status-offline) 6%, var(--surface)) 100%
+    );
+}
+
+.theme-manage-button.is-danger:hover {
+  color: color-mix(in srgb, var(--status-offline) 84%, var(--text-primary) 16%);
+  border-color: color-mix(in srgb, var(--status-offline) 34%, transparent);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--status-offline) 12%, var(--surface-elev)) 0%,
+      color-mix(in srgb, var(--status-offline) 9%, var(--surface)) 100%
+    );
+}
+
+.theme-manage-sync-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 6px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.theme-manage-sync-status.is-error {
+  color: var(--status-offline);
+}
+
+.theme-manage-body {
+  display: grid;
+  gap: 16px;
+  align-items: start;
+  height: var(--theme-body-height, auto);
+  min-height: 0;
+}
+
+.theme-manage-sections {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  flex-direction: column;
+  gap: 20px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 4px;
+  scrollbar-width: thin;
+}
+
+.theme-tab-rail {
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+}
+
+.theme-tab-rail::-webkit-scrollbar {
+  display: none;
+}
+
+.theme-tab {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  font-weight: 620;
+  white-space: nowrap;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease;
+}
+
+.theme-tab:hover {
+  background: var(--hover-bg);
+  color: var(--text-primary);
+}
+
+.theme-tab[data-active="true"] {
+  border-color: color-mix(in srgb, var(--accent-500) 45%, var(--border));
+  background: color-mix(in srgb, var(--accent-500) 12%, var(--surface-a));
+  color: var(--text-primary);
+}
+
+.theme-tab-icon {
+  flex: none;
+  color: var(--text-tertiary);
+}
+
+.theme-tab[data-active="true"] .theme-tab-icon {
+  color: var(--accent-500);
+}
+
+.theme-tab-hint {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .theme-manage-body {
+    grid-template-columns: 210px minmax(0, 1fr);
+  }
+
+  .theme-tab-rail {
+    height: 100%;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .theme-tab {
+    flex-wrap: wrap;
+    white-space: normal;
+  }
+
+  .theme-tab-hint {
+    display: block;
+    width: 100%;
+    padding-left: 22px;
+    color: var(--text-tertiary);
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.35;
+  }
 }

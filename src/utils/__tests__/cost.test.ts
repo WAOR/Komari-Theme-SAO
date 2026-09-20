@@ -62,6 +62,20 @@ describe("calculateCostSummary", () => {
     expect(summary.remainingCny).toBeLessThan(70 * 13);
   });
 
+  it("accumulates totalOriginalPriceCny as the sum of all counted original prices converted to CNY", () => {
+    const summary = calculateCostSummary(
+      [
+        node({ uuid: "n1", price: 10, currency: "USD", billing_cycle: 30, expired_at: inDays(30) }),
+        node({ uuid: "n2", price: 50, currency: "CNY", billing_cycle: 30, expired_at: inDays(30) }),
+        node({ uuid: "n3", price: 0, currency: "USD", billing_cycle: 30, expired_at: inDays(30) }),
+      ],
+      [],
+      RATES,
+    );
+    // 10 USD * 7 = 70 CNY, 50 CNY = 50 CNY. Total = 120 CNY.
+    expect(summary.totalOriginalPriceCny).toBeCloseTo(120, 5);
+  });
+
   it("reports one cycle of value for long-term (>100y) nodes", () => {
     const summary = calculateCostSummary(
       [node({ price: 10, currency: "USD", billing_cycle: 30, expired_at: inDays(365 * 200) })],

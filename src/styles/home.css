@@ -292,7 +292,7 @@
   color: var(--text-tertiary);
 }
 
-/* 6 宫格指标卡片：填充满左侧垂直高度并与右侧卡片底部严格齐平 */
+/* 指标卡片网格：填充满左侧垂直高度并与右侧卡片底部严格齐平 */
 .mao-stat-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -300,6 +300,10 @@
   gap: 12px;
   flex: 1;
   width: 100%;
+}
+
+.mao-stat-grid[data-cards="4"] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 @media (max-width: 768px) {
@@ -315,6 +319,10 @@
     grid-template-columns: 1fr;
     grid-template-rows: auto;
   }
+}
+
+.mao-stat-highlight {
+  color: var(--speed-high, #f97316);
 }
 
 .mao-stat-card {
@@ -392,6 +400,14 @@
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
   margin: 3px 0 1px;
+}
+
+.mao-stat-slash-total {
+  font-style: normal;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  margin-left: 2px;
 }
 
 .mao-stat-unit {

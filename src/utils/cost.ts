@@ -63,6 +63,8 @@ interface CostSummary {
   totalCny: number;
   monthlyCny: number;
   remainingCny: number;
+  // 总价值合计(全周期价格折算人民币,对齐 Pulse 主题 totalAll)
+  totalOriginalPriceCny: number;
   // 溢价加总:不叠加到 remainingCny,也不参与 totalCny/monthlyCny。
   premiumTotalCny: number;
   premiumMonthlyTotalCny: number;
@@ -439,6 +441,7 @@ export function calculateCostSummary(
   let totalCny = 0;
   let monthlyCny = 0;
   let remainingCny = 0;
+  let totalOriginalPriceCny = 0;
   let premiumTotalCny = 0;
   let premiumMonthlyTotalCny = 0;
   let premiumRemainingTotalCny = 0;
@@ -525,6 +528,7 @@ export function calculateCostSummary(
     totalCny += monthly * 12;
     monthlyCny += monthly;
     remainingCny += remaining;
+    totalOriginalPriceCny += converted;
     premiumTotalCny += premium;
     premiumMonthlyTotalCny += premiumMonthly;
     premiumRemainingTotalCny += premiumRemaining;
@@ -543,6 +547,7 @@ export function calculateCostSummary(
     totalCny,
     monthlyCny,
     remainingCny,
+    totalOriginalPriceCny,
     premiumTotalCny,
     premiumMonthlyTotalCny,
     premiumRemainingTotalCny,

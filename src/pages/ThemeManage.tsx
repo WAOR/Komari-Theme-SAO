@@ -778,7 +778,11 @@ export function ThemeManage() {
         },
         { replace: true },
       );
-      sectionsRef.current?.scrollTo({ top: 0 });
+      if (window.innerWidth >= 900) {
+        sectionsRef.current?.scrollTo({ top: 0 });
+      } else {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
     },
     [setSearchParams],
   );
@@ -787,6 +791,10 @@ export function ThemeManage() {
     const element = bodyRef.current;
     if (!element) return;
     const measure = () => {
+      if (window.innerWidth < 900) {
+        element.style.removeProperty("--theme-body-height");
+        return;
+      }
       const rect = element.getBoundingClientRect();
       const top = rect.top + window.scrollY;
       const main = element.closest("main");
@@ -1947,7 +1955,7 @@ export function ThemeManage() {
                     <ToggleRow
                       field="showPriceForGuests"
                       title="向访客公开价格与资产"
-                      desc="默认关闭。开启后，未登录访客也能查看节点续费价格标签与首页资产概览；关闭时对访客隐藏价格标签，资产概览显示为 **。"
+                      desc="默认关闭。开启后，未登录访客也能查看节点续费价格标签与首页资产概览；关闭时对访客隐藏价格标签，资产概览显示为 保密。"
                       checked={draft.showPriceForGuests}
                       onPatch={patch}
                     />

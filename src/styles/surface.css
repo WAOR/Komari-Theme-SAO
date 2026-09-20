@@ -2001,7 +2001,7 @@ body::after {
   display: grid;
   gap: 16px;
   align-items: start;
-  height: var(--theme-body-height, auto);
+  height: auto;
   min-height: 0;
 }
 
@@ -2009,13 +2009,12 @@ body::after {
   display: flex;
   min-width: 0;
   min-height: 0;
-  height: 100%;
+  height: auto;
   flex-direction: column;
   gap: 20px;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding-right: 4px;
-  scrollbar-width: thin;
+  overflow: visible;
+  padding-right: 0;
+  padding-bottom: max(80px, calc(env(safe-area-inset-bottom, 24px) + 48px));
 }
 
 .theme-tab-rail {
@@ -2075,6 +2074,16 @@ body::after {
 @media (min-width: 900px) {
   .theme-manage-body {
     grid-template-columns: 210px minmax(0, 1fr);
+    height: var(--theme-body-height, auto);
+  }
+
+  .theme-manage-sections {
+    height: 100%;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-right: 4px;
+    padding-bottom: 24px;
+    scrollbar-width: thin;
   }
 
   .theme-tab-rail {

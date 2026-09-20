@@ -1198,14 +1198,6 @@ export function ThemeManage() {
     seedDrafts(sourceThemeSettings);
   }, [config, isDirty, sourceSignature, sourceThemeSettings, seedDrafts]);
 
-  const assignedNodeCount = useMemo(
-    () =>
-      Object.values(draft.homepagePingBindings).reduce(
-        (total, clients) => total + clients.length,
-        0,
-      ),
-    [draft.homepagePingBindings],
-  );
 
   // 每个 client 归属哪个 task 的反查,只在绑定草稿变化时重建。与「全选可用」reducer
   // 共用 invertBindings() 避免推导漂移,并把可选节点过滤保持在 O(tasks × clients),
@@ -1340,61 +1332,37 @@ export function ThemeManage() {
 
   return (
     <div className="theme-manage flex flex-col gap-5 py-2">
-      <header className="theme-masthead">
-        <div className="theme-masthead-topline">
-          <Link to="/" className="instance-page-back">
-            <ArrowLeft size={14} />
-            返回首页
-          </Link>
-          <div className="theme-manage-toolbar-actions">
-            <button
-              type="button"
-              onClick={handleReset}
-              disabled={!isDirty || saving}
-              className="theme-manage-button"
-            >
-              <RefreshCw size={14} />
-              <span>重置</span>
-            </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={
-                !isDirty ||
-                saving ||
-                draftCostRateApiUrlInvalid ||
-                videoInputInvalid ||
-                draftMultiPingInvalid
-              }
-              className="theme-manage-button is-primary"
-            >
-              {saving ? <Spinner size={14} /> : <Save size={14} />}
-              <span>{saving ? "保存中" : "保存设置"}</span>
-            </button>
-          </div>
-        </div>
-        <div className="theme-masthead-main">
-          <div className="theme-masthead-headings">
-            <span className="theme-masthead-kicker">SAO · 主题控制台</span>
-            <h1 className="theme-masthead-title">主题设置</h1>
-            <p className="theme-masthead-desc">
-              集中调整 SAO 主题的展示偏好与首页延迟绑定；保存后立即应用到当前站点。
-            </p>
-          </div>
-          <dl className="theme-masthead-meta">
-            <div>
-              <dt>主题</dt>
-              <dd>{config?.theme || "Komari-Theme-SAO"}</dd>
-            </div>
-            <div>
-              <dt>已绑定 Ping</dt>
-              <dd>
-                {draft.enableHomepageMultiPing
-                  ? `三网 ${draft.homepageMultiPingTaskIds.length} / 3`
-                  : `${assignedNodeCount} / ${sortedClients.length}`}
-              </dd>
-            </div>
-          </dl>
+      <header className="theme-topbar">
+        <Link to="/" className="instance-page-back theme-topbar-back">
+          <ArrowLeft size={14} />
+          <span>返回首页</span>
+        </Link>
+        <h1 className="theme-topbar-title">SAO 主题设置</h1>
+        <div className="theme-manage-toolbar-actions">
+          <button
+            type="button"
+            onClick={handleReset}
+            disabled={!isDirty || saving}
+            className="theme-manage-button is-compact"
+          >
+            <RefreshCw size={14} />
+            <span>重置</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={
+              !isDirty ||
+              saving ||
+              draftCostRateApiUrlInvalid ||
+              videoInputInvalid ||
+              draftMultiPingInvalid
+            }
+            className="theme-manage-button is-compact is-primary"
+          >
+            {saving ? <Spinner size={14} /> : <Save size={14} />}
+            <span>{saving ? "保存中" : "保存设置"}</span>
+          </button>
         </div>
       </header>
 

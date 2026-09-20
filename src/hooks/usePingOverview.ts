@@ -50,13 +50,11 @@ const EMPTY_BINDINGS: HomepagePingTaskBindings = {};
 type HomepagePingRequestMode = "single" | "multi";
 
 export function resolveHomepagePingRequestMode(
-  viewMode: NodeViewMode,
+  _viewMode: NodeViewMode,
   multiPingEnabled: boolean,
   multiTaskIds: number[],
 ): HomepagePingRequestMode {
-  return (viewMode === "large" || viewMode === "compact") &&
-    multiPingEnabled &&
-    isHomepageMultiPingConfigured(multiTaskIds)
+  return multiPingEnabled && isHomepageMultiPingConfigured(multiTaskIds)
     ? "multi"
     : "single";
 }

@@ -165,11 +165,11 @@ describe("homepage ping polling selection", () => {
     expect(result.singleItems.get("node-b")?.lastValue).toBe(2);
   });
 
-  it("keeps large/compact and mini/list in their shared request modes", () => {
+  it("requests multi-ping across all views when multi-ping is enabled and configured", () => {
     expect(resolveHomepagePingRequestMode("large", true, [1, 2, 3])).toBe("multi");
     expect(resolveHomepagePingRequestMode("compact", true, [1, 2, 3])).toBe("multi");
-    expect(resolveHomepagePingRequestMode("mini", true, [1, 2, 3])).toBe("single");
-    expect(resolveHomepagePingRequestMode("list", true, [1, 2, 3])).toBe("single");
+    expect(resolveHomepagePingRequestMode("mini", true, [1, 2, 3])).toBe("multi");
+    expect(resolveHomepagePingRequestMode("list", true, [1, 2, 3])).toBe("multi");
     expect(resolveHomepagePingRequestMode("large", false, [1, 2, 3])).toBe("single");
     expect(resolveHomepagePingRequestMode("large", true, [1, 2])).toBe("multi");
     expect(resolveHomepagePingRequestMode("large", true, [])).toBe("single");

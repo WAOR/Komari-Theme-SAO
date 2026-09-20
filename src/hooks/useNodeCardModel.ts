@@ -61,16 +61,24 @@ export function useNodeCardModel(
     homepageMultiPingTaskIds,
   } = useThemeSettings();
   const { isPriceVisible } = usePriceVisibility();
-  const multiPingActive =
-    includeMultiPing &&
+  const multiPingConfigured =
     enableHomepageMultiPing &&
     isHomepageMultiPingConfigured(homepageMultiPingTaskIds);
-  const realPing = useNodePingOverview(uuid, !multiPingActive);
-  const realPingLines = useNodePingOverviewLines(uuid, multiPingActive);
+  const multiPingActive = includeMultiPing && multiPingConfigured;
+  const singlePingOverview = useNodePingOverview(uuid, !multiPingConfigured);
+  const realPingLines = useNodePingOverviewLines(uuid, multiPingConfigured);
+  const primaryMultiPingLine = useMemo(() => {
+    if (!multiPingConfigured || multiPingActive) return undefined;
+    const primaryTaskId = homepageMultiPingTaskIds[0];
+    return realPingLines.find((line) => line.taskId === primaryTaskId);
+  }, [homepageMultiPingTaskIds, multiPingActive, multiPingConfigured, realPingLines]);
+
+  const realPing = primaryMultiPingLine ?? singlePingOverview;
+
   const hasRealHomepagePingBinding = useMemo(
     () =>
-      multiPingActive || hasHomepagePingTaskBinding(uuid, homepagePingBindings),
-    [homepagePingBindings, multiPingActive, uuid],
+      multiPingConfigured || hasHomepagePingTaskBinding(uuid, homepagePingBindings),
+    [homepagePingBindings, multiPingConfigured, uuid],
   );
   const now = useHourlyClock();
   const ping = useFakePingFallback(

@@ -133,7 +133,7 @@ const OVERVIEW_RATING_LABEL_FIELDS: Array<{
   title: string;
   toggleKey: "showTrafficRating" | "showBandwidthRating" | "showAssetRating";
 }> = [
-  { key: "traffic", title: "累计流量", toggleKey: "showTrafficRating" },
+  { key: "traffic", title: "今日流量", toggleKey: "showTrafficRating" },
   { key: "bandwidth", title: "实时带宽", toggleKey: "showBandwidthRating" },
   { key: "asset", title: "资产概览", toggleKey: "showAssetRating" },
 ];
@@ -1689,7 +1689,7 @@ export function ThemeManage() {
                   <ToggleRow
                     field="showHomeOverview"
                     title="显示顶部总览栏"
-                    desc="在首页顶部显示服务器总数、在线率、总流量与实时速率看板。"
+                    desc="在首页顶部显示实时带宽、平均负载、内存用量、硬盘用量、今日流量与资产看板。"
                     checked={draft.showHomeOverview}
                     onPatch={patch}
                   />
@@ -1811,7 +1811,7 @@ export function ThemeManage() {
                     <span className="min-w-0">
                       <span className="block setting-subhead-title">启用总览评级</span>
                       <span className="mt-1 block setting-hint">
-                        在累计流量、实时带宽、资产概览右下角显示文字评级。
+                        在今日流量、实时带宽、资产概览右下角显示文字评级。
                       </span>
                     </span>
                     <input

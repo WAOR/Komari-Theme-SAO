@@ -879,9 +879,6 @@
   padding: 14px 16px;
 }
 
-.overview-card[data-metric="online"] {
-  --metric-accent: var(--status-success);
-}
 
 .overview-card[data-metric="traffic"] {
   --metric-accent: var(--traffic-up);
@@ -1415,14 +1412,6 @@
   letter-spacing: 0;
 }
 
-/* 在线数量是首卡的辅助状态，略小于流量、带宽等核心指标。 */
-.overview-card[data-metric="online"] .overview-card-value {
-  font-size: 24px;
-}
-
-.overview-card[data-metric="online"] .overview-card-unit {
-  font-size: 12px;
-}
 
 .overview-card-sub {
   flex: 1 1 auto;
@@ -1702,13 +1691,6 @@
     font-size: 24px;
   }
 
-  .overview-card[data-metric="online"] .overview-card-value {
-    font-size: 21px;
-  }
-
-  .overview-card[data-metric="online"] .overview-card-unit {
-    font-size: 11px;
-  }
 
   .overview-card-footer {
     gap: 6px;
@@ -2028,13 +2010,6 @@
   font-size: 11px;
 }
 
-.home-overview.is-dense .overview-card[data-metric="online"] .overview-card-value {
-  font-size: 19px;
-}
-
-.home-overview.is-dense .overview-card[data-metric="online"] .overview-card-unit {
-  font-size: 10px;
-}
 
 .home-overview.is-dense .overview-card-action {
   width: 22px;

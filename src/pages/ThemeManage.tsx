@@ -1447,7 +1447,7 @@ export function ThemeManage() {
                 aside={<LayoutGrid size={16} />}
               >
                 <div className="grid gap-4 md:grid-cols-2">
-                  <div className="surface-inset flex min-w-0 flex-col gap-3 px-4 py-4">
+                  <div className="surface-inset setting-segment-slot flex flex-col gap-3 px-4 py-4">
                     <div>
                       <div className="setting-subhead-title">
                         桌面端默认
@@ -1456,7 +1456,7 @@ export function ThemeManage() {
                         适用于宽度大于 720px 的浏览器窗口。
                       </div>
                     </div>
-                    <div className="instance-segmented is-scrollable">
+                    <div className="instance-segmented is-prominent is-even">
                       {NODE_VIEW_MODE_OPTIONS.map(({ value, label, icon: Icon }) => (
                         <button
                           key={value}
@@ -1472,7 +1472,7 @@ export function ThemeManage() {
                       ))}
                     </div>
                   </div>
-                  <div className="surface-inset flex min-w-0 flex-col gap-3 px-4 py-4">
+                  <div className="surface-inset setting-segment-slot flex flex-col gap-3 px-4 py-4">
                     <div>
                       <div className="setting-subhead-title">
                         移动端默认
@@ -1481,7 +1481,7 @@ export function ThemeManage() {
                         适用于宽度小于等于 720px 的手机或窄屏窗口。
                       </div>
                     </div>
-                    <div className="instance-segmented is-scrollable">
+                    <div className="instance-segmented is-prominent is-even">
                       {MOBILE_VIEW_MODE_OPTIONS.map(({ value, label, icon: Icon }) => (
                         <button
                           key={value}

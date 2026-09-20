@@ -1485,6 +1485,10 @@
 .overview-card-rating.is-bandwidth-badge {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  min-width: 76px;
+  box-sizing: border-box;
+  text-align: center;
   gap: 5.5px;
   padding: 3.5px 9px;
   border-radius: 999px;
@@ -1497,6 +1501,7 @@
   border: 1px solid color-mix(in srgb, currentColor 30%, transparent);
   background: color-mix(in srgb, currentColor 14%, transparent);
   flex-shrink: 0;
+  transition: color 0.25s ease, border-color 0.25s ease, background-color 0.25s ease;
 }
 
 .overview-card-rating.is-bandwidth-badge[data-rating-level="0"] {

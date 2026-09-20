@@ -34,6 +34,8 @@ export interface HomeNodeSummary {
   ramTotal: number;
   diskUsed: number;
   diskTotal: number;
+  connectionsTcp: number;
+  connectionsUdp: number;
 }
 
 export interface NodeOnlineSummary {
@@ -1102,6 +1104,8 @@ export function getHomeNodeSummariesSnapshot(): HomeNodeSummary[] {
         ramTotal: metrics?.ramTotal || meta.mem_total || 0,
         diskUsed: metrics?.online === false ? 0 : metrics?.diskUsed ?? 0,
         diskTotal: metrics?.diskTotal || meta.disk_total || 0,
+        connectionsTcp: metrics?.online === false ? 0 : metrics?.connectionsTcp ?? 0,
+        connectionsUdp: metrics?.online === false ? 0 : metrics?.connectionsUdp ?? 0,
       };
     })
     .filter((item): item is HomeNodeSummary => Boolean(item));
@@ -1126,7 +1130,9 @@ export function getHomeNodeSummariesSnapshot(): HomeNodeSummary[] {
         prev.ramUsed === item.ramUsed &&
         prev.ramTotal === item.ramTotal &&
         prev.diskUsed === item.diskUsed &&
-        prev.diskTotal === item.diskTotal
+        prev.diskTotal === item.diskTotal &&
+        prev.connectionsTcp === item.connectionsTcp &&
+        prev.connectionsUdp === item.connectionsUdp
       );
     })
   ) {

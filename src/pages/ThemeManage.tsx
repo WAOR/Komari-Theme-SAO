@@ -1826,8 +1826,8 @@ export function ThemeManage() {
                   <div className="surface-inset flex flex-wrap items-center justify-between gap-3 px-4 py-3">
                     <span className="min-w-0">
                       <span className="block setting-subhead-title">启用总览评级</span>
-                      <span className="mt-1 block setting-hint">
-                        在今日流量、实时带宽、资产概览右下角显示文字评级。
+                      <span className="setting-desc">
+                        在今日流量、资产概览及集群网络状态中显示评级标识。
                       </span>
                     </span>
                     <input

@@ -172,7 +172,7 @@ function SingleTrafficCard({
     // 绘制 X 轴时间刻度（首尾两个时间点）
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
-    const timeSteps = 2;
+    const timeSteps = plotWidth < 200 ? 1 : 2;
     const startTime = points[0].time;
     const endTime = points[points.length - 1].time;
     const timeSpan = Math.max(1000, endTime - startTime);
@@ -419,7 +419,6 @@ export function OverviewTrafficChart({
 }: {
   netUp: number;
   netDown: number;
-  bandwidthRating?: { level: 0 | 1 | 2 | 3; label: string } | null;
 }) {
   const totalRate = formatByteRate(netUp + netDown);
 

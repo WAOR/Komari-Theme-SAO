@@ -117,7 +117,7 @@
   box-shadow: 0 8px 32px -8px rgba(0, 0, 0, 0.6);
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 1180px) {
   .mao-dashboard-hero {
     display: grid;
     grid-template-columns: minmax(0, 1.48fr) minmax(0, 1fr);
@@ -630,7 +630,14 @@
   width: 100%;
 }
 
-@media (max-width: 520px) {
+@container (max-width: 520px) {
+  .mao-realtime-charts-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 768px) {
   .mao-realtime-charts-grid {
     grid-template-columns: 1fr;
     gap: 8px;
@@ -649,6 +656,7 @@
 }
 
 .mao-network-section {
+  container-type: inline-size;
   gap: 10px;
 }
 

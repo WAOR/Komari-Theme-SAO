@@ -22,6 +22,33 @@ export function formatCompactExpire({ value, unit }: { value: string; unit: stri
   return unit ? `余 ${value}${unit}` : value;
 }
 
+import { CHINESE_YEAR_PAY_NAMES, normalizeBillingCycle } from "@/utils/billing";
+
+/** 格式化紧凑卡片隐藏价格时的精简账单周期（完全对齐 Komari 后台设计）。 */
+export function formatCompactBillingCycle(
+  billingCycle: string | number | null | undefined,
+  price?: number,
+): string {
+  if (price === -1) return "免费";
+  const cycle = normalizeBillingCycle(billingCycle);
+  switch (cycle.kind) {
+    case "lifetime":
+      return "一次性付费";
+    case "month":
+      return "月付";
+    case "quarter":
+      return "季付";
+    case "halfYear":
+      return "半年付";
+    case "year":
+      return CHINESE_YEAR_PAY_NAMES[cycle.years ?? 1] || `${cycle.years}年付`;
+    case "days":
+      return `${cycle.days}天`;
+    default:
+      return "年付";
+  }
+}
+
 /** 非法或非正时长返回空串。 */
 export function formatCompactUptime(seconds: number) {
   if (!Number.isFinite(seconds) || seconds <= 0) return "";

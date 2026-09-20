@@ -1861,7 +1861,7 @@ export function ThemeManage() {
             <ToggleRow
               field="showPriceForGuests"
               title="向访客公开价格与资产"
-              desc="默认关闭。开启后，未登录访客也能查看节点续费价格标签与首页资产概览；关闭时对访客隐藏价格标签，资产概览显示为 **。"
+              desc="默认关闭。开启后，未登录访客也能查看节点续费价格标签与首页资产概览；关闭时对访客隐藏价格标签，资产概览显示为保密。"
               checked={draft.showPriceForGuests}
               onPatch={patch}
             />

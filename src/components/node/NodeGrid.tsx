@@ -239,13 +239,11 @@ function HomeOverviewCards({
   const onlinePct =
     overview.totalNodes > 0 ? (overview.onlineNodes / overview.totalNodes) * 100 : 0;
   const { isPriceVisible } = usePriceVisibility();
-  const remainingValue = !isPriceVisible
-    ? "**"
-    : costSummary
-      ? formatCnyMoney(costSummary.remainingCny)
-      : costLoading
-        ? "计算中"
-        : "—";
+  const remainingValue = costSummary
+    ? formatCnyMoney(costSummary.remainingCny)
+    : costLoading
+      ? "计算中"
+      : "—";
   const trafficDetailLabel = todayTrafficTotal !== null
     ? `今日全节点出入站累计 ${formatBytes(todayTrafficTotal)}`
     : "今日流量统计中...";
@@ -435,10 +433,12 @@ function HomeOverviewCards({
               )}
             </div>
             <div className="mao-stat-value">
-              {remainingValue}
+              {!isPriceVisible ? "保密" : remainingValue}
             </div>
             <div className="mao-stat-footer">
-              <span className="mao-stat-caption">实时汇率折算</span>
+              <span className="mao-stat-caption">
+                {!isPriceVisible ? "仅管理员可见" : "实时汇率折算"}
+              </span>
               {renderRating(assetRating)}
             </div>
           </div>

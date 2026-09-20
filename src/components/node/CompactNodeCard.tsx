@@ -13,6 +13,7 @@ import {
   HardDrive,
   MemoryStick,
   Network,
+  RefreshCw,
   Unplug,
 } from "lucide-react";
 import { clsx } from "clsx";
@@ -27,6 +28,7 @@ import { supportsFineHover } from "@/utils/mediaQuery";
 import { formatHealthBucketTooltip } from "./pingBucketText";
 import { MultiPingStatus } from "./MultiPingStatus";
 import {
+  formatCompactBillingCycle,
   formatCompactExpire,
   formatCompactPercent,
   formatCompactUptime,
@@ -450,6 +452,7 @@ function CompactNodeInfoStrip({
   expire,
   expireColor,
   renewalPrice,
+  isPriceVisible = true,
 }: {
   node: CompactNode;
   trafficTrend: { up: TrafficTrendSample[]; down: TrafficTrendSample[] };
@@ -461,6 +464,7 @@ function CompactNodeInfoStrip({
   expire: CompactExpire;
   expireColor: string;
   renewalPrice: string | null;
+  isPriceVisible?: boolean;
 }) {
   const infoTileCount =
     1 + (showTrafficTotal ? 1 : 0) + (showBilling ? 1 : 0) + (showConnections ? 1 : 0);
@@ -525,11 +529,19 @@ function CompactNodeInfoStrip({
             value={formatCompactExpire(expire)}
             color={expireColor}
           />
-          {renewalPrice && (
+          {isPriceVisible ? (
             <CompactInfoRow
               icon={<CircleDollarSign size={12} strokeWidth={2.2} />}
-              value={renewalPrice}
-              color="var(--status-success)"
+              // 后端 price 为空/0/-1 都表示免费，小卡片直接写「免费」而不是留白。
+              value={renewalPrice || "免费"}
+              color={renewalPrice ? "var(--status-success)" : "var(--text-tertiary)"}
+            />
+          ) : (
+            <CompactInfoRow
+              icon={<RefreshCw size={11} strokeWidth={2.2} />}
+              // 当价格不可见时（未向访客公开或管理员临时隐藏），第二行显示极简付费周期（如 年付/月付）
+              value={formatCompactBillingCycle(node.billing_cycle, node.price)}
+              color="var(--text-tertiary)"
             />
           )}
         </CompactInfoTile>
@@ -692,6 +704,7 @@ export const CompactNodeCard = memo(function CompactNodeCard({
     compactFooterTags: footerTags,
     subtitle,
     renewalPrice,
+    isPriceVisible,
     expire,
     expireColor,
     upRate,
@@ -732,6 +745,7 @@ export const CompactNodeCard = memo(function CompactNodeCard({
         expire={expire}
         expireColor={expireColor}
         renewalPrice={renewalPrice}
+        isPriceVisible={isPriceVisible}
       />
       <CompactTrafficBar traffic={traffic} uptimeLabel={uptimeLabel} />
       {homepagePingLines.length === HOMEPAGE_MULTI_PING_TASK_COUNT ? (

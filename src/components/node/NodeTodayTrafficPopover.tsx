@@ -24,7 +24,7 @@ import {
   nodeTodayTrafficPopoverReducer,
 } from "./nodeTodayTrafficPopoverState";
 
-const POPOVER_WIDTH = 248;
+const POPOVER_WIDTH = 268;
 const POPOVER_GAP = 8;
 const VIEWPORT_PADDING = 8;
 const HOVER_CLOSE_DELAY_MS = 160;
@@ -267,7 +267,6 @@ function TodayTrafficPopoverBody({ traffic }: { traffic: NodeTodayTrafficView })
     isPending,
     isError,
     isFetching,
-    source,
     dataUpdatedAt,
     refetch,
   } = traffic;
@@ -312,27 +311,26 @@ function TodayTrafficPopoverBody({ traffic }: { traffic: NodeTodayTrafficView })
       )}
       <div className="node-traffic-popover-head">
         <span>今日流量</span>
-        {source === "records" && (
-          <span className="node-traffic-popover-badge">兼容模式</span>
-        )}
       </div>
       <div className="node-traffic-popover-rows">
         <PopoverRow
-          icon={<ArrowUp size={12} strokeWidth={2.4} />}
-          label="上行"
+          icon={<span className="node-traffic-icon is-up"><ArrowUp size={12} strokeWidth={2.4} /></span>}
+          label="上行流量"
           value={formatBytes(stat.trafficUp)}
         />
         <PopoverRow
-          icon={<ArrowDown size={12} strokeWidth={2.4} />}
-          label="下行"
+          icon={<span className="node-traffic-icon is-down"><ArrowDown size={12} strokeWidth={2.4} /></span>}
+          label="下行流量"
           value={formatBytes(stat.trafficDown)}
         />
       </div>
-      <div className="node-traffic-popover-head is-peak">峰值速度</div>
+      <div className="node-traffic-popover-head is-peak">
+        <span>峰值速度</span>
+      </div>
       <div className="node-traffic-popover-rows">
         <PopoverRow
-          icon={<ArrowUp size={12} strokeWidth={2.4} />}
-          label="上行"
+          icon={<span className="node-traffic-icon is-up"><ArrowUp size={12} strokeWidth={2.4} /></span>}
+          label="最高上行"
           value={formatByteRateLabel(stat.peakUp)}
           note={
             stat.peakUp > 0 && stat.peakUpAt != null
@@ -341,8 +339,8 @@ function TodayTrafficPopoverBody({ traffic }: { traffic: NodeTodayTrafficView })
           }
         />
         <PopoverRow
-          icon={<ArrowDown size={12} strokeWidth={2.4} />}
-          label="下行"
+          icon={<span className="node-traffic-icon is-down"><ArrowDown size={12} strokeWidth={2.4} /></span>}
+          label="最高下行"
           value={formatByteRateLabel(stat.peakDown)}
           note={
             stat.peakDown > 0 && stat.peakDownAt != null
@@ -352,10 +350,7 @@ function TodayTrafficPopoverBody({ traffic }: { traffic: NodeTodayTrafficView })
         />
       </div>
       <div className="node-traffic-popover-foot">
-        <span>
-          {source === "records" ? "按记录采样" : "按 5 分钟采样"} · 更新{" "}
-          {formatClockTime(dataUpdatedAt)}
-        </span>
+        <span>更新 {formatClockTime(dataUpdatedAt)}</span>
         <Link to="/traffic" className="node-traffic-popover-link">
           明细
         </Link>

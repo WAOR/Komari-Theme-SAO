@@ -1,4 +1,4 @@
-/* 今日流量与峰值悬浮窗：卡片标题旁的触发按钮 + portal 弹层 */
+/* 今日流量与峰值悬浮窗：卡片标题旁的触发按钮 + 基于 shadcn HoverCard 规范的 portal 浮层 */
 .node-traffic-trigger {
   display: inline-grid;
   flex: 0 0 auto;
@@ -12,6 +12,7 @@
   transition:
     color 160ms ease,
     background 160ms ease,
+    transform 160ms ease,
     outline-color 160ms ease;
 }
 
@@ -19,6 +20,10 @@
 .node-traffic-trigger[aria-expanded="true"] {
   background: var(--fill-tertiary);
   color: var(--progress-cpu);
+}
+
+.node-traffic-trigger:active {
+  transform: scale(0.94);
 }
 
 .node-traffic-trigger:focus-visible {
@@ -32,29 +37,46 @@
   border-radius: 7px;
 }
 
+/* shadcn HoverCard 纯净卡片质感容器 */
 .node-traffic-popover {
   position: fixed;
   z-index: 90;
-  width: 248px;
-  padding: 12px;
-  border: 1px solid var(--border-strong);
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--surface-elev-a) 96%, transparent);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+  width: 268px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  /* 纯净高遮盖力底色，配合磨砂，绝不透底 */
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 10px 30px -4px rgba(0, 0, 0, 0.1),
+    0 4px 12px -2px rgba(0, 0, 0, 0.05),
+    0 0 0 1px rgba(0, 0, 0, 0.03);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
   color: var(--text-primary);
   font-size: 12px;
-  line-height: 1.45;
-  animation: node-traffic-popover-in 120ms ease;
+  line-height: 1.5;
+  outline: none;
+  animation: node-traffic-hovercard-in 140ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@keyframes node-traffic-popover-in {
+:root[data-appearance="dark"] .node-traffic-popover {
+  background: rgba(24, 24, 27, 0.96);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 16px 40px -6px rgba(0, 0, 0, 0.6),
+    0 4px 16px -2px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+@keyframes node-traffic-hovercard-in {
   from {
     opacity: 0;
-    transform: translateY(-3px);
+    transform: scale(0.96) translateY(-4px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: scale(1) translateY(0);
   }
 }
 
@@ -62,63 +84,99 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 5px;
-  color: var(--text-tertiary);
-  font-size: 11px;
-  font-weight: 680;
-  letter-spacing: 0.03em;
+  margin-bottom: 8px;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
 }
 
 .node-traffic-popover-head.is-peak {
-  margin-top: 9px;
+  margin-top: 10px;
   padding-top: 9px;
   border-top: 1px solid var(--hairline);
-}
-
-.node-traffic-popover-badge {
-  padding: 1px 6px;
-  border-radius: 999px;
-  background: var(--fill-tertiary);
   color: var(--text-tertiary);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0;
+  letter-spacing: 0.02em;
 }
 
 .node-traffic-popover-rows {
   display: flex;
   flex-direction: column;
+  gap: 3px;
 }
 
 .node-traffic-popover-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  padding: 3px 0;
+  gap: 12px;
+  padding: 2.5px 0;
 }
 
 .node-traffic-popover-label {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* 上下行图标徽标底衬 */
+.node-traffic-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  flex-shrink: 0;
+}
+
+.node-traffic-icon.is-up {
+  background: rgba(2, 132, 199, 0.1);
+  color: #0284c7;
+}
+
+:root[data-appearance="dark"] .node-traffic-icon.is-up {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+}
+
+.node-traffic-icon.is-down {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+}
+
+:root[data-appearance="dark"] .node-traffic-icon.is-down {
+  background: rgba(52, 211, 153, 0.15);
+  color: #34d399;
 }
 
 .node-traffic-popover-values {
   display: inline-flex;
-  align-items: baseline;
+  align-items: center;
   gap: 6px;
 }
 
 .node-traffic-popover-values strong {
   color: var(--text-primary);
   font-weight: 650;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
 }
 
 .node-traffic-popover-values small {
+  display: inline-block;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--fill-tertiary);
   color: var(--text-tertiary);
-  font-size: 10.5px;
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.2;
 }
 
 .node-traffic-popover-foot {
@@ -126,8 +184,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-top: 9px;
-  padding-top: 8px;
+  margin-top: 10px;
+  padding-top: 9px;
   border-top: 1px solid var(--hairline);
   color: var(--text-tertiary);
   font-size: 10.5px;
@@ -135,19 +193,29 @@
 
 .node-traffic-popover-link {
   flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  border-radius: 5px;
   color: var(--progress-cpu);
-  font-weight: 650;
-  transition: color 160ms ease;
+  font-weight: 600;
+  font-size: 11.5px;
+  text-decoration: none;
+  transition:
+    color 150ms ease,
+    background 150ms ease;
 }
 
 .node-traffic-popover-link:hover {
   color: var(--accent-strong);
+  background: var(--fill-tertiary);
 }
 
 .node-traffic-popover-empty {
-  padding: 10px 2px;
+  padding: 14px 4px;
   color: var(--text-tertiary);
   text-align: center;
+  font-size: 12px;
 }
 
 .node-traffic-popover-error {
@@ -155,15 +223,16 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 4px 0;
+  padding: 6px 0;
   color: var(--status-error);
+  font-size: 12px;
 }
 
 .node-traffic-popover-error.is-stale {
-  margin-bottom: 8px;
-  padding-bottom: 8px;
+  margin-bottom: 9px;
+  padding-bottom: 9px;
   border-bottom: 1px solid var(--hairline);
-  font-size: 10.5px;
+  font-size: 11px;
 }
 
 .node-traffic-popover-retry {
@@ -173,20 +242,22 @@
   justify-content: center;
   gap: 4px;
   padding: 3px 9px;
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--border);
   border-radius: 7px;
   background: var(--fill-tertiary);
   color: var(--text-secondary);
   font-size: 11px;
   font-weight: 600;
   transition:
-    color 160ms ease,
-    background 160ms ease;
+    color 150ms ease,
+    background 150ms ease,
+    border-color 150ms ease;
 }
 
 .node-traffic-popover-retry:hover {
   background: var(--hover-bg);
   color: var(--text-primary);
+  border-color: var(--border-strong);
 }
 
 .node-traffic-popover-retry:disabled {
@@ -205,6 +276,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .node-traffic-popover,
   .node-traffic-popover-retry.is-spinning svg {
     animation: none;
   }

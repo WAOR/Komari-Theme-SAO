@@ -485,7 +485,7 @@ function HomeOverviewCards({
               </h3>
               <p className="mao-progress-subtitle">服务器在线率与实时网络吞吐</p>
             </div>
-            <div className="flex items-center gap-1.5 flex-wrap justify-end">
+            <div className="flex items-center gap-2 flex-wrap justify-end">
               <span className={`mao-status-pill ${isAllHealthy ? "is-healthy" : "is-warning"}`}>
                 <span className="mao-status-dot" />
                 {isAllHealthy ? "状态健康" : overview.totalNodes === 0 ? "未连接" : `存在离线 (${overview.offlineNodes})`}

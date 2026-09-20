@@ -908,6 +908,8 @@ body::after {
 
 .instance-panel-headings {
   display: flex;
+  flex: 1 1 0;
+  min-width: 0;
   flex-direction: column;
   gap: 5px;
 }
@@ -960,6 +962,8 @@ body::after {
 }
 
 .instance-panel-aside {
+  flex-shrink: 0;
+  white-space: nowrap;
   color: var(--text-tertiary);
 }
 
@@ -1304,10 +1308,49 @@ body::after {
   border: 1px solid var(--border);
   border-radius: 14px;
   background: var(--surface);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.instance-segmented::-webkit-scrollbar {
+  display: none;
 }
 
 .instance-segmented.is-scrollable {
   overflow-x: auto;
+}
+
+.instance-segmented.is-even {
+  display: flex;
+  width: 100%;
+}
+
+.instance-segmented.is-prominent.is-even button,
+.instance-segmented.is-even button {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 8px;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .instance-segmented.is-stack-mobile {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    gap: 6px;
+  }
+
+  .instance-segmented.is-stack-mobile button {
+    width: 100%;
+    min-height: 38px;
+    padding: 8px 12px;
+    white-space: normal;
+    text-align: center;
+    line-height: 1.35;
+  }
 }
 
 .instance-segmented button,
@@ -1659,6 +1702,12 @@ body::after {
 @media (max-width: 720px) {
   .instance-panel {
     border-radius: 16px;
+  }
+
+  .instance-panel-header {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 6px 12px;
   }
 
   .instance-chart-panel .instance-panel-header {

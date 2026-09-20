@@ -520,7 +520,7 @@ const TaskBindingSection = memo(function TaskBindingSection({
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
           {expanded && (
             <button
               type="button"
@@ -661,16 +661,18 @@ const PremiumList = memo(function PremiumList({
         return (
           <div
             key={client.uuid}
-            className="flex items-center justify-between gap-3 border-b border-(--hairline) px-3 py-2 last:border-b-0"
+            className="flex flex-col gap-2 border-b border-(--hairline) px-3 py-2.5 last:border-b-0 sm:flex-row sm:items-center sm:justify-between sm:gap-3"
           >
-            <div className="flex min-w-0 items-center gap-2">
-              <Flag region={client.region ?? ""} size={13} />
-              <span
-                className="truncate text-[13px] text-(--text-primary)"
-                title={client.name}
-              >
-                {client.name}
-              </span>
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              <div className="flex min-w-0 items-center gap-2">
+                <Flag region={client.region ?? ""} size={13} />
+                <span
+                  className="truncate text-[13px] text-(--text-primary)"
+                  title={client.name}
+                >
+                  {client.name}
+                </span>
+              </div>
               <span
                 className="shrink-0 text-[11px] text-(--text-tertiary)"
                 title="该节点当前剩余价值（按账单周期折算，不含溢价）"
@@ -698,7 +700,7 @@ const PremiumList = memo(function PremiumList({
                 </span>
               )}
             </div>
-            <div className="flex shrink-0 items-center gap-2">
+            <div className="flex shrink-0 items-center gap-2 max-sm:w-full">
               <input
                 type="number"
                 inputMode="decimal"
@@ -718,7 +720,7 @@ const PremiumList = memo(function PremiumList({
                     ? "实际收购价（人民币），留空即清除记录"
                     : "该节点已忽略或汇率缺失，无法折算剩余价值"
                 }
-                className="surface-inset w-24 px-2 py-1 text-right text-[13px] outline-none disabled:opacity-45"
+                className="surface-inset w-24 px-2 py-1 text-right text-[13px] outline-none disabled:opacity-45 max-sm:flex-1 min-w-0"
               />
               <input
                 type="date"
@@ -734,7 +736,7 @@ const PremiumList = memo(function PremiumList({
                     ? "收购日期：修改后会按当前价格、周期、到期日和汇率回算该日剩余价值，重新计算并固化溢价"
                     : "该节点已忽略或汇率缺失，无法折算剩余价值"
                 }
-                className="surface-inset w-35 px-2 py-1 text-[12px] outline-none disabled:opacity-45"
+                className="surface-inset w-35 px-2 py-1 text-[12px] outline-none disabled:opacity-45 max-sm:flex-1 min-w-0"
               />
             </div>
           </div>
@@ -2161,7 +2163,7 @@ export function ThemeManage() {
                         {draft.homepageMultiPingTaskIds.map((taskId, slot) => (
                           <div
                             key={slot}
-                            className="flex items-center justify-between gap-2 rounded-[10px] border border-(--hairline) px-3 py-2"
+                            className="flex items-center justify-between gap-2 rounded-[10px] border border-(--hairline) px-3 py-2 min-w-0"
                           >
                             <span className="text-[12px] font-medium text-(--text-secondary) shrink-0">
                               槽位 #{slot + 1}
@@ -2169,7 +2171,7 @@ export function ThemeManage() {
                             <SettingSelect
                               value={String(taskId)}
                               onChange={(event) => patchMultiPingTask(slot, event.target.value)}
-                              wrapperClassName="flex-1"
+                              wrapperClassName="flex-1 min-w-0"
                             >
                               {sortedTasks.map((task) => (
                                 <option key={task.id} value={task.id}>

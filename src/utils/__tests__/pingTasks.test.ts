@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  assignHomepageMultiPingTask,
+  HOMEPAGE_MULTI_PING_MAX_COUNT,
+  HOMEPAGE_MULTI_PING_MIN_COUNT,
+  isHomepageMultiPingConfigured,
   normalizeHomepageMultiPingTaskIds,
   invertHomepagePingTaskBindings,
   hasHomepagePingTaskBinding,
@@ -57,8 +61,25 @@ describe("homepage ping task bindings", () => {
     expect(hasHomepagePingTaskBinding("node-c", bindings)).toBe(false);
   });
 
-  it("normalizes the global three-task selection in display order", () => {
-    expect(normalizeHomepageMultiPingTaskIds(["3", 1, 3, 2, 4])).toEqual([3, 1, 2]);
+  it("normalizes the multi-task selection up to max count in display order", () => {
+    expect(normalizeHomepageMultiPingTaskIds(["3", 1, 3, 2, 4])).toEqual([3, 1, 2, 4]);
+    expect(
+      normalizeHomepageMultiPingTaskIds([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),
+    ).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+    expect(HOMEPAGE_MULTI_PING_MAX_COUNT).toBe(8);
+    expect(HOMEPAGE_MULTI_PING_MIN_COUNT).toBe(1);
+  });
+
+  it("checks whether homepage multi-ping is configured", () => {
+    expect(isHomepageMultiPingConfigured([])).toBe(false);
+    expect(isHomepageMultiPingConfigured([1])).toBe(true);
+    expect(isHomepageMultiPingConfigured([1, 2, 3, 4, 5, 6])).toBe(true);
+  });
+
+  it("assigns tasks to slots and swaps when selecting an already chosen task", () => {
+    expect(assignHomepageMultiPingTask([1, 2, 3], 1, 4)).toEqual([1, 4, 3]);
+    expect(assignHomepageMultiPingTask([1, 2, 3], 0, 2)).toEqual([2, 1, 3]);
+    expect(assignHomepageMultiPingTask([1, 2, 3], 5, 4)).toEqual([1, 2, 3]);
   });
 
   it("uses the same three global tasks for every node and otherwise keeps single bindings", () => {

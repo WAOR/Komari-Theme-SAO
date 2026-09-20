@@ -90,7 +90,7 @@ describe("normalizeThemeSettings", () => {
       homepageMultiPingTaskIds: [3, 1, 3, 2, 4],
     });
     expect(resolved.enableHomepageMultiPing).toBe(true);
-    expect(resolved.homepageMultiPingTaskIds).toEqual([3, 1, 2]);
+    expect(resolved.homepageMultiPingTaskIds).toEqual([3, 1, 2, 4]);
   });
 
   it("defaults home sort to weight ascending and falls back to a field's natural direction", () => {

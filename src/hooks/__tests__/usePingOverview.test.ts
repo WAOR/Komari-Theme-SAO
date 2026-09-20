@@ -171,7 +171,8 @@ describe("homepage ping polling selection", () => {
     expect(resolveHomepagePingRequestMode("mini", true, [1, 2, 3])).toBe("single");
     expect(resolveHomepagePingRequestMode("list", true, [1, 2, 3])).toBe("single");
     expect(resolveHomepagePingRequestMode("large", false, [1, 2, 3])).toBe("single");
-    expect(resolveHomepagePingRequestMode("large", true, [1, 2])).toBe("single");
+    expect(resolveHomepagePingRequestMode("large", true, [1, 2])).toBe("multi");
+    expect(resolveHomepagePingRequestMode("large", true, [])).toBe("single");
   });
 
   it("retains the previous line when one multi-ping task fails", async () => {

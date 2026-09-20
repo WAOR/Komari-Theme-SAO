@@ -21,7 +21,7 @@ import { usePreferences } from "@/hooks/usePreferences";
 import { useMetricColorsVersion } from "@/hooks/useMetricColors";
 import { useThemeSettings } from "@/hooks/useThemeSettings";
 import { formatBytes } from "@/utils/format";
-import { HOMEPAGE_MULTI_PING_TASK_COUNT } from "@/utils/pingTasks";
+import { HOMEPAGE_MULTI_PING_MIN_COUNT } from "@/utils/pingTasks";
 import {
   speedRateColor,
   trafficQuotaSegmentColor,
@@ -155,7 +155,7 @@ export const NodeCard = memo(function NodeCard({
             </div>
           )}
 
-          {homepagePingLines.length === HOMEPAGE_MULTI_PING_TASK_COUNT ? (
+          {homepagePingLines.length >= HOMEPAGE_MULTI_PING_MIN_COUNT ? (
             <MultiPingStatus
               lines={homepagePingLines}
               density="large"
@@ -837,13 +837,13 @@ function GlobeArrow({
         <ArrowDown
           size={9}
           strokeWidth={2.4}
-          className="absolute -right-[2px] bottom-[-1px]"
+          className="absolute -right-0.5 -bottom-px"
         />
       ) : (
         <ArrowUp
           size={9}
           strokeWidth={2.4}
-          className="absolute -right-[2px] bottom-[-1px]"
+          className="absolute -right-0.5 -bottom-px"
         />
       )}
     </span>

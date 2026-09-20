@@ -20,7 +20,7 @@ import type {
 import { withTimeoutSignal } from "@/utils/abort";
 import { resolvePingSampleCounts } from "@/utils/pingMetrics";
 import {
-  HOMEPAGE_MULTI_PING_TASK_COUNT,
+  isHomepageMultiPingConfigured,
   resolveHomepagePingSelections,
   type HomepagePingTaskBindings,
 } from "@/utils/pingTasks";
@@ -56,7 +56,7 @@ export function resolveHomepagePingRequestMode(
 ): HomepagePingRequestMode {
   return (viewMode === "large" || viewMode === "compact") &&
     multiPingEnabled &&
-    multiTaskIds.length === HOMEPAGE_MULTI_PING_TASK_COUNT
+    isHomepageMultiPingConfigured(multiTaskIds)
     ? "multi"
     : "single";
 }

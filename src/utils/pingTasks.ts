@@ -1,5 +1,21 @@
 export type HomepagePingTaskBindings = Record<string, string[]>;
+
+/** 多线路模式最多同时展示几条线路，默认上限为 8 条 */
+export const HOMEPAGE_MULTI_PING_MAX_COUNT = 8;
+
+/** 至少选几条才算配置好。1 条即可生效 */
+export const HOMEPAGE_MULTI_PING_MIN_COUNT = 1;
+
+/** 兼容旧版 3 线路常量 */
 export const HOMEPAGE_MULTI_PING_TASK_COUNT = 3;
+
+/** 多线路模式的任务选够了没有。首页消费方与设置页的校验共用这一条口径。 */
+export function isHomepageMultiPingConfigured(taskIds: readonly number[]): boolean {
+  return taskIds.length >= HOMEPAGE_MULTI_PING_MIN_COUNT;
+}
+
+/** 默认三条线路（1, 2, 3） */
+export const DEFAULT_HOMEPAGE_MULTI_PING_TASK_IDS: readonly number[] = [1, 2, 3];
 
 const invertedBindingsCache = new WeakMap<HomepagePingTaskBindings, Map<string, number>>();
 
@@ -22,9 +38,26 @@ export function normalizeHomepageMultiPingTaskIds(value: unknown): number[] {
           : null;
     if (taskId == null || normalized.includes(taskId)) continue;
     normalized.push(taskId);
-    if (normalized.length === HOMEPAGE_MULTI_PING_TASK_COUNT) break;
+    if (normalized.length === HOMEPAGE_MULTI_PING_MAX_COUNT) break;
   }
   return normalized;
+}
+
+/**
+ * 把多线路的第 `slot` 条换成 `taskId`。选的线路已经在别的槽位时两条互换，不会选出两条一样的线路。
+ * 槽位越界时原样返回（拷贝）。
+ */
+export function assignHomepageMultiPingTask(
+  taskIds: readonly number[],
+  slot: number,
+  taskId: number,
+): number[] {
+  const next = [...taskIds];
+  if (!Number.isInteger(slot) || slot < 0 || slot >= next.length) return next;
+  const shownAt = next.indexOf(taskId);
+  if (shownAt >= 0 && shownAt !== slot) next[shownAt] = next[slot]!;
+  next[slot] = taskId;
+  return next;
 }
 
 export function normalizeHomepagePingTaskBindings(
@@ -99,7 +132,7 @@ export function resolveHomepagePingTaskIdsByClient(
   const selectedTaskIds = normalizeHomepageMultiPingTaskIds(multiTaskIds);
   const selectedTaskIdsByClient = new Map<string, number[]>();
 
-  if (selectedTaskIds.length === HOMEPAGE_MULTI_PING_TASK_COUNT) {
+  if (isHomepageMultiPingConfigured(selectedTaskIds)) {
     for (const uuid of clientUuids) {
       if (uuid) selectedTaskIdsByClient.set(uuid, selectedTaskIds);
     }
@@ -121,8 +154,7 @@ export function resolveHomepagePingSelections(
 ) {
   const normalizedMultiTaskIds =
     normalizeHomepageMultiPingTaskIds(multiTaskIds);
-  const useMultiPing =
-    normalizedMultiTaskIds.length === HOMEPAGE_MULTI_PING_TASK_COUNT;
+  const useMultiPing = isHomepageMultiPingConfigured(normalizedMultiTaskIds);
   const singleTaskIdsByClient = useMultiPing
     ? new Map<string, number[]>()
     : resolveHomepagePingTaskIdsByClient(clientUuids, bindings);

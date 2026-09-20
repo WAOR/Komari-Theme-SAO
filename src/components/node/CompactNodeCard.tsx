@@ -22,7 +22,7 @@ import { OsLogo } from "@/components/ui/OsLogo";
 import { useNodeCardModel } from "@/hooks/useNodeCardModel";
 import { useThemeSettings } from "@/hooks/useThemeSettings";
 import { formatBytes } from "@/utils/format";
-import { HOMEPAGE_MULTI_PING_TASK_COUNT } from "@/utils/pingTasks";
+import { HOMEPAGE_MULTI_PING_MIN_COUNT } from "@/utils/pingTasks";
 import { speedRateColor, speedRateColorFromBytes } from "@/utils/metricTone";
 import { supportsFineHover } from "@/utils/mediaQuery";
 import { formatHealthBucketTooltip } from "./pingBucketText";
@@ -748,7 +748,7 @@ export const CompactNodeCard = memo(function CompactNodeCard({
         isPriceVisible={isPriceVisible}
       />
       <CompactTrafficBar traffic={traffic} uptimeLabel={uptimeLabel} />
-      {homepagePingLines.length === HOMEPAGE_MULTI_PING_TASK_COUNT ? (
+      {homepagePingLines.length >= HOMEPAGE_MULTI_PING_MIN_COUNT ? (
         <MultiPingStatus
           lines={homepagePingLines}
           density="compact"

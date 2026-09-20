@@ -30,7 +30,7 @@ import { resolveTrafficUsage, trafficTypeLabel, type TrafficDisplay } from "@/ut
 import { resolveOsInfo } from "@/components/ui/OsLogo";
 import {
   hasHomepagePingTaskBinding,
-  HOMEPAGE_MULTI_PING_TASK_COUNT,
+  isHomepageMultiPingConfigured,
 } from "@/utils/pingTasks";
 
 interface NodeCardModelOptions {
@@ -64,7 +64,7 @@ export function useNodeCardModel(
   const multiPingActive =
     includeMultiPing &&
     enableHomepageMultiPing &&
-    homepageMultiPingTaskIds.length === HOMEPAGE_MULTI_PING_TASK_COUNT;
+    isHomepageMultiPingConfigured(homepageMultiPingTaskIds);
   const realPing = useNodePingOverview(uuid, !multiPingActive);
   const realPingLines = useNodePingOverviewLines(uuid, multiPingActive);
   const hasRealHomepagePingBinding = useMemo(

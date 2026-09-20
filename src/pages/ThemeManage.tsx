@@ -1515,131 +1515,133 @@ export function ThemeManage() {
                     onPatch={patch}
                   />
 
-                  <div className="surface-inset flex flex-col gap-3 px-4 py-4">
-                    <span className="setting-subhead-title">媒体形式</span>
-                    <div className="instance-segmented is-prominent is-even">
-                      {BACKGROUND_MEDIA_TYPE_OPTIONS.map(({ value, label, icon: Icon }) => (
-                        <button
-                          key={value}
-                          type="button"
-                          data-active={draft.backgroundMediaType === value ? "true" : "false"}
-                          aria-pressed={draft.backgroundMediaType === value}
-                          onClick={() => patch("backgroundMediaType", value)}
-                          className="inline-flex items-center justify-center gap-2"
-                        >
-                          <Icon size={14} />
-                          <span>{label}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                  {draft.enableBackgroundImage && (
+                    <>
+                      <div className="surface-inset flex flex-col gap-3 px-4 py-4">
+                        <span className="setting-subhead-title">媒体形式</span>
+                        <div className="instance-segmented is-prominent is-even">
+                          {BACKGROUND_MEDIA_TYPE_OPTIONS.map(({ value, label, icon: Icon }) => (
+                            <button
+                              key={value}
+                              type="button"
+                              data-active={draft.backgroundMediaType === value ? "true" : "false"}
+                              aria-pressed={draft.backgroundMediaType === value}
+                              onClick={() => patch("backgroundMediaType", value)}
+                              className="inline-flex items-center justify-center gap-2"
+                            >
+                              <Icon size={14} />
+                              <span>{label}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
 
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <label className="surface-inset flex flex-col gap-2 px-4 py-3">
-                      <span className="setting-subhead-title">
-                        桌面端背景图 URL
-                      </span>
-                      <input
-                        value={draft.backgroundImage}
-                        onChange={(event) => patch("backgroundImage", event.target.value)}
-                        placeholder="https://example.com/desktop.jpg"
-                        className="surface-inset w-full px-3 py-2 text-[13px] outline-none"
-                      />
-                      <span className="setting-hint">
-                        宽屏与桌面端加载的背景图。
-                      </span>
-                    </label>
-                    <label className="surface-inset flex flex-col gap-2 px-4 py-3">
-                      <span className="setting-subhead-title">
-                        移动端背景图 URL
-                      </span>
-                      <input
-                        value={draft.backgroundImageMobile}
-                        onChange={(event) => patch("backgroundImageMobile", event.target.value)}
-                        placeholder="https://example.com/mobile.jpg"
-                        className="surface-inset w-full px-3 py-2 text-[13px] outline-none"
-                      />
-                      <span className="setting-hint">
-                        竖屏手机加载，留空则沿用桌面端。
-                      </span>
-                    </label>
-                  </div>
+                      {draft.backgroundMediaType === "image" ? (
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <label className="surface-inset flex flex-col gap-2 px-4 py-3">
+                            <span className="setting-subhead-title">
+                              桌面端背景图 URL
+                            </span>
+                            <input
+                              value={draft.backgroundImage}
+                              onChange={(event) => patch("backgroundImage", event.target.value)}
+                              placeholder="https://example.com/desktop.jpg"
+                              className="surface-inset w-full px-3 py-2 text-[13px] outline-none"
+                            />
+                            <span className="setting-hint">
+                              宽屏与桌面端加载的背景图。
+                            </span>
+                          </label>
 
-                  {draft.backgroundMediaType === "video" && (
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <label className="surface-inset flex flex-col gap-2 px-4 py-3">
-                        <span className="setting-subhead-title">
-                          浅色模式视频 URL (MP4)
-                        </span>
-                        <input
-                          value={draft.backgroundVideo}
-                          onChange={(event) => patch("backgroundVideo", event.target.value)}
-                          placeholder={DEFAULT_BACKGROUND_VIDEO_URL}
-                          aria-invalid={backgroundVideoLightInvalid}
-                          className="surface-inset w-full px-3 py-2 text-[13px] outline-none"
-                        />
-                        <span className="setting-hint">
-                          {backgroundVideoLightInvalid
-                            ? (backgroundVideoLightMalformed
+                          <label className="surface-inset flex flex-col gap-2 px-4 py-3">
+                            <span className="setting-subhead-title">
+                              移动端背景图 URL
+                            </span>
+                            <input
+                              value={draft.backgroundImageMobile}
+                              onChange={(event) => patch("backgroundImageMobile", event.target.value)}
+                              placeholder="https://example.com/mobile.jpg"
+                              className="surface-inset w-full px-3 py-2 text-[13px] outline-none"
+                            />
+                            <span className="setting-hint">
+                              竖屏手机加载，留空则沿用桌面端。
+                            </span>
+                          </label>
+
+                          <div className="surface-inset flex flex-col gap-2 px-4 py-3">
+                            <span className="setting-subhead-title">平铺尺寸</span>
+                            <div className="instance-segmented is-even">
+                              {BACKGROUND_SIZE_OPTIONS.map(({ value, label }) => (
+                                <button
+                                  key={value}
+                                  type="button"
+                                  data-active={draftBgAlignment.size === value ? "true" : "false"}
+                                  onClick={() => setBgSize(value)}
+                                >
+                                  {label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="surface-inset flex flex-col gap-2 px-4 py-3">
+                            <span className="setting-subhead-title">对齐位置</span>
+                            <div className="instance-segmented is-even">
+                              {BACKGROUND_POSITION_OPTIONS.map(({ value, label }) => (
+                                <button
+                                  key={value}
+                                  type="button"
+                                  data-active={draftBgAlignment.position === value ? "true" : "false"}
+                                  onClick={() => setBgPosition(value)}
+                                >
+                                  {label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <label className="surface-inset flex flex-col gap-2 px-4 py-3">
+                            <span className="setting-subhead-title">
+                              浅色模式视频 URL (MP4)
+                            </span>
+                            <input
+                              value={draft.backgroundVideo}
+                              onChange={(event) => patch("backgroundVideo", event.target.value)}
+                              placeholder={DEFAULT_BACKGROUND_VIDEO_URL}
+                              aria-invalid={backgroundVideoLightInvalid}
+                              className="surface-inset w-full px-3 py-2 text-[13px] outline-none"
+                            />
+                            <span className="setting-hint">
+                              {backgroundVideoLightInvalid
+                                ? (backgroundVideoLightMalformed
+                                    ? "请输入 HTTP(S) 或以 / 开头的站内视频直链"
+                                    : `视频模式需要浅色视频地址，可使用 ${DEFAULT_BACKGROUND_VIDEO_URL}`)
+                                : "留空使用 SAO 默认主题动态视频。"}
+                            </span>
+                          </label>
+                          <label className="surface-inset flex flex-col gap-2 px-4 py-3">
+                            <span className="setting-subhead-title">
+                              深色模式视频 URL (MP4)
+                            </span>
+                            <input
+                              value={draft.backgroundVideoDark}
+                              onChange={(event) => patch("backgroundVideoDark", event.target.value)}
+                              placeholder="可选，夜间专属视频"
+                              aria-invalid={backgroundVideoDarkInvalid}
+                              className="surface-inset w-full px-3 py-2 text-[13px] outline-none"
+                            />
+                            <span className="setting-hint">
+                              {backgroundVideoDarkInvalid
                                 ? "请输入 HTTP(S) 或以 / 开头的站内视频直链"
-                                : `视频模式需要浅色视频地址，可使用 ${DEFAULT_BACKGROUND_VIDEO_URL}`)
-                            : "留空使用 SAO 默认主题动态视频。"}
-                        </span>
-                      </label>
-                      <label className="surface-inset flex flex-col gap-2 px-4 py-3">
-                        <span className="setting-subhead-title">
-                          深色模式视频 URL (MP4)
-                        </span>
-                        <input
-                          value={draft.backgroundVideoDark}
-                          onChange={(event) => patch("backgroundVideoDark", event.target.value)}
-                          placeholder="可选，夜间专属视频"
-                          aria-invalid={backgroundVideoDarkInvalid}
-                          className="surface-inset w-full px-3 py-2 text-[13px] outline-none"
-                        />
-                        <span className="setting-hint">
-                          {backgroundVideoDarkInvalid
-                            ? "请输入 HTTP(S) 或以 / 开头的站内视频直链"
-                            : "留空则在深色下自动叠加暗色暗场滤镜。"}
-                        </span>
-                      </label>
-                    </div>
+                                : "留空则在深色下自动叠加暗色暗场滤镜。"}
+                            </span>
+                          </label>
+                        </div>
+                      )}
+                    </>
                   )}
-
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="surface-inset flex flex-col gap-3 px-4 py-4">
-                      <span className="setting-subhead-title">平铺尺寸</span>
-                      <div className="instance-segmented is-scrollable">
-                        {BACKGROUND_SIZE_OPTIONS.map(({ value, label }) => (
-                          <button
-                            key={value}
-                            type="button"
-                            data-active={draftBgAlignment.size === value ? "true" : "false"}
-                            aria-pressed={draftBgAlignment.size === value}
-                            onClick={() => setBgSize(value)}
-                          >
-                            {label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="surface-inset flex flex-col gap-3 px-4 py-4">
-                      <span className="setting-subhead-title">对齐位置</span>
-                      <div className="instance-segmented is-scrollable">
-                        {BACKGROUND_POSITION_OPTIONS.map(({ value, label }) => (
-                          <button
-                            key={value}
-                            type="button"
-                            data-active={draftBgAlignment.position === value ? "true" : "false"}
-                            aria-pressed={draftBgAlignment.position === value}
-                            onClick={() => setBgPosition(value)}
-                          >
-                            {label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
 
                   <div className="surface-inset flex flex-col gap-3 px-4 py-4">
                     <div className="flex flex-wrap items-center justify-between gap-3">

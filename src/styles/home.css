@@ -1507,14 +1507,14 @@
 
 /* 带宽评级徽章变体：格式与集群状态 .mao-status-pill 保持一致 */
 .overview-card-rating.is-bandwidth-badge {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-width: 76px;
   box-sizing: border-box;
   text-align: center;
-  gap: 5.5px;
-  padding: 3.5px 9px;
+  padding: 3.5px 9px 3.5px 20px;
   border-radius: 999px;
   font-size: 11px;
   font-weight: 650;
@@ -1552,8 +1552,11 @@
   color: var(--badge-color);
 }
 
-/* 指示圆点呼吸闪烁效果：保持原版精致小巧的 5px 光晕与明暗呼吸感，使用独立等级动画锁死颜色，彻底根除移动端 currentColor 串色 BUG */
+/* 指示圆点呼吸闪烁效果：位置绝对钉死在左侧 9px 槽位，杜绝跟随评级文字长短发生水平位移与缩进抖动 */
 .overview-card-rating.is-bandwidth-badge .mao-status-dot {
+  position: absolute;
+  left: 9px;
+  top: calc(50% - 3px);
   width: 6px;
   height: 6px;
   border-radius: 999px;

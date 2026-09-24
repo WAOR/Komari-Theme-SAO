@@ -228,31 +228,19 @@ function getMetricPayloadRange(
   };
 }
 
-async function apiGet<T>(
+function parseApiResponse<T>(
+  json: unknown,
   path: string,
   schema: z.ZodType<T>,
-  options?: { signal?: AbortSignal; timeout?: number },
-): Promise<T> {
-  const resp = await fetchWithTimeout(
-    path,
-    {
-      credentials: "include",
-      headers: { Accept: "application/json" },
-    },
-    options?.timeout ?? DEFAULT_API_TIMEOUT_MS,
-    options?.signal,
-  );
-  if (!resp.ok) {
-    throw new ApiRequestError(`Request ${path} failed: ${resp.status}`, resp.status, path);
-  }
-  const json = (await resp.json()) as unknown;
+  status = 200,
+): T {
   const envelopeResult = ApiEnvelope.safeParse(json);
   if (envelopeResult.success) {
     const envelope = envelopeResult.data;
     if (envelope.status?.toLowerCase() === "error") {
       throw new ApiRequestError(
         envelope.message || `Request ${path} failed`,
-        resp.status,
+        status,
         path,
       );
     }
@@ -273,6 +261,52 @@ async function apiGet<T>(
       envelopeResult.success ? "" : envelopeResult.error.issues[0]?.message ?? ""
     }; raw=${rawResult.error.issues[0]?.message ?? ""}`,
   );
+}
+
+async function apiGet<T>(
+  path: string,
+  schema: z.ZodType<T>,
+  options?: { signal?: AbortSignal; timeout?: number },
+): Promise<T> {
+  const earlyKey =
+    path === "/api/public"
+      ? "public"
+      : path === "/api/me"
+        ? "me"
+        : path === "/api/nodes"
+          ? "nodes"
+          : null;
+
+  if (earlyKey && typeof window !== "undefined" && !options?.signal?.aborted) {
+    const earlyObj = (window as unknown as { __EARLY_DATA__?: Record<string, Promise<unknown> | null> }).__EARLY_DATA__;
+    const earlyPromise = earlyObj?.[earlyKey];
+    if (earlyPromise) {
+      earlyObj[earlyKey] = null;
+      try {
+        const json = await earlyPromise;
+        if (json != null) {
+          return parseApiResponse(json, path, schema, 200);
+        }
+      } catch (err) {
+        if (err instanceof ApiRequestError) throw err;
+      }
+    }
+  }
+
+  const resp = await fetchWithTimeout(
+    path,
+    {
+      credentials: "include",
+      headers: { Accept: "application/json" },
+    },
+    options?.timeout ?? DEFAULT_API_TIMEOUT_MS,
+    options?.signal,
+  );
+  if (!resp.ok) {
+    throw new ApiRequestError(`Request ${path} failed: ${resp.status}`, resp.status, path);
+  }
+  const json = (await resp.json()) as unknown;
+  return parseApiResponse(json, path, schema, resp.status);
 }
 
 async function rpcCall<T>(

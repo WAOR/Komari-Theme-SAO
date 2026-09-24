@@ -30,6 +30,8 @@
   --surface-a: color-mix(in srgb, var(--surface) calc(var(--surface-alpha) * 1%), transparent);
   --surface-elev-a: color-mix(in srgb, var(--surface-elev) calc(var(--surface-alpha) * 1%), transparent);
   --hover-bg-a: color-mix(in srgb, var(--hover-bg) calc(var(--surface-alpha) * 1%), transparent);
+  --bg-card: var(--surface-a);
+  --bg-surface: var(--surface-elev-a);
 
   font-family: var(--font-sans);
   font-synthesis: none;

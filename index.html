@@ -23,6 +23,23 @@
     <meta name="description" content="A Komari monitor theme." />
     <script>
       (() => {
+        // 超前核心 API 预加载：利用浏览器解析 HTML 与下载 React Bundle 的网络空档期，提前并发拉取关键数据
+        try {
+          if (typeof window !== "undefined" && typeof fetch === "function") {
+            const p = window.location.pathname || "/";
+            const dir = p.endsWith("/") ? p : p.substring(0, p.lastIndexOf("/") + 1);
+            const prefix = dir === "/" ? "" : dir.replace(/\/+$/, "");
+            const base = prefix ? prefix : "";
+            const headers = { Accept: "application/json" };
+            const opts = { credentials: "include", headers };
+            window.__EARLY_DATA__ = {
+              public: fetch(base + "/api/public", opts).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+              me: fetch(base + "/api/me", opts).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+              nodes: fetch(base + "/api/nodes", opts).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+            };
+          }
+        } catch {}
+
         try {
           const cachedTitle = localStorage.getItem("komaritheme:sitename");
           if (cachedTitle && cachedTitle.trim()) {

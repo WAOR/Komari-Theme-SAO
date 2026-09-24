@@ -9,6 +9,7 @@ import { useSiteMetadata } from "@/hooks/useSiteMetadata";
 import { readStoredSiteMetadata } from "@/hooks/useSiteMetadata";
 import { useMetricColorsSync } from "@/hooks/useMetricColors";
 import { useNodeStoreStatus } from "@/hooks/useNode";
+import { HomeSkeleton } from "./HomeSkeleton";
 
 export function AppShell() {
   useAppearance();
@@ -40,8 +41,12 @@ export function AppShell() {
     auth.data?.logged_in !== true;
   const isHomeDashboard =
     normalizedPath === "/" && new URLSearchParams(search).get("view") !== "theme-manage";
+  // 并发直出：首页默认并发拉取节点，消除瀑布流排队；若后续判定私有则由 isPrivateVisitor 安全拦截
   const canHydrateHome =
-    isHomeDashboard && !isCheckingAccess && !accessError && !isPrivateVisitor;
+    isHomeDashboard &&
+    !accessError &&
+    !isPrivateVisitor &&
+    !(publicConfig.data?.private_site === true && !auth.data?.logged_in);
   const homeStoreStatus = useNodeStoreStatus(canHydrateHome);
   const isCheckingHomeData =
     canHydrateHome && !homeStoreStatus.hydrated && !homeStoreStatus.nodeInfoError;
@@ -79,9 +84,13 @@ export function AppShell() {
       <main className="app-main flex-1 px-3 pb-8 pt-6 sm:px-5 md:px-6 lg:px-8">
         <div className="mx-auto w-full max-w-430">
           {isCheckingShell ? (
-            <div className="flex min-h-[60vh] items-center justify-center">
-              <Spinner size={24} />
-            </div>
+            isHomeDashboard && !isPrivateVisitor ? (
+              <HomeSkeleton />
+            ) : (
+              <div className="flex min-h-[60vh] items-center justify-center">
+                <Spinner size={24} />
+              </div>
+            )
           ) : accessError ? (
             <AccessError onRetry={() => void publicConfig.refetch()} />
           ) : isPrivateVisitor ? (

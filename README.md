@@ -8,6 +8,10 @@
   <img src="https://img.shields.io/badge/TypeScript-Strict-blue" alt="TypeScript">
 </p>
 
+<p align="center">
+  <img src="./preview.png" alt="Theme Preview" width="100%">
+</p>
+
 > ⚠️ **项目声明**  
 > 本项目为个人基于开源社区优秀成果进行的二次开发与定制分支。  
 > 若您正在寻找上游原版或希望探索更多衍生分支，建议前往并支持原作者的项目：

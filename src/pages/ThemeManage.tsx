@@ -1939,8 +1939,8 @@ export function ThemeManage() {
                 />
                 <ToggleRow
                   field="showTodayTrafficPopover"
-                  title="悬浮显示当日流量气泡 (SAO 特色)"
-                  desc="鼠标悬停在卡片或小卡片流量指标时，弹出精致的今日已用流量透视窗。"
+                  title="显示当日流量与峰值按钮"
+                  desc="在节点卡片上显示扩展统计按钮，点击或悬停可查看当日出入站流量与峰值带宽。"
                   checked={draft.showTodayTrafficPopover}
                   onPatch={patch}
                 />
@@ -1966,8 +1966,8 @@ export function ThemeManage() {
                     />
                     <ToggleRow
                       field="showCostSummaryFloatingButton"
-                      title="显示资产悬浮按钮"
-                      desc="卡内入口不可用时（总览隐藏或其开关关闭），以悬浮按钮进入资产统计页。"
+                      title="显示资产看板悬浮按钮"
+                      desc="卡内入口不可用时，在右下角提供可自由拖动停靠的悬浮钱币按钮进入资产统计页。"
                       checked={draft.showCostSummaryFloatingButton}
                       onPatch={patch}
                     />

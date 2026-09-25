@@ -15,7 +15,7 @@
 Komari 探针监控服务端 (komari-monitor/komari)
   └── komari-theme-Lumina (作者: @stqfdyr)
         └── Komari-Theme-LuminaPlus (作者: @shanyang242 / @shark)
-              └── Komari-Theme-SAO (当前仓库: 个人自用定制分支)
+              └── Komari-Theme-SAO (作者: @WAOR / 当前仓库)
 ```
 
 1. **[Komari](https://github.com/komari-monitor/komari)**：底层探针监控服务端。

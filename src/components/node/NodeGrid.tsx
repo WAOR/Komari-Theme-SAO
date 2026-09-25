@@ -13,6 +13,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { Flag } from "@/components/ui/Flag";
+import { FloatingAssetButton } from "@/components/cost/FloatingAssetButton";
 import { useAuth } from "@/hooks/useAuth";
 import {
   useAllNodeMeta,
@@ -966,18 +967,7 @@ export function NodeGrid() {
   // 资产页悬浮入口 + 首页概览卡在「空节点」与正常两个分支里完全一致，提取一次复用。
   const homeHeader = (
     <>
-      {showCostFloatingButton && (
-        <Link
-          to="/assets"
-          className="cost-summary-ball show"
-          aria-label="打开资产统计页"
-          title="资产统计"
-        >
-          <span className="cost-summary-ball-icon" aria-hidden>
-            <CircleDollarSign size={16} />
-          </span>
-        </Link>
-      )}
+      {showCostFloatingButton && <FloatingAssetButton />}
       <HomeBrand siteName={siteName} />
       {showHomeOverview && (
         <HomeOverviewCards

@@ -4,7 +4,7 @@
   "version": "1.0.8",
   "type": "module",
   "description": "Komari-Theme-SAO",
-  "author": "codex&shark&shanyang",
+  "author": "WAOR",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

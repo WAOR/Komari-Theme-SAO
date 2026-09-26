@@ -142,14 +142,14 @@
 2. 在极简探针后台主题设置页面上传启用。
 
 ### CF-Server-Monitor (CFSM)
-在 CFSM 管理后台「系统设置」→「主题管理」中填入以下地址：
-```text
-# 追踪最新发布版（推荐）：
-https://github.com/WAOR/CFSM-SAO/tree/dist
+**方式一：官方主题商店一键启用（推荐）**
+1. 登录 CFSM 管理后台，前往「系统设置」→「主题管理」；
+2. 在主题列表中找到 **SAO** 主题，点击启用即可。
 
-# 或指定特定 Commit 锁定生产版本：
-https://github.com/WAOR/CFSM-SAO/tree/<40位CommitSHA>
-```
+**方式二：手动添加仓库地址（高级/锁定特定版本）**
+在「主题管理」中填入以下地址：
+- 追踪最新发布版：`https://github.com/WAOR/CFSM-SAO/tree/dist`
+- 锁定特定 Commit：`https://github.com/WAOR/CFSM-SAO/tree/<40位CommitSHA>`
 
 ---
 

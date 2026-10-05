@@ -8,7 +8,7 @@ function dateAfter(days: number) {
   return new Date(Date.now() + days * 86_400_000).toISOString();
 }
 
-const nodes: NodeInfo[] = [
+const BASE_NODES: NodeInfo[] = [
   {
     uuid: "tokyo-edge-01",
     name: "Tokyo Edge",
@@ -197,23 +197,111 @@ const nodes: NodeInfo[] = [
   },
 ];
 
-const statusProfiles = [
-  [18, 2.1, 0.7, 34, 11, 18_000_000, 72_000_000, 820 * GIB, 1.1 * TIB, true],
-  [46, 9.2, 2.6, 57, 38, 32_000_000, 98_000_000, 1.8 * TIB, 2.2 * TIB, true],
-  [91, 27.4, 8.8, 83, 161, 8_000_000, 24_000_000, 3.6 * TIB, 2.9 * TIB, true],
-  [63, 11.8, 3.4, 66, 78, 21_000_000, 54_000_000, 1.4 * TIB, 1.7 * TIB, true],
-  [31, 3.4, 1.2, 42, 24, 28_000_000, 86_000_000, 740 * GIB, 1.3 * TIB, true],
-  [0, 0, 0, 38, 232, 0, 0, 1.1 * TIB, 880 * GIB, false],
-] as const;
+function getMockNodes(): NodeInfo[] {
+  if (typeof window === "undefined") return BASE_NODES;
+  const params = new URLSearchParams(window.location.search);
+  let sessionNodes = 0;
+  try {
+    sessionNodes = Number(window.sessionStorage?.getItem("komari_dev_nodes")) || 0;
+  } catch {}
+  const targetCount = Number(params.get("nodes")) || sessionNodes;
+  if (!targetCount || targetCount <= BASE_NODES.length) {
+    return BASE_NODES;
+  }
+
+  // 如果用户指定了像 ?mock=1&nodes=60 或 100，自动扩充复制
+  const result: NodeInfo[] = [...BASE_NODES];
+  let i = BASE_NODES.length;
+  while (result.length < targetCount) {
+    const template = BASE_NODES[i % BASE_NODES.length]!;
+    const copyIndex = Math.floor(i / BASE_NODES.length) + 1;
+    result.push({
+      ...template,
+      uuid: `${template.uuid}-sub-${copyIndex}`,
+      name: `${template.name} #${copyIndex}`,
+      weight: template.weight + i * 5,
+      ipv4: `203.0.113.${(10 + i) % 250}`,
+      ipv6: `2001:db8::${(10 + i).toString(16)}`,
+    });
+    i++;
+  }
+  return result;
+}
+
+const nodes: NodeInfo[] = getMockNodes();
+
+function wave(seed: number, period: number, amplitude: number, offset: number) {
+  return offset + Math.sin((Date.now() / period) * (1 + seed * 0.17)) * amplitude;
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function getNodeStatusProfile(index: number, node: NodeInfo) {
+  // 保持约 6-7% 离线
+  const isOffline = index % 15 === 5;
+  const isHighLoad = !isOffline && index % 9 === 2;
+
+  if (isOffline) {
+    return [0, 0, 0, 38, 232, 0, 0, 1.1 * TIB, 880 * GIB, false] as const;
+  }
+
+  const cpu = isHighLoad
+    ? Math.round(clamp(wave(index, 14_000, 8, 88), 75, 98))
+    : Math.round(clamp(wave(index, 24_000, 25, 42), 5, 75));
+
+  const load = +(cpu * 0.08 * (node.cpu_cores || 4) / 4).toFixed(2);
+  const swapPct = isHighLoad ? 35 : Math.round(clamp(wave(index, 30_000, 10, 12), 0, 40));
+  const diskPct = Math.round(clamp(30 + (index % 7) * 9, 10, 92));
+
+  // Ping 延迟根据地区产生拟真基准延迟
+  const region = (node.region || "").toUpperCase();
+  let basePing = 36;
+  if (region === "HK" || region === "TW" || region === "SG" || region === "JP") {
+    basePing = 24 + (index % 4) * 14;
+  } else if (region === "US" || region === "CA") {
+    basePing = 135 + (index % 3) * 8;
+  } else if (region === "DE" || region === "GB" || region === "FR" || region === "CH") {
+    basePing = 175 + (index % 3) * 7;
+  } else if (region === "AU" || region === "KR") {
+    basePing = 215 + (index % 3) * 16;
+  } else {
+    basePing = 50 + (index % 5) * 30;
+  }
+
+  // 吞吐阶梯：在方格矩阵呈现不同梯级（>10MB/s 梯级3、>2MB/s 梯级2、>200KB/s 梯级1、空闲）
+  const speedTier = index % 4;
+  let upRate = 50_000;
+  let downRate = 120_000;
+  if (speedTier === 3) {
+    upRate = Math.round(clamp(wave(index, 9_000, 4_000_000, 12_000_000), 8_000_000, 35_000_000));
+    downRate = Math.round(clamp(wave(index + 2, 11_000, 6_000_000, 18_000_000), 10_000_000, 50_000_000));
+  } else if (speedTier === 2) {
+    upRate = Math.round(clamp(wave(index, 12_000, 1_000_000, 3_500_000), 2_100_000, 6_000_000));
+    downRate = Math.round(clamp(wave(index + 1, 14_000, 1_500_000, 4_800_000), 2_200_000, 8_000_000));
+  } else if (speedTier === 1) {
+    upRate = Math.round(clamp(wave(index, 15_000, 200_000, 450_000), 220_000, 800_000));
+    downRate = Math.round(clamp(wave(index + 3, 17_000, 300_000, 750_000), 250_000, 1_200_000));
+  } else {
+    upRate = Math.round(clamp(wave(index, 20_000, 40_000, 60_000), 5_000, 120_000));
+    downRate = Math.round(clamp(wave(index + 1, 22_000, 60_000, 90_000), 8_000, 160_000));
+  }
+
+  const totalUp = (800 + index * 120) * GIB;
+  const totalDown = (1200 + index * 180) * GIB;
+
+  return [cpu, load, swapPct, diskPct, basePing, upRate, downRate, totalUp, totalDown, true] as const;
+}
 
 function latestStatus() {
   const now = Date.now();
   return Object.fromEntries(
     nodes.map((node, index) => {
       const [cpu, load, swapPct, diskPct, , up, down, totalUp, totalDown, online] =
-        statusProfiles[index];
+        getNodeStatusProfile(index, node);
       if (!online) return [node.uuid, { online: false }];
-      const memoryPct = index === 2 ? 88 : 36 + index * 7;
+      const memoryPct = index % 9 === 2 ? 88 : 36 + (index % 6) * 7;
       return [
         node.uuid,
         {
@@ -224,8 +312,8 @@ function latestStatus() {
           swap: (node.swap_total * swapPct) / 100,
           swap_total: node.swap_total,
           load,
-          load5: load * 0.86,
-          load15: load * 0.72,
+          load5: +(load * 0.86).toFixed(2),
+          load15: +(load * 0.72).toFixed(2),
           disk: (node.disk_total * diskPct) / 100,
           disk_total: node.disk_total,
           net_out: up,
@@ -233,9 +321,9 @@ function latestStatus() {
           net_total_up: totalUp,
           net_total_down: totalDown,
           uptime: (index + 3) * 864_000,
-          process: 96 + index * 21,
-          connections: 180 + index * 44,
-          connections_udp: 12 + index * 3,
+          process: 96 + (index % 10) * 21,
+          connections: 180 + (index % 10) * 44,
+          connections_udp: 12 + (index % 10) * 3,
           updated_at: now,
         },
       ];
@@ -245,13 +333,13 @@ function latestStatus() {
 
 function loadRecords(uuid: string) {
   const node = nodes.find((item) => item.uuid === uuid) ?? nodes[0];
-  const index = nodes.indexOf(node);
-  const profile = statusProfiles[Math.max(0, index)];
+  const index = Math.max(0, nodes.indexOf(node));
+  const profile = getNodeStatusProfile(index, node);
   const now = Date.now();
   return Array.from({ length: 72 }, (_, sample) => {
     const phase = sample / 7 + index;
     const cpu = Math.max(2, Math.min(98, profile[0] + Math.sin(phase) * 10));
-    const ram = node.mem_total * Math.min(0.94, 0.35 + index * 0.08 + Math.cos(phase) * 0.04);
+    const ram = node.mem_total * Math.min(0.94, 0.35 + (index % 6) * 0.08 + Math.cos(phase) * 0.04);
     return {
       cpu,
       gpu: 0,
@@ -259,16 +347,16 @@ function loadRecords(uuid: string) {
       ram_total: node.mem_total,
       swap: node.swap_total * 0.08,
       swap_total: node.swap_total,
-      load: profile[1] + Math.sin(phase) * 0.8,
-      temp: 48 + index * 4 + Math.sin(phase) * 3,
+      load: +(profile[1] + Math.sin(phase) * 0.8).toFixed(2),
+      temp: 48 + (index % 6) * 4 + Math.sin(phase) * 3,
       disk: node.disk_total * (profile[3] / 100),
       disk_total: node.disk_total,
       net_in: Math.max(0, profile[6] * (0.7 + Math.sin(phase) * 0.24)),
       net_out: Math.max(0, profile[5] * (0.7 + Math.cos(phase) * 0.24)),
-      net_total_up: Math.max(0, profile[7] - (71 - sample) * (12 + index * 3) * MIB),
-      net_total_down: Math.max(0, profile[8] - (71 - sample) * (28 + index * 5) * MIB),
-      process: 100 + index * 20,
-      connections: 180 + index * 40,
+      net_total_up: Math.max(0, profile[7] - (71 - sample) * (12 + (index % 6) * 3) * MIB),
+      net_total_down: Math.max(0, profile[8] - (71 - sample) * (28 + (index % 6) * 5) * MIB),
+      process: 100 + (index % 10) * 20,
+      connections: 180 + (index % 10) * 40,
       connections_udp: 16,
       time: now - (71 - sample) * 300_000,
       client: node.uuid,
@@ -294,7 +382,9 @@ function trafficMetricPayload(params: {
   const pointCount = Math.max(1, Math.ceil((end - start) / intervalMs));
   const series = entityIds.flatMap((uuid) => {
     const index = nodes.findIndex((node) => node.uuid === uuid);
-    if (index < 0 || index === nodes.length - 1) return [];
+    if (index < 0) return [];
+    const profile = getNodeStatusProfile(index, nodes[index]);
+    if (!profile[9]) return [];
     return metricKeys.map((metricKey) => ({
       metric_key: metricKey,
       entity_id: uuid,
@@ -304,12 +394,12 @@ function trafficMetricPayload(params: {
         const time = new Date(start + pointIndex * intervalMs).toISOString();
         const value =
           metricKey === "traffic.up"
-            ? (12 + index * 3) * MIB * (0.72 + Math.sin(phase) * 0.24)
+            ? (12 + (index % 6) * 3) * MIB * (0.72 + Math.sin(phase) * 0.24)
             : metricKey === "traffic.down"
-              ? (28 + index * 5) * MIB * (0.74 + Math.cos(phase) * 0.22)
+              ? (28 + (index % 6) * 5) * MIB * (0.74 + Math.cos(phase) * 0.22)
               : metricKey === "net.out.rate"
-                ? statusProfiles[index][5] * (0.62 + Math.sin(phase) * 0.34)
-                : statusProfiles[index][6] * (0.66 + Math.cos(phase) * 0.3);
+                ? profile[5] * (0.62 + Math.sin(phase) * 0.34)
+                : profile[6] * (0.66 + Math.cos(phase) * 0.3);
         return { time, value: Math.max(0, value), count: 1 };
       }),
     }));
@@ -345,6 +435,7 @@ function pingMetricPayload(params: {
   const series = entityIds.flatMap((uuid) => {
     const index = nodes.findIndex((node) => node.uuid === uuid);
     if (index < 0) return [];
+    const profile = getNodeStatusProfile(index, nodes[index]);
     return tasks.flatMap((task) =>
       metricKeys.map((metricKey) => ({
         metric_key: metricKey,
@@ -353,11 +444,11 @@ function pingMetricPayload(params: {
         interval_seconds: intervalMs / 1000,
         points: Array.from({ length: pointCount }, (_, pointIndex) => {
           const time = new Date(start + (pointIndex + 1) * intervalMs).toISOString();
-          const lost = index === 2 && pointIndex % 17 === 0;
+          const lost = !profile[9] || (index % 11 === 0 && pointIndex % 17 === 0);
           if (metricKey === "ping.loss") {
             return { time, value: lost ? 1 : 0, count: 1 };
           }
-          const baseline = statusProfiles[index][4] + (task.id - 1) * 18;
+          const baseline = profile[4] + (task.id - 1) * 18;
           return {
             time,
             value: lost
@@ -424,13 +515,14 @@ function pingRecords(uuid?: string, taskId = 1) {
   const clients = uuid ? [uuid] : nodes.map((node) => node.uuid);
   const now = Date.now();
   return clients.flatMap((client) => {
-    const index = nodes.findIndex((node) => node.uuid === client);
-    const baseline = statusProfiles[Math.max(0, index)][4] + (taskId - 1) * 18;
+    const index = Math.max(0, nodes.findIndex((node) => node.uuid === client));
+    const profile = getNodeStatusProfile(index, nodes[index] ?? nodes[0]);
+    const baseline = profile[4] + (taskId - 1) * 18;
     return Array.from({ length: 60 }, (_, sample) => ({
       task_id: taskId,
       time: now - (59 - sample) * 60_000,
       value:
-        index === 2 && sample % 17 === 0
+        !profile[9] || (index % 11 === 0 && sample % 17 === 0)
           ? -1
           : Math.max(1, baseline + Math.round(Math.sin(sample / 5 + index) * 9)),
       client,
@@ -461,11 +553,60 @@ function json(data: unknown, init?: ResponseInit) {
 
 export function installDevMockApi() {
   const nativeFetch = window.fetch.bind(window);
-  // ?mock=1&admin=1 模拟已登录管理员,连带放开 /api/admin/*,ThemeManage 才可在 dev 调试。
-  const adminMode = new URLSearchParams(window.location.search).get("admin") === "1";
-  // 保存后的主题设置驻留内存,让「保存 → /api/public refetch」链路在 dev 里闭环。
-  const defaultTheme = "komari-theme-sao";
+  // ?mock=1 默认模拟已登录管理员,放开 /api/admin/*,ThemeManage 才可在 dev 正常保存。显式 ?admin=0 模拟未授权。
+  const adminMode = new URLSearchParams(window.location.search).get("admin") !== "0";
+  // 保存后的主题设置驻留内存与本地存储，让「保存 → /api/public refetch」以及刷新页面闭环。
+  const defaultTheme = "SAO";
+  const MOCK_STORAGE_KEY = "komari_mock_theme_settings";
+  const defaultMockThemeSettings: Record<string, unknown> = {
+    desktopNodeViewMode: "compact",
+    mobileNodeViewMode: "compact",
+    clusterOverviewMode: "classic",
+    showHomeOverview: true,
+    showGroupTabs: true,
+    showRegionBar: true,
+    showCardGroup: true,
+    enableHomeSort: true,
+    showCostSummary: true,
+    showCostSummaryFloatingButton: true,
+    showPriceForGuests: false,
+    showOverviewRatings: true,
+    showTrafficRating: true,
+    showBandwidthRating: true,
+    showAssetRating: true,
+    showPingChart: true,
+    // 单任务刻意和三网首项不同，便于回归验证列表没有误读全局三网数据。
+    homepagePingBindings: { "2": nodes.map((node) => node.uuid) },
+    enableHomepageMultiPing:
+      new URLSearchParams(window.location.search).get("multiPing") === "1",
+    homepageMultiPingTaskIds: [1, 2, 3],
+  };
+
   const savedThemeSettings: Record<string, Record<string, unknown>> = {};
+
+  const readPersistedSettings = (): Record<string, unknown> | null => {
+    try {
+      if (typeof window !== "undefined" && window.localStorage) {
+        const raw = window.localStorage.getItem(MOCK_STORAGE_KEY);
+        if (raw) return JSON.parse(raw) as Record<string, unknown>;
+      }
+    } catch {}
+    return null;
+  };
+
+  const writePersistedSettings = (settings: Record<string, unknown>) => {
+    try {
+      if (typeof window !== "undefined" && window.localStorage) {
+        window.localStorage.setItem(MOCK_STORAGE_KEY, JSON.stringify(settings));
+      }
+    } catch {}
+  };
+
+  const initialStored = readPersistedSettings();
+  if (initialStored) {
+    savedThemeSettings["SAO"] = initialStored;
+    savedThemeSettings["komari-theme-sao"] = initialStored;
+  }
 
   window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     const request = new Request(input, init);
@@ -512,12 +653,21 @@ export function installDevMockApi() {
     if (url.pathname === "/api/admin/theme/settings") {
       if (!adminMode) return json({ message: "unauthorized" }, { status: 401 });
       const theme = url.searchParams.get("theme") ?? defaultTheme;
-      savedThemeSettings[theme] = (await request.json()) as Record<string, unknown>;
+      const body = (await request.json()) as Record<string, unknown>;
+      savedThemeSettings[theme] = body;
+      savedThemeSettings["SAO"] = body;
+      savedThemeSettings["komari-theme-sao"] = body;
+      writePersistedSettings(body);
       return json({ status: "success" });
     }
 
     if (url.pathname === "/api/public") {
       const theme = url.searchParams.get("theme") ?? defaultTheme;
+      const activeSaved =
+        savedThemeSettings[theme] ??
+        savedThemeSettings["SAO"] ??
+        savedThemeSettings["komari-theme-sao"] ??
+        readPersistedSettings();
       return json({
         sitename: "Komari SAO",
         description: "全球节点运行状态",
@@ -532,28 +682,9 @@ export function installDevMockApi() {
         metric_retention_days: 90,
         custom_head: "",
         custom_body: "",
-        theme_settings: savedThemeSettings[theme] ?? {
-          desktopNodeViewMode: "compact",
-          mobileNodeViewMode: "compact",
-          showHomeOverview: true,
-          showGroupTabs: true,
-          showRegionBar: true,
-          showCardGroup: true,
-          enableHomeSort: true,
-          showCostSummary: true,
-          showCostSummaryFloatingButton: true,
-          showPriceForGuests: false,
-          showOverviewRatings: true,
-          showTrafficRating: true,
-          showBandwidthRating: true,
-          showAssetRating: true,
-          showPingChart: true,
-          // 单任务刻意和三网首项不同，便于回归验证列表没有误读全局三网数据。
-          homepagePingBindings: { "2": nodes.map((node) => node.uuid) },
-          enableHomepageMultiPing:
-            new URLSearchParams(window.location.search).get("multiPing") === "1",
-          homepageMultiPingTaskIds: [1, 2, 3],
-        },
+        theme_settings: activeSaved
+          ? { ...defaultMockThemeSettings, ...activeSaved }
+          : defaultMockThemeSettings,
       });
     }
 

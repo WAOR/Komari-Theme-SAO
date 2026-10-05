@@ -3,6 +3,7 @@ import { clsx } from "clsx";
 import { Spinner } from "@/components/ui/Spinner";
 
 export function InstancePanel({
+  id,
   title,
   kicker,
   titleAction,
@@ -11,6 +12,7 @@ export function InstancePanel({
   children,
   className,
 }: {
+  id?: string;
   title: string;
   kicker?: ReactNode;
   titleAction?: ReactNode;
@@ -20,7 +22,7 @@ export function InstancePanel({
   className?: string;
 }) {
   return (
-    <section className={clsx("instance-panel", kicker != null && "has-kicker", className)}>
+    <section id={id} className={clsx("instance-panel", kicker != null && "has-kicker", className)}>
       <header className="instance-panel-header">
         <div className="instance-panel-headings">
           {kicker != null && <span className="instance-panel-kicker">{kicker}</span>}

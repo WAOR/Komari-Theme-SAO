@@ -726,7 +726,10 @@ export const CompactNodeCard = memo(function CompactNodeCard({
   const uptimeLabel = showUptime && !isOffline ? formatCompactUptime(node.uptime) : "";
 
   return (
-    <article className={clsx("compact-node-card", isOffline && "is-offline")}>
+    <article
+      id={`node-card-${uuid}`}
+      className={clsx("compact-node-card", isOffline && "is-offline")}
+    >
       <CompactNodeHeader
         node={node}
         osName={osName}

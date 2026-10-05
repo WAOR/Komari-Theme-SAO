@@ -38,8 +38,11 @@ export function AppShell() {
     publicConfig.data?.private_site === true &&
     !auth.isPending &&
     auth.data?.logged_in !== true;
-  const isHomeDashboard =
-    normalizedPath === "/" && new URLSearchParams(search).get("view") !== "theme-manage";
+  const isThemeManage =
+    new URLSearchParams(search).get("view") === "theme-manage" ||
+    (typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).get("view") === "theme-manage");
+  const isHomeDashboard = normalizedPath === "/" && !isThemeManage;
   // 并发直出：首页默认并发拉取节点，消除瀑布流排队；若后续判定私有则由 isPrivateVisitor 安全拦截
   const canHydrateHome =
     isHomeDashboard &&

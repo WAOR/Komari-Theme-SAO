@@ -53,6 +53,36 @@ const SETTINGS_KEY = "metricColors";
 const DARK_DEPTH_SETTINGS_KEY = "darkDepth";
 const DARK_DEPTH_CACHE_KEY = "komaritheme:dark-depth";
 const HEX = /^#[0-9a-f]{6}$/;
+
+export const DEFAULT_METRIC_COLORS: Record<"light" | "dark", Record<MetricColorKey, string>> = {
+  light: {
+    cpu: "#3b82f6",
+    memory: "#8b5cf6",
+    disk: "#e97b35",
+    load: "#ec4899",
+    swap: "#6366f1",
+    speedIdle: "#3aa76a",
+    speedLow: "#d9992b",
+    speedHigh: "#e07a35",
+    speedMax: "#d6463d",
+    trafficUp: "#3b82f6",
+    trafficDown: "#2f9e65",
+  },
+  dark: {
+    cpu: "#3b82f6",
+    memory: "#8b5cf6",
+    disk: "#f97316",
+    load: "#ec4899",
+    swap: "#6366f1",
+    speedIdle: "#10b981",
+    speedLow: "#f59e0b",
+    speedHigh: "#f97316",
+    speedMax: "#ef4444",
+    trafficUp: "#3b82f6",
+    trafficDown: "#10b981",
+  },
+};
+
 export const DEFAULT_DARK_DEPTH = 0;
 
 interface PaletteDraft {

@@ -109,6 +109,16 @@ export interface NodeMetrics {
   updatedAt: number;
 }
 
+export type MatrixColorTheme = "default" | "eva";
+
+/** 用户自定义点阵预设（云端存储） */
+export interface UserMatrixPreset {
+  id: string;
+  name: string;
+  indices: number[];
+  createdAt: number;
+}
+
 export interface ThemeSettings {
   defaultAppearance?: "system" | "light" | "dark";
   desktopNodeViewMode?: "large" | "compact" | "mini" | "list";
@@ -123,6 +133,18 @@ export interface ThemeSettings {
   showGroupTabs?: boolean;
   showRegionBar?: boolean;
   showCardGroup?: boolean;
+  /** 首页右侧集群状态卡片的展示模式：经典上下双层（classic）、机架方格矩阵（nodes）。 */
+  clusterOverviewMode?: "classic" | "nodes";
+  /** 机架方格矩阵配色风格：经典标准绿橙红（default）、EVA 初号机紫绿橙红（eva）。 */
+  matrixColorTheme?: "default" | "eva";
+  /** 模拟数据填充空闲机位插槽。 */
+  matrixMockFill?: boolean;
+  /** 是否启用方格矩阵 SAO 主题开场动画（默认开启）。 */
+  matrixBootAnimation?: boolean;
+  /** 自定义方格矩阵开场点阵图案（0~99的像素序号数组），为 null 或空时回退为默认 SAO。 */
+  matrixCustomPattern?: number[] | null;
+  /** 云端保存的用户自定义点阵预设列表（跨设备漫游）。 */
+  matrixUserPresets?: UserMatrixPreset[];
   homeGroupOrder?: string[];
   enableHomeSort?: boolean;
   homeSortField?: "default" | "name" | "speed" | "traffic" | "price";

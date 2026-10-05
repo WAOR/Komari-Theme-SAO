@@ -75,4 +75,56 @@ describe("normalizeThemeSettings", () => {
       normalizeThemeSettings({ hiddenNodes: "节点A, 节点A\nuuid-1；节点B" } as never).hiddenNodes,
     ).toEqual(["节点A", "uuid-1", "节点B"]);
   });
+
+  it("normalizes clusterOverviewMode correctly across all valid options", () => {
+    expect(normalizeThemeSettings({ clusterOverviewMode: "classic" }).clusterOverviewMode).toBe("classic");
+    expect(normalizeThemeSettings({ clusterOverviewMode: "nodes" }).clusterOverviewMode).toBe("nodes");
+    expect(normalizeThemeSettings({ clusterOverviewMode: "traffic" as never }).clusterOverviewMode).toBe("classic");
+    expect(normalizeThemeSettings({ clusterOverviewMode: "carousel" as never }).clusterOverviewMode).toBe("nodes");
+    expect(normalizeThemeSettings({ clusterOverviewMode: "invalid" as never }).clusterOverviewMode).toBe("classic");
+  });
+
+  it("normalizes matrixColorTheme correctly", () => {
+    expect(normalizeThemeSettings({ matrixColorTheme: "default" }).matrixColorTheme).toBe("default");
+    expect(normalizeThemeSettings({ matrixColorTheme: "eva" }).matrixColorTheme).toBe("eva");
+    expect(normalizeThemeSettings({ matrixColorTheme: "invalid" as never }).matrixColorTheme).toBe("default");
+  });
+
+  it("normalizes matrixMockFill correctly", () => {
+    expect(normalizeThemeSettings({ matrixMockFill: true }).matrixMockFill).toBe(true);
+    expect(normalizeThemeSettings({ matrixMockFill: false }).matrixMockFill).toBe(false);
+    expect(normalizeThemeSettings({ matrixMockFill: "yes" as never }).matrixMockFill).toBe(false);
+    expect(normalizeThemeSettings({}).matrixMockFill).toBe(false);
+  });
+
+  it("normalizes matrixBootAnimation correctly", () => {
+    expect(normalizeThemeSettings({ matrixBootAnimation: true }).matrixBootAnimation).toBe(true);
+    expect(normalizeThemeSettings({ matrixBootAnimation: false }).matrixBootAnimation).toBe(false);
+    expect(normalizeThemeSettings({}).matrixBootAnimation).toBe(true);
+  });
+
+  it("normalizes matrixCustomPattern correctly", () => {
+    expect(normalizeThemeSettings({ matrixCustomPattern: [1, 2, 3] }).matrixCustomPattern).toEqual([1, 2, 3]);
+    expect(normalizeThemeSettings({ matrixCustomPattern: [99, 0, 50] }).matrixCustomPattern).toEqual([0, 50, 99]);
+    expect(normalizeThemeSettings({ matrixCustomPattern: [] }).matrixCustomPattern).toEqual([]);
+    expect(normalizeThemeSettings({ matrixCustomPattern: [-1, 100, 200] }).matrixCustomPattern).toEqual([]);
+    expect(normalizeThemeSettings({ matrixCustomPattern: "invalid" as never }).matrixCustomPattern).toBeNull();
+    expect(normalizeThemeSettings({}).matrixCustomPattern).toBeNull();
+  });
+
+  it("normalizes matrixUserPresets correctly", () => {
+    const raw = [
+      { id: "1", name: "  设计A  ", indices: [5, 2, 2, 99, 105, -1], createdAt: 12345 },
+      { id: "2", invalid: true },
+    ];
+    const normalized = normalizeThemeSettings({ matrixUserPresets: raw as never }).matrixUserPresets;
+    expect(normalized).toHaveLength(1);
+    expect(normalized[0]).toEqual({
+      id: "1",
+      name: "设计A",
+      indices: [2, 5, 99],
+      createdAt: 12345,
+    });
+  });
 });
+

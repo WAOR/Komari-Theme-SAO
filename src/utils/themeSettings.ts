@@ -1,4 +1,4 @@
-import type { ThemeSettings } from "@/types/komari";
+import type { ThemeSettings, UserMatrixPreset } from "@/types/komari";
 import {
   DEFAULT_COST_RATE_API_URL,
   normalizeCostIgnoredNodes,
@@ -23,11 +23,19 @@ import {
 
 export type Appearance = "system" | "light" | "dark";
 export type NodeViewMode = "large" | "compact" | "mini" | "list";
+export type ClusterOverviewMode = "classic" | "nodes";
+export type MatrixColorTheme = "default" | "eva";
 
 export interface ResolvedThemeSettings {
   defaultAppearance: Appearance;
   desktopNodeViewMode: NodeViewMode;
   mobileNodeViewMode: NodeViewMode;
+  clusterOverviewMode: ClusterOverviewMode;
+  matrixColorTheme: MatrixColorTheme;
+  matrixMockFill: boolean;
+  matrixBootAnimation: boolean;
+  matrixCustomPattern: number[] | null;
+  matrixUserPresets: UserMatrixPreset[];
   enableAdminButton: boolean;
   showPingChart: boolean;
   homepagePingBindings: HomepagePingTaskBindings;
@@ -67,6 +75,12 @@ export const DEFAULT_THEME_SETTINGS: ResolvedThemeSettings = {
   defaultAppearance: "system",
   desktopNodeViewMode: "large",
   mobileNodeViewMode: "compact",
+  clusterOverviewMode: "classic",
+  matrixColorTheme: "default",
+  matrixMockFill: false,
+  matrixBootAnimation: true,
+  matrixCustomPattern: null,
+  matrixUserPresets: [],
   enableAdminButton: true,
   showPingChart: true,
   homepagePingBindings: {},
@@ -136,6 +150,75 @@ function normalizeMobileNodeViewMode(
   return mode === "list" ? fallback : mode;
 }
 
+export function isClusterOverviewMode(value: unknown): value is ClusterOverviewMode {
+  return value === "classic" || value === "nodes";
+}
+
+function normalizeClusterOverviewMode(
+  value: unknown,
+  fallback: ClusterOverviewMode = DEFAULT_THEME_SETTINGS.clusterOverviewMode,
+): ClusterOverviewMode {
+  if (value === "traffic") return "classic";
+  if (value === "carousel") return "nodes";
+  return isClusterOverviewMode(value) ? value : fallback;
+}
+
+export function isMatrixColorTheme(value: unknown): value is MatrixColorTheme {
+  return value === "default" || value === "eva";
+}
+
+function normalizeMatrixColorTheme(
+  value: unknown,
+  fallback: MatrixColorTheme = DEFAULT_THEME_SETTINGS.matrixColorTheme,
+): MatrixColorTheme {
+  return isMatrixColorTheme(value) ? value : fallback;
+}
+
+function normalizeMatrixMockFill(value: unknown): boolean {
+  return value === true;
+}
+
+export function normalizeMatrixBootAnimation(value: unknown): boolean {
+  return value !== false;
+}
+
+export function normalizeMatrixCustomPattern(val: unknown): number[] | null {
+  if (!Array.isArray(val)) return null;
+  const valid = val.filter(
+    (n): n is number => typeof n === "number" && Number.isInteger(n) && n >= 0 && n < 100,
+  );
+  return Array.from(new Set(valid)).sort((a, b) => a - b);
+}
+
+export function normalizeMatrixUserPresets(val: unknown): UserMatrixPreset[] {
+  if (!Array.isArray(val)) return [];
+  return val
+    .filter(
+      (item): item is UserMatrixPreset =>
+        Boolean(
+          item &&
+            typeof item === "object" &&
+            typeof (item as UserMatrixPreset).id === "string" &&
+            typeof (item as UserMatrixPreset).name === "string" &&
+            Array.isArray((item as UserMatrixPreset).indices),
+        ),
+    )
+    .map((item) => ({
+      id: String(item.id),
+      name: String(item.name).trim().slice(0, 24) || "自定义预设",
+      indices: Array.from(
+        new Set(
+          item.indices.filter(
+            (idx): idx is number =>
+              typeof idx === "number" && Number.isInteger(idx) && idx >= 0 && idx < 100,
+          ),
+        ),
+      ).sort((a, b) => a - b),
+      createdAt: typeof item.createdAt === "number" ? item.createdAt : Date.now(),
+    }))
+    .slice(0, 12);
+}
+
 function enabledUnlessFalse(value: unknown) {
   return value !== false;
 }
@@ -174,6 +257,12 @@ export function normalizeThemeSettings(
       settings?.mobileNodeViewMode,
       DEFAULT_THEME_SETTINGS.mobileNodeViewMode,
     ),
+    clusterOverviewMode: normalizeClusterOverviewMode(settings?.clusterOverviewMode),
+    matrixColorTheme: normalizeMatrixColorTheme(settings?.matrixColorTheme),
+    matrixMockFill: normalizeMatrixMockFill(settings?.matrixMockFill),
+    matrixBootAnimation: normalizeMatrixBootAnimation(settings?.matrixBootAnimation),
+    matrixCustomPattern: normalizeMatrixCustomPattern(settings?.matrixCustomPattern),
+    matrixUserPresets: normalizeMatrixUserPresets(settings?.matrixUserPresets),
     enableAdminButton: enabledUnlessFalse(settings?.enableAdminButton),
     showPingChart: enabledUnlessFalse(settings?.showPingChart),
     homepagePingBindings: normalizeHomepagePingTaskBindings(settings?.homepagePingBindings),

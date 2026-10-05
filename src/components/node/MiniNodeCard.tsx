@@ -427,7 +427,10 @@ export const MiniNodeCard = memo(function MiniNodeCard({
   } = model;
 
   return (
-    <article className={clsx("mini-node-card", isOffline && "is-offline")}>
+    <article
+      id={`node-card-${uuid}`}
+      className={clsx("mini-node-card", isOffline && "is-offline")}
+    >
       <MiniHeader
         node={node}
         osName={osName}

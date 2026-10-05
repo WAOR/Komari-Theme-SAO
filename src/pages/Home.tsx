@@ -35,7 +35,31 @@ function HomeDashboard() {
 }
 
 export function Home() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const windowView =
+    typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search).get("view")
+      : null;
+  const isThemeManageView =
+    searchParams.get("view") === "theme-manage" || windowView === "theme-manage";
+
+  // 若用户直接在浏览器 URL (而非 hash) 传入了 ?view=theme-manage，自动将其同步入 hash 路由
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const windowParams = new URLSearchParams(window.location.search);
+      if (
+        windowParams.get("view") === "theme-manage" &&
+        searchParams.get("view") !== "theme-manage"
+      ) {
+        const next = new URLSearchParams(searchParams);
+        windowParams.forEach((val, key) => {
+          next.set(key, val);
+        });
+        setSearchParams(next, { replace: true });
+      }
+    }
+  }, [searchParams, setSearchParams]);
+
   const {
     data: me,
     isPending: authPending,
@@ -43,7 +67,6 @@ export function Home() {
     error: authError,
     refetch: refetchAuth,
   } = useAuth();
-  const isThemeManageView = searchParams.get("view") === "theme-manage";
 
   if (isThemeManageView) {
     if (me?.logged_in) {

@@ -945,14 +945,20 @@
   display: none !important;
 }
 
-/* 1. 光束横扫列：纯净高亮激光扫掠，去除几何放大突跳 */
+/* 1. 光束横扫列：浅色模式下呈现饱满耀眼的主题能量激光柱，深色模式下呈现高能白炽激光束，杜绝浅色底板上的亮白空洞失真 */
 .mao-heatmap-cell.is-sao-beam {
-  background: #ffffff !important;
-  box-shadow: 0 0 12px rgba(255, 255, 255, 0.95), 0 0 6px var(--matrix-boot-beam-glow) !important;
-  border-color: #ffffff !important;
+  background: var(--matrix-boot-pixel-bg) !important;
+  border-color: var(--matrix-boot-pixel-border) !important;
+  box-shadow: 0 0 12px var(--matrix-boot-beam-glow), 0 0 4px var(--matrix-boot-pixel-border) !important;
   opacity: 1 !important;
   transform: none !important;
   z-index: 5;
+}
+
+:root[data-appearance="dark"] .mao-heatmap-cell.is-sao-beam {
+  background: #ffffff !important;
+  border-color: #ffffff !important;
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.95), 0 0 6px var(--matrix-boot-beam-glow) !important;
 }
 
 /* 2. 开屏文字像素：统一由配色设计令牌（Tokens）驱动，杜绝写死颜色与层叠权重竞争 */
@@ -970,33 +976,33 @@
 
 /* 4. 背景已扫过非文字像素：统统清除离线红光/高载黄光/虚线干扰，呈现干净统一的暗调底色，光束离开时有柔和余晖渐隐 */
 .mao-heatmap-cell.is-sao-bg {
-  background: rgba(0, 0, 0, 0.04) !important;
-  border-color: rgba(0, 0, 0, 0.05) !important;
+  background: rgba(0, 0, 0, 0.035) !important;
+  border: 1px solid rgba(0, 0, 0, 0.05) !important;
   box-shadow: none !important;
-  opacity: 0.28 !important;
-  transition: background-color 0.16s ease-out, opacity 0.16s ease-out, box-shadow 0.16s ease-out !important;
+  opacity: 0.45 !important;
+  transition: background-color 0.2s ease-out, opacity 0.2s ease-out, box-shadow 0.2s ease-out !important;
 }
 
 :root[data-appearance="dark"] .mao-heatmap-cell.is-sao-bg {
   background: rgba(255, 255, 255, 0.025) !important;
   border-color: rgba(255, 255, 255, 0.035) !important;
-  opacity: 0.22 !important;
-  transition: background-color 0.16s ease-out, opacity 0.16s ease-out, box-shadow 0.16s ease-out !important;
+  opacity: 0.25 !important;
+  transition: background-color 0.2s ease-out, opacity 0.2s ease-out, box-shadow 0.2s ease-out !important;
 }
 
-/* 5. 未被光束扫到的区域：暗淡静止，不透光、无阴影、不闪烁 */
+/* 5. 未被光束扫到的区域：规整机架底板，具备清晰且克制的机位槽位轮廓，绝不产生白茫茫一片的空白感 */
 .mao-heatmap-cell.is-sao-unlit {
-  background: rgba(0, 0, 0, 0.02) !important;
-  border-color: transparent !important;
+  background: rgba(0, 0, 0, 0.03) !important;
+  border: 1px solid rgba(0, 0, 0, 0.05) !important;
   box-shadow: none !important;
-  opacity: 0.16 !important;
+  opacity: 0.55 !important;
   transition: none !important;
 }
 
 :root[data-appearance="dark"] .mao-heatmap-cell.is-sao-unlit {
-  background: rgba(255, 255, 255, 0.015) !important;
-  border-color: transparent !important;
-  opacity: 0.12 !important;
+  background: rgba(255, 255, 255, 0.02) !important;
+  border: 1px solid rgba(255, 255, 255, 0.04) !important;
+  opacity: 0.35 !important;
   transition: none !important;
 }
 
@@ -3167,11 +3173,17 @@
 
 /* 动效预览横扫光束：纯光效平滑扫掠，无尺寸抽搐 */
 .mao-pattern-cell.is-scan-beam {
+  background: var(--matrix-boot-pixel-bg) !important;
+  border-color: var(--matrix-boot-pixel-border) !important;
+  box-shadow: 0 0 10px var(--matrix-boot-beam-glow), 0 0 3px var(--matrix-boot-pixel-border) !important;
+  transform: none;
+  z-index: 5;
+}
+
+:root[data-appearance="dark"] .mao-pattern-cell.is-scan-beam {
   background: #ffffff !important;
   border-color: #ffffff !important;
   box-shadow: 0 0 10px rgba(255, 255, 255, 0.95), 0 0 4px var(--matrix-boot-beam-glow) !important;
-  transform: none;
-  z-index: 5;
 }
 
 .mao-pattern-cell.is-unlit {

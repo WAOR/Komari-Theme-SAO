@@ -139,31 +139,41 @@ export function ClusterHeatmap({
     let interval: ReturnType<typeof setInterval> | null = null;
     let holdTimer: ReturnType<typeof setTimeout> | null = null;
     let dissolveTimer: ReturnType<typeof setTimeout> | null = null;
+    let startDelayTimer: ReturnType<typeof setTimeout> | null = null;
+    let raf1: number | null = null;
+    let raf2: number | null = null;
 
-    // 首屏渲染与节点 DOM 水合需要数个微任务周期（约 120-180ms）。
-    // 给予 180ms 的优雅缓冲期，使机架暗色底板先完整就位，
-    // 避开首屏挂载时的主线程微卡顿，确保激光扫光从第 0 列开始以恒定 24ms 匀速扫过，根除第一排由于主线程阻塞而悬停发光闪烁的异常。
-    const startDelayTimer = setTimeout(() => {
-      let current = 0;
-      interval = setInterval(() => {
-        setScanCol(current);
-        current++;
-        if (current > GRID_COLUMNS) {
-          if (interval) clearInterval(interval);
-          setBootPhase("hold");
-          // 呼吸三下（每次 600ms，共 1800ms）后进入平滑溶解阶段
-          holdTimer = setTimeout(() => {
-            setBootPhase("dissolve");
-            dissolveTimer = setTimeout(() => {
-              setBootPhase("idle");
-            }, 350);
-          }, 1800);
-        }
-      }, 24);
-    }, 180);
+    // 先通过双重 requestAnimationFrame 确保浏览器已经完整完成首屏 DOM 布局、样式计算与初次渲染合成（Paint），
+    // 随后再保留 360ms 的静默就绪缓冲，使用户清晰看到 100 槽机架底板已稳固就位，
+    // 彻底杜绝在浅色模式或页面初始加载卡顿阶段扫光提前“偷跑”导致前几列未能被肉眼捕获的问题。
+    // 扫光步进间隔微调至 36ms，呈现从容优雅的雷达激光横扫质感（20 列耗时约 720ms）。
+    raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => {
+        startDelayTimer = setTimeout(() => {
+          let current = 0;
+          interval = setInterval(() => {
+            setScanCol(current);
+            current++;
+            if (current > GRID_COLUMNS) {
+              if (interval) clearInterval(interval);
+              setBootPhase("hold");
+              // 呼吸三下（每次 600ms，共 1800ms）后进入平滑溶解阶段
+              holdTimer = setTimeout(() => {
+                setBootPhase("dissolve");
+                dissolveTimer = setTimeout(() => {
+                  setBootPhase("idle");
+                }, 350);
+              }, 1800);
+            }
+          }, 36);
+        }, 360);
+      });
+    });
 
     return () => {
-      clearTimeout(startDelayTimer);
+      if (raf1 !== null) cancelAnimationFrame(raf1);
+      if (raf2 !== null) cancelAnimationFrame(raf2);
+      if (startDelayTimer) clearTimeout(startDelayTimer);
       if (interval) clearInterval(interval);
       if (holdTimer) clearTimeout(holdTimer);
       if (dissolveTimer) clearTimeout(dissolveTimer);

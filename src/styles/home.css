@@ -808,7 +808,7 @@
   appearance: none;
   -webkit-appearance: none;
   background-clip: padding-box;
-  transition: filter 120ms ease, opacity 120ms ease;
+  transition: background-color 360ms ease, border-color 360ms ease, box-shadow 360ms ease, filter 120ms ease, opacity 120ms ease;
 }
 
 :root[data-appearance="dark"] .mao-heatmap-cell {

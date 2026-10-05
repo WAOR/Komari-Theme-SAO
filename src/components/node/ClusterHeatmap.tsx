@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo, useEffect } from "react";
+import { useState, useRef, useMemo, useEffect, useCallback } from "react";
 import { Flag } from "@/components/ui/Flag";
 import { formatByteRateLabel } from "@/utils/format";
 import {
@@ -26,7 +26,7 @@ interface ClusterHeatmapProps {
 
 interface MockSlot {
   slotNumber: number;
-  status: "idle" | "active";
+  status: "idle" | "active" | "high";
   netUp: number;
   netDown: number;
   cpuPct: number;
@@ -204,35 +204,122 @@ export function ClusterHeatmap({
     };
   }, [nodes.length]);
 
-  // 当开启 mockFill 时，为每个空闲槽位随机生成比例可变的「空闲待机」与「活跃传输」模拟数据
-  // 随着页面刷新，Math.random() 产生新的分布与比例；在单次渲染周期中保持稳定
-  const mockSlots: MockSlot[] = useMemo(() => {
-    if (!mockFill || emptySlotsCount <= 0) return [];
-    // 随机活跃比例：20% ~ 55%
-    const activeProbability = 0.2 + Math.random() * 0.35;
-    return Array.from({ length: emptySlotsCount }, (_, i) => {
-      const slotNumber = nodes.length + i + 1;
-      const isActive = Math.random() < activeProbability;
-      if (isActive) {
-        return {
-          slotNumber,
-          status: "active" as const,
-          netUp: Math.round(600_000 + Math.random() * 2_000_000),
-          netDown: Math.round(800_000 + Math.random() * 3_500_000),
-          cpuPct: Math.round(15 + Math.random() * 45),
-          ramPct: Math.round(35 + Math.random() * 50),
-        };
-      }
+  // 随机生成单个模拟机位槽位数据（支持空闲、活跃与偶发高吞吐三种真实网络负载态）
+  const generateMockSlot = useCallback((slotNumber: number, forceStatus?: "idle" | "active" | "high"): MockSlot => {
+    const rand = Math.random();
+    // 典型机房分布：约 65% 空闲待机，31% 活跃传输，4% 偶发高吞吐洪峰
+    const status: "idle" | "active" | "high" =
+      forceStatus ?? (rand < 0.65 ? "idle" : rand < 0.96 ? "active" : "high");
+
+    if (status === "high") {
       return {
         slotNumber,
-        status: "idle" as const,
-        netUp: Math.round(5_000 + Math.random() * 250_000),
-        netDown: Math.round(15_000 + Math.random() * 450_000),
-        cpuPct: Math.round(1 + Math.random() * 15),
-        ramPct: Math.round(15 + Math.random() * 40),
+        status: "high",
+        netUp: Math.round(5_200_000 + Math.random() * 4_800_000), // 5.2 ~ 10 MB/s
+        netDown: Math.round(6_500_000 + Math.random() * 8_500_000), // 6.5 ~ 15 MB/s
+        cpuPct: Math.round(45 + Math.random() * 45),
+        ramPct: Math.round(60 + Math.random() * 30),
       };
+    }
+    if (status === "active") {
+      return {
+        slotNumber,
+        status: "active",
+        netUp: Math.round(600_000 + Math.random() * 2_200_000), // 600 KB/s ~ 2.8 MB/s
+        netDown: Math.round(800_000 + Math.random() * 3_500_000), // 800 KB/s ~ 4.3 MB/s
+        cpuPct: Math.round(15 + Math.random() * 40),
+        ramPct: Math.round(30 + Math.random() * 45),
+      };
+    }
+    return {
+      slotNumber,
+      status: "idle",
+      netUp: Math.round(5_000 + Math.random() * 180_000), // 5 ~ 185 KB/s
+      netDown: Math.round(15_000 + Math.random() * 350_000), // 15 ~ 365 KB/s
+      cpuPct: Math.round(1 + Math.random() * 12),
+      ramPct: Math.round(15 + Math.random() * 35),
+    };
+  }, []);
+
+  // 当开启 mockFill 时，以状态管理模拟机位，支持未刷新状态下的持续动态呼吸变幻
+  const [mockSlots, setMockSlots] = useState<MockSlot[]>(() => {
+    if (!mockFill || emptySlotsCount <= 0) return [];
+    return Array.from({ length: emptySlotsCount }, (_, i) =>
+      generateMockSlot(nodes.length + i + 1)
+    );
+  });
+
+  // 当空槽总数或开关发生变化时，同步重置槽位容量
+  useEffect(() => {
+    if (!mockFill || emptySlotsCount <= 0) {
+      setMockSlots([]);
+      return;
+    }
+    setMockSlots((prev) => {
+      if (prev.length === emptySlotsCount) return prev;
+      return Array.from({ length: emptySlotsCount }, (_, i) =>
+        generateMockSlot(nodes.length + i + 1)
+      );
     });
-  }, [mockFill, emptySlotsCount, nodes.length]);
+  }, [mockFill, emptySlotsCount, nodes.length, generateMockSlot]);
+
+  // 跟踪当前悬停状态以保护正在阅读的卡片不被打断
+  const hoverInfoRef = useRef<HoverState | null>(null);
+  hoverInfoRef.current = hoverInfo;
+
+  // 灵动呼吸时钟：在页面未刷新状态下，每隔 2.8s 随机挑选 2~4 个机位平滑变幻待机/传输状态
+  useEffect(() => {
+    if (!mockFill || emptySlotsCount <= 0 || bootPhase !== "idle") {
+      return;
+    }
+
+    const intervalTimer = setInterval(() => {
+      // 页面处于后台标签页时不消耗 CPU
+      if (typeof document !== "undefined" && document.hidden) {
+        return;
+      }
+
+      setMockSlots((currentSlots) => {
+        if (!currentSlots || currentSlots.length === 0) return currentSlots;
+
+        // 每次随机变动 2 ~ 4 个机位
+        const changeCount = Math.min(
+          currentSlots.length,
+          Math.max(2, Math.floor(Math.random() * 3) + 2)
+        );
+
+        const chosenIndices = new Set<number>();
+        let attempts = 0;
+        while (chosenIndices.size < changeCount && attempts < 20) {
+          attempts++;
+          const idx = Math.floor(Math.random() * currentSlots.length);
+          const slot = currentSlots[idx];
+          // 若当前该槽位正处于鼠标悬浮查看状态，跳过保护，保证用户阅读体验稳定
+          if (
+            hoverInfoRef.current?.isMock &&
+            hoverInfoRef.current.mockSlot?.slotNumber === slot.slotNumber
+          ) {
+            continue;
+          }
+          chosenIndices.add(idx);
+        }
+
+        if (chosenIndices.size === 0) return currentSlots;
+
+        return currentSlots.map((slot, idx) => {
+          if (!chosenIndices.has(idx)) return slot;
+          // idle 大概率转 active，少量偶发 high；active 大概率转 idle
+          const nextTarget =
+            slot.status === "idle"
+              ? Math.random() < 0.9 ? ("active" as const) : ("high" as const)
+              : Math.random() < 0.85 ? ("idle" as const) : ("active" as const);
+          return generateMockSlot(slot.slotNumber, nextTarget);
+        });
+      });
+    }, 2800);
+
+    return () => clearInterval(intervalTimer);
+  }, [mockFill, emptySlotsCount, bootPhase, generateMockSlot]);
 
   // 根据单元格一维序号返回开屏动画样式类
   const getBootAnimationClass = (cellIndex: number): string => {
@@ -514,8 +601,17 @@ export function ClusterHeatmap({
             ? mockSlots.map((slot, i) => {
                 const idx = nodes.length + i;
                 const statusClass =
-                  slot.status === "active" ? "is-medium-load" : "is-low-load";
-                const badgeText = slot.status === "active" ? "活跃传输" : "空闲待机";
+                  slot.status === "high"
+                    ? "is-high-load"
+                    : slot.status === "active"
+                      ? "is-medium-load"
+                      : "is-low-load";
+                const badgeText =
+                  slot.status === "high"
+                    ? "高吞吐"
+                    : slot.status === "active"
+                      ? "活跃传输"
+                      : "空闲待机";
                 const bootClass = getBootAnimationClass(idx);
                 const isActive = activeKey === `mock-${slot.slotNumber}`;
 
@@ -570,10 +666,18 @@ export function ClusterHeatmap({
                   </div>
                   <span
                     className={`mao-tooltip-status ${
-                      hoverInfo.mockSlot.status === "active" ? "is-active" : "is-idle"
+                      hoverInfo.mockSlot.status === "high"
+                        ? "is-warning"
+                        : hoverInfo.mockSlot.status === "active"
+                          ? "is-active"
+                          : "is-idle"
                     }`}
                   >
-                    {hoverInfo.mockSlot.status === "active" ? "活跃传输" : "空闲待机"}
+                    {hoverInfo.mockSlot.status === "high"
+                      ? "高吞吐"
+                      : hoverInfo.mockSlot.status === "active"
+                        ? "活跃传输"
+                        : "空闲待机"}
                   </span>
                 </div>
 

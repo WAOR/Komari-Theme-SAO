@@ -1731,7 +1731,7 @@ function draftToThemeSettings(targetDraft: ThemeDraft): ThemeSettings {
                           </span>
                         </div>
                         <p className="text-[11px] text-(--text-muted) mt-0.5">
-                          开启后，机架方格矩阵中未接入服务器的闲置插槽将使用模拟数据填满，并在运行期间周期性随机变幻「空闲待机」与「活跃传输」状态及吞吐速率，令机架方格更显生机灵动。
+                          开启后，机架方格矩阵中未接入服务器的闲置插槽将使用模拟数据填满，并在运行期间周期性随机变幻「空闲待机」、「活跃传输」与「高吞吐」状态及吞吐速率，令机架方格更显生机灵动。
                         </p>
                       </div>
                       <input

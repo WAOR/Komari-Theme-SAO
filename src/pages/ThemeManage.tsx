@@ -1542,7 +1542,7 @@ function draftToThemeSettings(targetDraft: ThemeDraft): ThemeSettings {
                 aside={<Activity size={16} />}
               >
                 <p className="text-xs text-(--text-muted) mb-3 leading-relaxed">
-                  设置首页右侧「集群状态」核心卡片的默认展示形式。访客在首页亦可通过卡片右上角按钮自由手动切换。
+                  设置首页右侧「集群状态」核心卡片的展示模式。
                 </p>
                 <div className="setting-mode-cards">
                   {[

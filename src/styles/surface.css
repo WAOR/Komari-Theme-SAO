@@ -103,7 +103,7 @@
   padding-left: max(var(--app-gutter), env(safe-area-inset-left, 0px));
   padding-right: max(var(--app-gutter), env(safe-area-inset-right, 0px));
   padding-top: 1.5rem;
-  padding-bottom: max(2rem, env(safe-area-inset-bottom, 0px));
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
 }
 
 .floating-controls {

@@ -459,6 +459,7 @@
   padding: clamp(14px, 1.8vw, 18px);
   gap: 14px;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.02);
+  transition: background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
 }
 
 :root[data-appearance="dark"] .mao-progress-container {
@@ -808,7 +809,7 @@
   appearance: none;
   -webkit-appearance: none;
   background-clip: padding-box;
-  transition: background-color 360ms ease, border-color 360ms ease, box-shadow 360ms ease, filter 120ms ease, opacity 120ms ease;
+  transition: background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease, filter 120ms ease, opacity 120ms ease;
 }
 
 :root[data-appearance="dark"] .mao-heatmap-cell {
@@ -1435,7 +1436,6 @@
   min-height: 236px;
   display: flex;
   flex-direction: column;
-  animation: mao-pane-fade 220ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes mao-pane-fade {

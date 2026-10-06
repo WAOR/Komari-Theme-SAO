@@ -384,6 +384,86 @@
   align-items: center;
   gap: 6px;
 }
+:root[data-appearance="dark"] .mao-stat-title-wrap {
+  gap: 7px;
+}
+
+/* 指标卡片图标容器：深浅模式分立特化 */
+.mao-stat-icon-hud {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--current-metric-color);
+  transition: all 180ms ease;
+}
+
+.mao-stat-icon-svg {
+  flex-shrink: 0;
+  color: currentColor;
+}
+
+/* 7 种指标类型的色值绑定（标准化体系） */
+.mao-stat-icon-connections {
+  --current-metric-color: var(--metric-connections-color);
+}
+.mao-stat-icon-cpu {
+  --current-metric-color: var(--metric-cpu-color);
+}
+.mao-stat-icon-ram {
+  --current-metric-color: var(--metric-ram-color);
+}
+.mao-stat-icon-disk {
+  --current-metric-color: var(--metric-disk-color);
+}
+.mao-stat-icon-traffic {
+  --current-metric-color: var(--metric-traffic-color);
+}
+.mao-stat-icon-uptime {
+  --current-metric-color: var(--metric-uptime-color);
+}
+.mao-stat-icon-asset {
+  --current-metric-color: var(--metric-asset-color);
+}
+
+/* 浅色模式：保持无微底框状态 (纯矢量图标，颜色与深色模式保持 100% 同步对应) */
+:root:not([data-appearance="dark"]) .mao-stat-icon-hud {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  width: auto;
+  height: auto;
+  min-width: 0;
+  border-radius: 0;
+}
+
+/* 深色模式：启用 HUD 科技感微底框与发光阴影 */
+:root[data-appearance="dark"] .mao-stat-icon-hud {
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  border-radius: 6px;
+  box-sizing: border-box;
+  background: color-mix(in srgb, var(--current-metric-color, var(--text-primary)) 12%, rgba(0, 0, 0, 0.45));
+  border: 1px solid color-mix(in srgb, var(--current-metric-color, var(--text-primary)) 24%, transparent);
+  box-shadow: 0 0 7px -1px color-mix(in srgb, var(--current-metric-color, var(--text-primary)) 25%, transparent);
+}
+
+/* EVA 初号机深色模式：机甲霓虹高光光晕 */
+:root[data-appearance="dark"] [data-palette="eva"] .mao-stat-icon-hud {
+  background: color-mix(in srgb, var(--current-metric-color, #7c3aed) 16%, rgba(12, 12, 16, 0.7));
+  border: 1px solid color-mix(in srgb, var(--current-metric-color, #7c3aed) 36%, transparent);
+  box-shadow: 0 0 9px color-mix(in srgb, var(--current-metric-color, #7c3aed) 32%, transparent),
+              inset 0 0 5px color-mix(in srgb, var(--current-metric-color, #7c3aed) 16%, transparent);
+}
+
+/* 深色模式下悬停微互动：HUD 微底框微妙提亮与微光扩散 */
+:root[data-appearance="dark"] .mao-stat-card:hover .mao-stat-icon-hud {
+  border-color: color-mix(in srgb, var(--current-metric-color, var(--text-primary)) 50%, transparent);
+  box-shadow: 0 0 11px color-mix(in srgb, var(--current-metric-color, var(--text-primary)) 45%, transparent);
+  transform: translateY(-0.5px) scale(1.04);
+}
+
 
 .mao-stat-label {
   font-size: 12px;
@@ -408,7 +488,7 @@
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
-  margin: 3px 0 1px;
+  margin: 7px 0 3px;
 }
 
 .mao-stat-slash-total {
@@ -906,8 +986,9 @@
    彻底杜绝散落选择器造成的权重竞争、深浅模式覆盖与空槽串色。
    ========================================================================== */
 
-/* 1. 默认经典配色（SAO 暖金橙）Tokens */
+/* 1. 默认经典配色（SAO 暖金橙 + 6 维标准指标色）Tokens */
 :root,
+[data-palette="default"],
 .mao-matrix-section,
 .mao-pattern-canvas {
   --matrix-boot-pixel-bg: #ff9600;
@@ -915,9 +996,18 @@
   --matrix-boot-pixel-shadow: 0 0 9px rgba(255, 150, 0, 0.65), 0 0 2px rgba(255, 220, 100, 0.95);
   --matrix-boot-beam-glow: #ff9600;
   --matrix-boot-pulse-anim: sao-boot-pulse;
+
+  /* 指标卡片 6 维标准图标色（深浅模式保持同一套色值，避免撞色） */
+  --metric-connections-color: #10b981;
+  --metric-cpu-color: #f59e0b;
+  --metric-ram-color: #6366f1;
+  --metric-disk-color: #f97316;
+  --metric-traffic-color: #0284c7;
+  --metric-uptime-color: #06b6d4;
+  --metric-asset-color: #eab308;
 }
 
-/* 2. EVA 初号机配色（初号机紫 + 荧光绿）Tokens */
+/* 2. EVA 初号机配色（初号机紫 + 荧光绿 + 警告橙）Tokens */
 [data-palette="eva"],
 .mao-pattern-canvas[data-palette="eva"],
 .mao-pattern-canvas.is-eva {
@@ -926,6 +1016,22 @@
   --matrix-boot-pixel-shadow: 0 0 12px rgba(124, 58, 237, 0.85), 0 0 3px rgba(192, 132, 252, 0.95);
   --matrix-boot-beam-glow: #7c3aed;
   --matrix-boot-pulse-anim: sao-boot-pulse-eva;
+
+  /* 指标卡片 EVA 初号机专属机能色系（默认 / 深色模式：高亮霓虹光感） */
+  --metric-connections-color: #00ff66;
+  --metric-cpu-color: #f97316;
+  --metric-ram-color: #3b82f6;
+  --metric-disk-color: #f43f5e;
+  --metric-traffic-color: #06b6d4;
+  --metric-uptime-color: #00e5ff;
+  --metric-asset-color: #f59e0b;
+}
+
+/* EVA 浅色模式特化：活跃连接换为沉稳护眼的高对比机能绿，内存用量换为初号机深紫，舒适且不刺眼 */
+:root:not([data-appearance="dark"]) [data-palette="eva"] {
+  --metric-connections-color: #16a34a;
+  --metric-ram-color: #2563eb;
+  --metric-uptime-color: #0891b2;
 }
 
 /* SAO 正体开屏点阵动效：统一重置所有槽位与节点的底色、边框、透明度与动画，杜绝深浅不一 */

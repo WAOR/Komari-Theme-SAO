@@ -103,24 +103,34 @@ function localDateInputMax() {
 const OVERVIEW_RATING_LABEL_FIELDS: Array<{
   key: OverviewRatingKind;
   title: string;
+  scopeBadge: string;
+  description: string;
   toggleKey: "showTrafficRating" | "showBandwidthRating" | "showAssetRating";
   tierHint: string;
+  isBadge?: boolean;
 }> = [
   {
     key: "traffic",
     title: "今日流量",
+    scopeBadge: "指标卡片底部",
+    description: "显示在首页「今日流量」指标卡片右下角，依据全节点当日出入站总量划分等级。",
     toggleKey: "showTrafficRating",
     tierHint: "对应阶梯：≤10GB、≤50GB、≤200GB、>200GB",
   },
   {
     key: "bandwidth",
-    title: "实时带宽",
+    title: "实时带宽徽章",
+    scopeBadge: "右上角集群状态",
+    description: "显示在右上角「集群状态」卡片顶部标题栏（状态健康旁），以呼吸灯徽章实时反馈集群总吞吐负荷。",
     toggleKey: "showBandwidthRating",
     tierHint: "对应阶梯：≤1Mbps、≤10Mbps、≤100Mbps、>100Mbps",
+    isBadge: true,
   },
   {
     key: "asset",
     title: "资产概览",
+    scopeBadge: "指标卡片底部",
+    description: "显示在首页「资产总值」指标卡片右下角，依据折算人民币总资产规模划分等级。",
     toggleKey: "showAssetRating",
     tierHint: "对应阶梯：≤500元、≤1500元、≤3000元、>3000元",
   },
@@ -1873,53 +1883,65 @@ function draftToThemeSettings(targetDraft: ThemeDraft): ThemeSettings {
                 title="总览文字评级"
                 aside={<ListFilter size={16} />}
               >
-                <div className="flex flex-col gap-4">
-                  <div className="surface-inset flex flex-wrap items-center justify-between gap-3 px-4 py-3">
-                    <span className="min-w-0">
-                      <span className="block setting-subhead-title">启用总览评级</span>
-                      <span className="setting-desc">
-                        在今日流量、资产概览及集群网络状态中显示评级标识。
-                      </span>
-                    </span>
-                    <input
-                      type="checkbox"
-                      checked={draft.showOverviewRatings}
-                      onChange={(event) => patch("showOverviewRatings", event.target.checked)}
-                      className="h-4 w-4 shrink-0 accent-(--accent-500)"
-                    />
-                  </div>
+                <div className="grid gap-3 md:grid-cols-3">
+                  {OVERVIEW_RATING_LABEL_FIELDS.map((field) => {
+                    const defaultLabel = getDefaultOverviewRatingLabelText(field.key);
+                    const ratingEnabled = draft[field.toggleKey];
+                    return (
+                      <div
+                        key={field.key}
+                        className={`surface-inset flex min-w-0 flex-col gap-2.5 px-4 py-3 transition-colors ${
+                          field.isBadge ? "border-l-2 border-l-(--accent-500)" : ""
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="setting-subhead-title">{field.title}</span>
+                              <span
+                                className={`inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium rounded ${
+                                  field.isBadge
+                                    ? "bg-(--accent-500)/15 text-(--accent-400) border border-(--accent-500)/30"
+                                    : "bg-white/5 text-(--text-muted) border border-white/10"
+                                }`}
+                              >
+                                {field.isBadge && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1 animate-pulse" />}
+                                {field.scopeBadge}
+                              </span>
+                            </div>
+                            <p className="mt-1 text-[11px] text-(--text-tertiary) leading-normal">
+                              {field.description}
+                            </p>
+                          </div>
+                          <input
+                            type="checkbox"
+                            checked={draft[field.toggleKey]}
+                            onChange={(event) => patch(field.toggleKey, event.target.checked)}
+                            className="h-4 w-4 shrink-0 mt-0.5 accent-(--accent-500)"
+                            title={`开启/关闭${field.title}`}
+                          />
+                        </div>
 
-                  <div className="grid gap-3 md:grid-cols-3">
-                    {OVERVIEW_RATING_LABEL_FIELDS.map((field) => {
-                      const defaultLabel = getDefaultOverviewRatingLabelText(field.key);
-                      const ratingEnabled = draft.showOverviewRatings && draft[field.toggleKey];
-                      return (
-                        <div key={field.key} className="surface-inset flex min-w-0 flex-col gap-2 px-4 py-3">
-                          <label className="flex items-center justify-between gap-2">
-                            <span className="setting-subhead-title">{field.title}</span>
-                            <input
-                              type="checkbox"
-                              checked={draft[field.toggleKey]}
-                              disabled={!draft.showOverviewRatings}
-                              onChange={(event) => patch(field.toggleKey, event.target.checked)}
-                              className="h-4 w-4 shrink-0 accent-(--accent-500)"
-                            />
-                          </label>
+                        <div className="flex flex-col gap-1.5 mt-auto pt-1">
+                          <div className="flex items-center justify-between text-[11px] text-(--text-muted)">
+                            <span>自定义分级词</span>
+                            {!ratingEnabled && <span className="opacity-70">(已停用)</span>}
+                          </div>
                           <input
                             value={draft.ratingLabels[field.key]}
                             disabled={!ratingEnabled}
                             onChange={(event) => setRatingLabelDraft(field.key, event.target.value)}
                             placeholder={defaultLabel}
                             aria-label={`${field.title}评级名称`}
-                            className="surface-inset w-full px-3 py-2 text-[13px] outline-none disabled:opacity-60"
+                            className="surface-inset w-full px-3 py-1.5 text-[12px] outline-none disabled:opacity-60 font-mono"
                           />
                           <span className="setting-hint">
                             {field.tierHint}
                           </span>
                         </div>
-                      );
-                    })}
-                  </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </InstancePanel>
 

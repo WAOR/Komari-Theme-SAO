@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { Link, Navigate, useSearchParams } from "react-router-dom";
+import { HomeFooter } from "@/components/shell/HomeFooter";
 import { NodeGrid } from "@/components/node/NodeGrid";
 import { FloatingControls } from "@/components/shell/FloatingControls";
 import { Spinner } from "@/components/ui/Spinner";
@@ -26,10 +27,11 @@ function HomeDashboard() {
 
   return (
     <div
-      className={`home-dashboard relative pb-2${controlsExpanded ? " is-controls-expanded" : ""}`}
+      className={`home-dashboard relative${controlsExpanded ? " is-controls-expanded" : ""}`}
     >
       {homeReady && <FloatingControls onExpandedChange={setControlsExpanded} />}
       <NodeGrid />
+      <HomeFooter />
     </div>
   );
 }

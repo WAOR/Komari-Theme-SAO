@@ -11,6 +11,7 @@
 @import "./node-traffic-popover.css";
 @import "./os-logo.css";
 @import "./numeric.css";
+@import "./home-footer.css";
 
 @theme {
   --font-sans:

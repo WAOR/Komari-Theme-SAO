@@ -50,6 +50,7 @@ export interface ResolvedThemeSettings {
   enableHomeSort: boolean;
   homeSortField: HomeSortField;
   homeSortDirection: HomeSortDirection;
+  showTrafficPageButton: boolean;
   showCostSummary: boolean;
   showCostSummaryFloatingButton: boolean;
   showPriceForGuests: boolean;
@@ -95,6 +96,7 @@ export const DEFAULT_THEME_SETTINGS: ResolvedThemeSettings = {
   enableHomeSort: true,
   homeSortField: "default",
   homeSortDirection: HOME_SORT_NATURAL_DIRECTION.default,
+  showTrafficPageButton: true,
   showCostSummary: true,
   showCostSummaryFloatingButton: true,
   showPriceForGuests: false,
@@ -278,6 +280,7 @@ export function normalizeThemeSettings(
     homeGroupOrder: normalizeHomeGroupOrder(settings?.homeGroupOrder),
     enableHomeSort: enabledUnlessFalse(settings?.enableHomeSort),
     ...normalizeHomeSortDefault(settings?.homeSortField, settings?.homeSortDirection),
+    showTrafficPageButton: enabledUnlessFalse(settings?.showTrafficPageButton),
     showCostSummary: enabledUnlessFalse(settings?.showCostSummary),
     showCostSummaryFloatingButton: enabledUnlessFalse(settings?.showCostSummaryFloatingButton),
     // 默认关闭(需手动开启):向访客展示价格与资产必须由站长显式决定。

@@ -6,6 +6,7 @@ import {
   ChevronDown,
   ChevronUp,
   CircleDollarSign,
+  Compass,
   Grid3x3,
   Layers,
   LayoutTemplate,
@@ -284,6 +285,7 @@ function pickManagedThemeSettings(settings: ResolvedThemeSettings) {
     homeSortDirection: settings.homeSortDirection,
     showCostSummary: settings.showCostSummary,
     showCostSummaryFloatingButton: settings.showCostSummaryFloatingButton,
+    showTrafficPageButton: settings.showTrafficPageButton,
     showPriceForGuests: settings.showPriceForGuests,
     showOverviewRatings: settings.showOverviewRatings,
     showTrafficRating: settings.showTrafficRating,
@@ -1536,6 +1538,36 @@ function draftToThemeSettings(targetDraft: ThemeDraft): ThemeSettings {
               </InstancePanel>
 
               <InstancePanel
+                kicker="总览"
+                title="总览卡片扩展入口"
+                aside={<Compass size={16} />}
+              >
+                <div className="grid gap-3 md:grid-cols-3">
+                  <ToggleRow
+                    field="showTrafficPageButton"
+                    title="显示今日流量页入口按钮"
+                    desc="在首页今日流量卡片右上角显示进入流量统计页的图表按钮；若关闭，首页则暂无其他途径进入流量详情页。"
+                    checked={draft.showTrafficPageButton}
+                    onPatch={patch}
+                  />
+                  <ToggleRow
+                    field="showCostSummary"
+                    title="显示资产统计页入口按钮"
+                    desc="在首页资产概览卡右上角显示进入资产统计页的钱币按钮；若与悬浮按钮均关闭，首页则无其他途径进入资产统计页。"
+                    checked={draft.showCostSummary}
+                    onPatch={patch}
+                  />
+                  <ToggleRow
+                    field="showCostSummaryFloatingButton"
+                    title="显示资产看板悬浮按钮"
+                    desc="备用入口：仅在关闭「显示资产统计页入口按钮」或未显示资产卡时生效；若两者均关闭，首页则无其他途径进入资产统计页。"
+                    checked={draft.showCostSummaryFloatingButton}
+                    onPatch={patch}
+                  />
+                </div>
+              </InstancePanel>
+
+              <InstancePanel
                 id="set-cluster-overview-mode"
                 kicker="集群"
                 title="集群状态展示模式"
@@ -1975,21 +2007,7 @@ function draftToThemeSettings(targetDraft: ThemeDraft): ThemeSettings {
                 aside={<CircleDollarSign size={16} />}
               >
                 <div className="flex flex-col gap-4">
-                  <div className="grid gap-3 md:grid-cols-3">
-                    <ToggleRow
-                      field="showCostSummary"
-                      title="显示资产页入口按钮"
-                      desc="在首页资产概览卡右上角显示进入资产统计页的按钮。"
-                      checked={draft.showCostSummary}
-                      onPatch={patch}
-                    />
-                    <ToggleRow
-                      field="showCostSummaryFloatingButton"
-                      title="显示资产看板悬浮按钮"
-                      desc="卡内入口不可用时，在右下角提供可自由拖动停靠的悬浮钱币按钮进入资产统计页。"
-                      checked={draft.showCostSummaryFloatingButton}
-                      onPatch={patch}
-                    />
+                  <div className="grid gap-3">
                     <ToggleRow
                       field="showPriceForGuests"
                       title="向访客公开价格与资产"

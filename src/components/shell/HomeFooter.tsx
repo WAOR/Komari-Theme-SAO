@@ -13,9 +13,9 @@ export function HomeFooter() {
         <span className="home-footer-divider" aria-hidden="true" />
 
         {/* 版本芯片 */}
-        <span className="home-footer-version" title="主题版本 v1.1.2">
+        <span className="home-footer-version" title="主题版本 v1.1.3">
           <GitBranch size={10} className="home-footer-branch-icon" aria-hidden="true" />
-          <span>v1.1.2</span>
+          <span>v1.1.3</span>
         </span>
 
         <span className="home-footer-divider" aria-hidden="true" />

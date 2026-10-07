@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
-import { Lock } from "lucide-react";
+import { Lock, WifiOff, RotateCw, ArrowRight } from "lucide-react";
 import { Spinner } from "@/components/ui/Spinner";
 import { useAppearance } from "@/hooks/useAppearance";
 import { useAuth } from "@/hooks/useAuth";
@@ -32,7 +33,14 @@ export function AppShell() {
     isDataRoute &&
     (publicConfig.isPending ||
       (publicConfig.data?.private_site === true && auth.isPending));
-  const accessError = isDataRoute && publicConfig.isError && !publicConfig.data;
+  const isMockError =
+    new URLSearchParams(search).get("mock_error") === "1" ||
+    new URLSearchParams(search).get("mock-error") === "1" ||
+    (typeof window !== "undefined" &&
+      (new URLSearchParams(window.location.search).get("mock_error") === "1" ||
+        new URLSearchParams(window.location.search).get("mock-error") === "1"));
+  const accessError =
+    isMockError || (isDataRoute && publicConfig.isError && !publicConfig.data);
   const isPrivateVisitor =
     isDataRoute &&
     publicConfig.data?.private_site === true &&
@@ -106,41 +114,83 @@ export function AppShell() {
 }
 
 function AccessError({ onRetry }: { onRetry: () => void }) {
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    if (typeof window !== "undefined") {
+      const sp = new URLSearchParams(window.location.search);
+      if (sp.has("mock_error") || sp.has("mock-error")) {
+        sp.delete("mock_error");
+        sp.delete("mock-error");
+        const nextUrl =
+          window.location.pathname + (sp.toString() ? `?${sp.toString()}` : "");
+        window.location.href = nextUrl;
+        return;
+      }
+      window.location.reload();
+    } else {
+      onRetry();
+    }
+  };
+
   return (
-    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 text-center">
-      <div className="space-y-2">
-        <div className="text-[15px] font-semibold text-(--text-primary)">
-          无法读取站点配置
+    <div className="flex min-h-[60vh] items-center justify-center py-10">
+      <section className="access-error-card" role="alert" aria-live="assertive">
+        <div className="access-error-icon-wrap" aria-hidden="true">
+          <WifiOff size={22} strokeWidth={2} />
         </div>
-        <p className="text-[13px] text-(--text-secondary)">请检查网络后重试。</p>
-      </div>
-      <button type="button" onClick={onRetry} className="control-button px-4 py-2 text-[13px] font-medium">
-        重试
-      </button>
+        <div className="space-y-1.5">
+          <h2 className="access-error-title">无法读取站点配置</h2>
+          <p className="access-error-desc">
+            与监控服务通信失败或接口未响应，请检查网络连接后重试。
+          </p>
+        </div>
+        <div className="access-error-actions">
+          <button
+            type="button"
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="access-error-refresh-btn"
+          >
+            <RotateCw
+              size={14}
+              className={refreshing ? "animate-spin" : ""}
+              aria-hidden="true"
+            />
+            <span>{refreshing ? "正在刷新…" : "刷新页面"}</span>
+          </button>
+        </div>
+      </section>
     </div>
   );
 }
 
 function PrivateSiteGate() {
   return (
-    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 text-center">
-      <div className="grid h-12 w-12 place-items-center rounded-full bg-(--surface-elev) text-(--text-tertiary)">
-        <Lock size={22} strokeWidth={2} />
-      </div>
-      <div className="space-y-2">
-        <div className="text-[15px] font-semibold text-(--text-primary)">站点已设为私有</div>
-        <p className="max-w-lg text-[13px] text-(--text-secondary)">
-          登录后即可查看节点数据。
-        </p>
-      </div>
-      <a
-        href="/admin"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="control-button px-4 py-2 text-[13px] font-medium"
-      >
-        前往登录
-      </a>
+    <div className="flex min-h-[60vh] items-center justify-center py-10">
+      <section className="access-error-card" role="alert">
+        <div className="access-error-icon-wrap is-lock" aria-hidden="true">
+          <Lock size={22} strokeWidth={2} />
+        </div>
+        <div className="space-y-1.5">
+          <h2 className="access-error-title">站点已设为私有</h2>
+          <p className="access-error-desc">
+            该探针已被站长设为私有访问，登录后即可查看节点实时状态。
+          </p>
+        </div>
+        <div className="access-error-actions">
+          <a
+            href="/admin"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="access-error-refresh-btn"
+          >
+            <span>前往登录</span>
+            <ArrowRight size={14} aria-hidden="true" />
+          </a>
+        </div>
+      </section>
     </div>
   );
 }

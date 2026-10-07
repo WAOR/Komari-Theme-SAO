@@ -826,6 +826,7 @@ export function ThemeManage() {
   }, []);
 
   const [saving, setSaving] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [accessRevoked, setAccessRevoked] = useState(false);
@@ -833,6 +834,14 @@ export function ThemeManage() {
   // 右上角悬浮气泡 Toast（fixed 脱离文档流，0 挤动页面布局，3 秒自动淡出）
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+      if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+    };
+  }, []);
 
   const showToast = useCallback((msg: string) => {
     setToastMessage(msg);
@@ -1263,6 +1272,12 @@ function draftToThemeSettings(targetDraft: ThemeDraft): ThemeSettings {
     seedDrafts(sourceThemeSettings);
     setMessage(null);
     setError(null);
+    setResetting(true);
+    showToast("主题设置已重置");
+    if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+    resetTimerRef.current = setTimeout(() => {
+      setResetting(false);
+    }, 450);
   };
 
   if (configLoading) {
@@ -1363,24 +1378,23 @@ function draftToThemeSettings(targetDraft: ThemeDraft): ThemeSettings {
           <button
             type="button"
             onClick={handleReset}
-            disabled={!isDirty || saving}
+            disabled={saving || resetting}
             className="theme-manage-button is-compact min-w-17 justify-center"
           >
-            <RefreshCw size={14} className={saving ? "animate-spin" : ""} />
+            <RefreshCw size={14} className={resetting ? "animate-spin" : ""} />
             <span>重置</span>
           </button>
           <button
             type="button"
             onClick={() => void handleSave()}
             disabled={
-              !isDirty ||
               saving ||
               draftCostRateApiUrlInvalid ||
               draftMultiPingInvalid
             }
             className="theme-manage-button is-compact is-primary min-w-23 justify-center"
           >
-            {saving ? <Spinner size={14} /> : <Save size={14} />}
+            {saving ? <RefreshCw size={14} className="animate-spin" /> : <Save size={14} />}
             <span>{saving ? "保存中" : "保存设置"}</span>
           </button>
         </div>

@@ -41,11 +41,19 @@
 
 #### 📸 方格矩阵视觉效果预览
 
+##### 🖥️ 桌面端大集群全景 (Desktop)
+
 |                               浅色模式（EVA 初号机配色）                               |                               深色模式（EVA 初号机配色）                                |
 | :-------------------------------------------------------------------------: | :--------------------------------------------------------------------------: |
 | <img src="./docs/images/matrix-light.png" alt="浅色模式 EVA 配色" width="100%" /> |  <img src="./docs/images/matrix-dark.png" alt="深色模式 EVA 配色" width="100%" />  |
 |                             **SAO 开屏激光扫光与点阵字符**                             |                             **主题管理：微型点阵画板与矩阵设置**                             |
 |  <img src="./docs/images/matrix-opening.png" alt="开屏扫光动效" width="100%" />   | <img src="./docs/images/matrix-settings.png" alt="主题设置与点阵画板" width="100%" /> |
+
+##### 📱 移动端窄屏精细适配 (Mobile)
+
+| 移动端深色矩阵全貌 | 移动端开屏点阵动效 | 移动端主题管理与点阵画板 |
+| :---: | :---: | :---: |
+| <img src="./docs/images/matrix-mobile-dark.png" alt="移动端深色矩阵全貌" width="100%" /> | <img src="./docs/images/matrix-mobile-diy.png" alt="移动端开屏点阵动效" width="100%" /> | <img src="./docs/images/matrix-mobile-settings.png" alt="移动端主题管理与点阵画板" width="100%" /> |
 
 - **护眼浅色与纯粹深色体系**：
   - **浅色模式**：采用分层浅灰底色搭配立体悬浮卡片，降低明亮背景下的视觉眩光刺激。

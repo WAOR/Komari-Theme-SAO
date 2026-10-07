@@ -296,6 +296,7 @@ function pickManagedThemeSettings(settings: ResolvedThemeSettings) {
     showCostSummary: settings.showCostSummary,
     showCostSummaryFloatingButton: settings.showCostSummaryFloatingButton,
     showTrafficPageButton: settings.showTrafficPageButton,
+    showTrafficPageForGuests: settings.showTrafficPageForGuests,
     showPriceForGuests: settings.showPriceForGuests,
     showOverviewRatings: settings.showOverviewRatings,
     showTrafficRating: settings.showTrafficRating,
@@ -1518,7 +1519,7 @@ function draftToThemeSettings(targetDraft: ThemeDraft): ThemeSettings {
               </InstancePanel>
 
               <InstancePanel
-                kicker="总览"
+                kicker="顶部"
                 title="首页顶部组件"
                 aside={<ListFilter size={16} />}
               >
@@ -1548,32 +1549,57 @@ function draftToThemeSettings(targetDraft: ThemeDraft): ThemeSettings {
               </InstancePanel>
 
               <InstancePanel
-                kicker="总览"
-                title="总览卡片扩展入口"
+                kicker="入口"
+                title="卡片扩展入口与访客权限"
                 aside={<Compass size={16} />}
               >
-                <div className="grid gap-3 md:grid-cols-3">
-                  <ToggleRow
-                    field="showTrafficPageButton"
-                    title="显示今日流量页入口按钮"
-                    desc="在首页今日流量卡片右上角显示进入流量统计页的图表按钮；若关闭，首页则暂无其他途径进入流量详情页。"
-                    checked={draft.showTrafficPageButton}
-                    onPatch={patch}
-                  />
-                  <ToggleRow
-                    field="showCostSummary"
-                    title="显示资产统计页入口按钮"
-                    desc="在首页资产概览卡右上角显示进入资产统计页的钱币按钮；若与悬浮按钮均关闭，首页则无其他途径进入资产统计页。"
-                    checked={draft.showCostSummary}
-                    onPatch={patch}
-                  />
-                  <ToggleRow
-                    field="showCostSummaryFloatingButton"
-                    title="显示资产看板悬浮按钮"
-                    desc="备用入口：仅在关闭「显示资产统计页入口按钮」或未显示资产卡时生效；若两者均关闭，首页则无其他途径进入资产统计页。"
-                    checked={draft.showCostSummaryFloatingButton}
-                    onPatch={patch}
-                  />
+                <div className="flex flex-col gap-4">
+                  <div>
+                    <span className="setting-subhead-title block mb-2">卡片操作入口</span>
+                    <div className="grid gap-3 md:grid-cols-3">
+                      <ToggleRow
+                        field="showTrafficPageButton"
+                        title="显示今日流量页入口按钮"
+                        desc="在首页今日流量卡片右上角显示进入流量统计页的图表按钮。若希望未登录访客也能看到该按钮，请同步开启下方的「向访客显示流量入口按钮」。"
+                        checked={draft.showTrafficPageButton}
+                        onPatch={patch}
+                      />
+                      <ToggleRow
+                        field="showCostSummary"
+                        title="显示资产统计页入口按钮"
+                        desc="在首页资产总值卡片右上角显示进入资产统计页的钱币图标按钮。注意：若未开启下方的「向访客公开价格与资产」，该按钮仅管理员登录后可见，访客端将自动联动隐藏以保护财务隐私。"
+                        checked={draft.showCostSummary}
+                        onPatch={patch}
+                      />
+                      <ToggleRow
+                        field="showCostSummaryFloatingButton"
+                        title="显示资产看板悬浮按钮"
+                        desc="备用悬浮入口（显示在页面右下角）：为避免入口重复，仅在关闭了「资产总值」卡片右上角钱币按钮、或关闭了「显示顶部总览栏」时生效浮现。同样需管理员登录或开启「向访客公开价格与资产」后才会呈现。"
+                        checked={draft.showCostSummaryFloatingButton}
+                        onPatch={patch}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="border-t border-(--border-subtle) pt-3">
+                    <span className="setting-subhead-title block mb-2">访客公开与可见性权限</span>
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <ToggleRow
+                        field="showTrafficPageForGuests"
+                        title="向访客显示流量入口按钮"
+                        desc="默认关闭。仅在上方开启了「显示今日流量页入口按钮」时对访客生效。关闭时未登录访客隐藏图表按钮，保持卡片无图标统一纯净；开启后访客亦可在卡片右上角点击进入流量统计页。"
+                        checked={draft.showTrafficPageForGuests}
+                        onPatch={patch}
+                      />
+                      <ToggleRow
+                        field="showPriceForGuests"
+                        title="向访客公开价格与资产"
+                        desc="默认关闭。独立控制财务数据是否对访客脱敏：开启后访客可查看节点价格标签与资产总额（若上方开启了入口按钮则一并解锁访客跳转）；关闭时对访客隐藏价格标签，资产总值显示为保密。无论上方入口按钮是否开启，均可独立配置此项。"
+                        checked={draft.showPriceForGuests}
+                        onPatch={patch}
+                      />
+                    </div>
+                  </div>
                 </div>
               </InstancePanel>
 
@@ -2029,15 +2055,7 @@ function draftToThemeSettings(targetDraft: ThemeDraft): ThemeSettings {
                 aside={<CircleDollarSign size={16} />}
               >
                 <div className="flex flex-col gap-4">
-                  <div className="grid gap-3">
-                    <ToggleRow
-                      field="showPriceForGuests"
-                      title="向访客公开价格与资产"
-                      desc="默认关闭。开启后，未登录访客也能查看节点续费价格标签与首页资产概览；关闭时对访客隐藏价格标签，资产概览显示为 保密。"
-                      checked={draft.showPriceForGuests}
-                      onPatch={patch}
-                    />
-                  </div>
+
 
                   <div className="grid gap-4 md:grid-cols-2">
                     <label className="surface-inset flex flex-col gap-2 px-4 py-3">

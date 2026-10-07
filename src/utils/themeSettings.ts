@@ -51,6 +51,7 @@ export interface ResolvedThemeSettings {
   homeSortField: HomeSortField;
   homeSortDirection: HomeSortDirection;
   showTrafficPageButton: boolean;
+  showTrafficPageForGuests: boolean;
   showCostSummary: boolean;
   showCostSummaryFloatingButton: boolean;
   showPriceForGuests: boolean;
@@ -97,6 +98,7 @@ export const DEFAULT_THEME_SETTINGS: ResolvedThemeSettings = {
   homeSortField: "default",
   homeSortDirection: HOME_SORT_NATURAL_DIRECTION.default,
   showTrafficPageButton: true,
+  showTrafficPageForGuests: false,
   showCostSummary: true,
   showCostSummaryFloatingButton: true,
   showPriceForGuests: false,
@@ -281,6 +283,8 @@ export function normalizeThemeSettings(
     enableHomeSort: enabledUnlessFalse(settings?.enableHomeSort),
     ...normalizeHomeSortDefault(settings?.homeSortField, settings?.homeSortDirection),
     showTrafficPageButton: enabledUnlessFalse(settings?.showTrafficPageButton),
+    // 默认关闭(向访客保密入口):关闭时未登录访客隐藏今日流量右上角图表按钮，保持卡片无图标统一纯净。
+    showTrafficPageForGuests: settings?.showTrafficPageForGuests === true,
     showCostSummary: enabledUnlessFalse(settings?.showCostSummary),
     showCostSummaryFloatingButton: enabledUnlessFalse(settings?.showCostSummaryFloatingButton),
     // 默认关闭(需手动开启):向访客展示价格与资产必须由站长显式决定。

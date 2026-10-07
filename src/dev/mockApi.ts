@@ -568,6 +568,7 @@ export function installDevMockApi() {
     showCardGroup: true,
     enableHomeSort: true,
     showTrafficPageButton: true,
+    showTrafficPageForGuests: false,
     showCostSummary: true,
     showCostSummaryFloatingButton: true,
     showPriceForGuests: false,

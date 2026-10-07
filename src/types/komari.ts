@@ -150,6 +150,7 @@ export interface ThemeSettings {
   homeSortField?: "default" | "name" | "speed" | "traffic" | "price";
   homeSortDirection?: "asc" | "desc";
   showTrafficPageButton?: boolean;
+  showTrafficPageForGuests?: boolean;
   showCostSummary?: boolean;
   showCostSummaryFloatingButton?: boolean;
   showPriceForGuests?: boolean;

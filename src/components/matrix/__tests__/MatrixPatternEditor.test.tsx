@@ -17,6 +17,11 @@ describe("MatrixPatternEditor Component & Pattern Utilities", () => {
     // 检查预设按钮
     expect(html).toContain("SAO");
     expect(html).toContain("EVA");
+    expect(html).toContain("PING");
+    expect(html).toContain("OPS");
+    expect(html).toContain("FAST");
+    expect(html).toContain("〰️ 心电脉冲");
+    expect(html).toContain("🕹️ 吃豆人");
     expect(html).toContain("❤️ 爱心");
     expect(html).not.toContain("星星");
     expect(html).toContain("404");

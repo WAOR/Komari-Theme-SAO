@@ -105,7 +105,7 @@
 
 ## 🏷️ 多端版本号规范与维护机制
 
-本项目与 [Komari-Theme-SAO](https://github.com/WAOR/Komari-Theme-SAO) 及 [CFSM-SAO](https://github.com/WAOR/CFSM-SAO) 共同构成 SAO 探针主题家族。为兼顾**跨端核心功能演进的一致性**与**单一探针平台差异化适配的灵活性**，三端主题版本号遵循以下维护约定：
+**SAO 探针主题家族**目前涵盖 [Komari-Theme-SAO](https://github.com/WAOR/Komari-Theme-SAO)、[CFSM-SAO](https://github.com/WAOR/CFSM-SAO) 与 [Monitor-SAO](https://github.com/WAOR/Monitor-SAO) 三个版本。为兼顾**跨端核心功能演进的一致性**与**单一探针平台差异化适配的灵活性**，三端主题版本号遵循以下维护约定：
 
 ```text
 v 主版本 . 次版本 . 修订版本  (例: v1.1.5)
@@ -134,7 +134,7 @@ SAO 主题已上架三端各自的主题生态，均提供便捷的一键安装�
 
 ### ⚡ 极简探针端 (Monitor-Probe)
 * **方式一：仓库地址一键安装（推荐）**  
-  在极简探针管理后台「主题设置」页面，复制填入本仓库地址 `https://github.com/WAOR/Monitor-SAO` 即可一键拉取安装。
+  在极简探针管理后台「主题设置」页面，复制填入极简探针主题仓库地址 `https://github.com/WAOR/Monitor-SAO` 即可一键拉取安装。
 * **方式二：手动上传安装包**  
   前往 [Monitor-SAO Releases](https://github.com/WAOR/Monitor-SAO/releases) 下载最新打包产物 `theme.tar.gz`，在后台主题设置页面上传启用。
 
@@ -162,4 +162,4 @@ SAO 主题已上架三端各自的主题生态，均提供便捷的一键安装�
 
 ## 📄 开源许可证
 
-本项目基于 [MIT License](LICENSE) 开源发布。
+SAO 系列主题基于 [MIT License](LICENSE) 开源发布。

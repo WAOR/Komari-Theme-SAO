@@ -1,6 +1,9 @@
 import { GitBranch, ExternalLink } from "lucide-react";
+import pkg from "../../../package.json" with { type: "json" };
 
 export function HomeFooter() {
+  const themeVersion = pkg.version ? `v${pkg.version}` : "v1.2.3";
+
   return (
     <footer className="home-site-footer" aria-label="主题版本与仓库链接">
       <div className="home-footer-capsule">
@@ -13,9 +16,9 @@ export function HomeFooter() {
         <span className="home-footer-divider" aria-hidden="true" />
 
         {/* 版本芯片 */}
-        <span className="home-footer-version" title="主题版本 v1.2.1">
+        <span className="home-footer-version" title={`主题版本 ${themeVersion}`}>
           <GitBranch size={10} className="home-footer-branch-icon" aria-hidden="true" />
-          <span>v1.2.1</span>
+          <span>{themeVersion}</span>
         </span>
 
         <span className="home-footer-divider" aria-hidden="true" />

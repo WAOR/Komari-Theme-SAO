@@ -168,28 +168,28 @@ const BOOT_EFFECT_OPTIONS: BootEffectOption[] = [
     id: "laser-scan",
     label: "激光横扫 (Laser Scan)",
     badge: "RADAR",
-    desc: "经典雷达激光束自左向右横向扫描显影，纯正 SAO 机能风格",
+    desc: "雷达光束自左向右横向扫描显影，纯正 SAO 机能扫描风格",
     badgeClass: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border-emerald-500/30",
   },
   {
     id: "digital-rain",
     label: "数码雨流 (Digital Rain)",
     badge: "CASCADE",
-    desc: "交错流光瀑布自上而下倾泻显影，如黑客帝国代码雨般涌现",
+    desc: "流光瀑布自上而下交错倾泻显影，如矩阵代码雨般动态涌现",
     badgeClass: "bg-cyan-500/15 text-cyan-600 dark:text-cyan-300 border-cyan-500/30",
   },
   {
     id: "cyber-glitch",
     label: "神经故障 (Cyber Glitch)",
     badge: "OVERCLOCK",
-    desc: "斯安威斯坦电光青与超频品红噪波爆闪、行撕裂与协议校准咬合",
+    desc: "超频数码噪波高频爆闪显影，交错行撕裂重组与协议校准咬合",
     badgeClass: "bg-fuchsia-500/15 text-fuchsia-600 dark:text-fuchsia-300 border-fuchsia-500/30",
   },
   {
     id: "divergence-flux",
     label: "世界线跳变 (Divergence Flux)",
     badge: "1.048596%",
-    desc: "真空管惰性氖气放电赤橙火花高频跳动，自左向右逐位锁定定格",
+    desc: "辉光数码管高频乱数脉冲跳动，自左向右逐位校验并锁定定格",
     badgeClass: "bg-orange-500/15 text-orange-600 dark:text-orange-300 border-orange-500/30",
   },
 ];
@@ -1846,7 +1846,7 @@ function draftToThemeSettings(targetDraft: ThemeDraft): ThemeSettings {
                 </div>
               </InstancePanel>
 
-                            <InstancePanel
+              <InstancePanel
                 kicker="总览"
                 title="监控总览"
                 aside={<Layers size={16} />}
@@ -1858,6 +1858,74 @@ function draftToThemeSettings(targetDraft: ThemeDraft): ThemeSettings {
                   checked={draft.showHomeOverview}
                   onPatch={patch}
                 />
+
+                {(draft.showHomeOverview ?? true) && (
+                  <div className="mt-4 pt-3.5 border-t border-(--hairline)">
+                    <div className="flex items-center justify-between gap-3 mb-2.5">
+                      <div className="min-w-0">
+                        <div className="text-xs font-semibold text-(--text-primary) flex items-center gap-1.5">
+                          <span>高光配色</span>
+                          {(() => {
+                            const currentOpt = COLOR_THEME_OPTIONS.find(
+                              (opt) => opt.id === (draft.matrixColorTheme ?? "default"),
+                            ) ?? COLOR_THEME_OPTIONS[0];
+                            return (
+                              <span
+                                className={`text-[10px] font-bold px-1.5 py-0.5 rounded border shrink-0 ${currentOpt.badgeClass}`}
+                              >
+                                {currentOpt.badge}
+                              </span>
+                            );
+                          })()}
+                        </div>
+                        <p className="text-[11px] text-(--text-muted) mt-0.5">
+                          定制总览指标卡片、HUD 科技光晕与机架矩阵的高光配色方案。
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2.5">
+                      {COLOR_THEME_OPTIONS.map((opt) => {
+                        const isSelected = (draft.matrixColorTheme ?? "default") === opt.id;
+                        return (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => patch("matrixColorTheme", opt.id)}
+                            data-active={isSelected ? "true" : "false"}
+                            aria-pressed={isSelected}
+                            className={`setting-color-theme-card ${opt.id === "eva" ? "is-eva" : ""}`}
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div className="flex items-center gap-1 shrink-0 p-1 rounded-md bg-(--bg-card) border border-(--hairline)">
+                                {opt.colors.map((c, i) => (
+                                  <span
+                                    key={i}
+                                    className="w-2.5 h-2.5 rounded-xs"
+                                    style={{ backgroundColor: c }}
+                                  />
+                                ))}
+                              </div>
+                              <div className="min-w-0">
+                                <span className="text-xs font-medium text-(--text-primary) block truncate">
+                                  {opt.label}
+                                </span>
+                                <span className="text-[10px] text-(--text-muted) block truncate">
+                                  {opt.desc}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="setting-color-theme-radio" aria-hidden="true">
+                              {isSelected && (
+                                <div className="setting-color-theme-radio-dot" />
+                              )}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </InstancePanel>
 
               <InstancePanel
@@ -1973,75 +2041,8 @@ function draftToThemeSettings(targetDraft: ThemeDraft): ThemeSettings {
                   title="矩阵定制"
                   aside={<LayoutGrid size={16} />}
                 >
-                  {/* 1. 矩阵配色风格切换（经典标准 vs EVA 初号机） */}
+                  {/* 1. SAO 主题开场动画 */}
                   <div>
-                    <div className="flex items-center justify-between gap-3 mb-2.5">
-                      <div className="min-w-0">
-                        <div className="text-xs font-semibold text-(--text-primary) flex items-center gap-1.5">
-                          <span>配色风格</span>
-                          {(() => {
-                            const currentOpt = COLOR_THEME_OPTIONS.find(
-                              (opt) => opt.id === (draft.matrixColorTheme ?? "default"),
-                            ) ?? COLOR_THEME_OPTIONS[0];
-                            return (
-                              <span
-                                className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${currentOpt.badgeClass}`}
-                              >
-                                {currentOpt.badge}
-                              </span>
-                            );
-                          })()}
-                        </div>
-                        <p className="text-[11px] text-(--text-muted) mt-0.5">
-                          定制方格矩阵与指标卡片的高光配色风格。
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2.5">
-                      {COLOR_THEME_OPTIONS.map((opt) => {
-                        const isSelected = (draft.matrixColorTheme ?? "default") === opt.id;
-                        return (
-                          <button
-                            key={opt.id}
-                            type="button"
-                            onClick={() => patch("matrixColorTheme", opt.id)}
-                            data-active={isSelected ? "true" : "false"}
-                            aria-pressed={isSelected}
-                            className={`setting-color-theme-card ${opt.id === "eva" ? "is-eva" : ""}`}
-                          >
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <div className="flex items-center gap-1 shrink-0 p-1 rounded-md bg-(--bg-card) border border-(--hairline)">
-                                {opt.colors.map((c, i) => (
-                                  <span
-                                    key={i}
-                                    className="w-2.5 h-2.5 rounded-xs"
-                                    style={{ backgroundColor: c }}
-                                  />
-                                ))}
-                              </div>
-                              <div className="min-w-0">
-                                <span className="text-xs font-medium text-(--text-primary) block truncate">
-                                  {opt.label}
-                                </span>
-                                <span className="text-[10px] text-(--text-muted) block truncate">
-                                  {opt.desc}
-                                </span>
-                              </div>
-                            </div>
-                            <div className="setting-color-theme-radio" aria-hidden="true">
-                              {isSelected && (
-                                <div className="setting-color-theme-radio-dot" />
-                              )}
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* 2. SAO 主题开场动画 */}
-                  <div className="mt-4 pt-3.5 border-t border-(--hairline)">
                     <label className="flex items-center justify-between gap-3 cursor-pointer">
                       <div className="min-w-0">
                         <div className="text-xs font-semibold text-(--text-primary) flex items-center gap-1.5">

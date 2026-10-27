@@ -112,7 +112,6 @@ export interface NodeMetrics {
 export type MatrixColorTheme =
   | "default"
   | "eva"
-  | "cyberpunk"
   | "divergence";
 
 /** 方格矩阵开屏动效形式：laser-scan (激光横扫)、digital-rain (数码流雨) */
@@ -165,6 +164,19 @@ export interface TrafficSpectrumColors {
   end: string;
 }
 
+export type OverviewCardId =
+  | "connections"
+  | "cpu"
+  | "ram"
+  | "disk"
+  | "traffic"
+  | "asset"
+  | "nodes"
+  | "bandwidth"
+  | "swap"
+  | "process"
+  | "cores";
+
 export interface ThemeSettings {
   defaultAppearance?: "system" | "light" | "dark";
   desktopNodeViewMode?: "large" | "compact" | "mini" | "list";
@@ -181,6 +193,8 @@ export interface ThemeSettings {
   pingLossColors?: Partial<PingLossColors>;
   trafficSpectrumColors?: Partial<TrafficSpectrumColors>;
   showHomeOverview?: boolean;
+  /** 首页顶部总览左侧小卡片列表（固定 6 个槽位，不多不少） */
+  overviewCards?: OverviewCardId[];
   showGroupTabs?: boolean;
   showRegionBar?: boolean;
   showCardGroup?: boolean;

@@ -18,10 +18,16 @@ function createMockNode(overrides: Partial<HomeNodeSummary> = {}): HomeNodeSumma
     cpuPct: 15,
     ramUsed: 1024,
     ramTotal: 4096,
+    swapUsed: 0,
+    swapTotal: 0,
     diskUsed: 2048,
     diskTotal: 8192,
     connectionsTcp: 10,
     connectionsUdp: 5,
+    process: 0,
+    load1: 0,
+    load5: 0,
+    load15: 0,
     ...overrides,
   };
 }

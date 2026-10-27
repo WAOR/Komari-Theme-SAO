@@ -12,7 +12,7 @@ export interface DiaTextRevealProps extends React.HTMLAttributes<HTMLSpanElement
   mode?: "repeat-sweep" | "reveal-then-aurora" | "aurora-only";
 }
 
-export function DiaTextReveal({
+export const DiaTextReveal = React.memo(function DiaTextReveal({
   text,
   children,
   className,
@@ -89,4 +89,4 @@ export function DiaTextReveal({
       )}
     </span>
   );
-}
+});

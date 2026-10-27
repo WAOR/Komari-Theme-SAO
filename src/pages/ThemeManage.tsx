@@ -27,6 +27,8 @@ import {
   SunMoon,
   Sliders,
   RotateCcw,
+  PackagePlus,
+  X,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { InstancePanel } from "@/components/instance/InstancePanel";
@@ -35,6 +37,8 @@ import { Flag } from "@/components/ui/Flag";
 import { MatrixPatternEditor } from "@/components/matrix/MatrixPatternEditor";
 import { LatencyBars } from "@/components/node/LatencyBars";
 import { QualityBars } from "@/components/node/QualityBars";
+import { OverviewStatCard, type OverviewData } from "@/components/node/OverviewStatCard";
+import { useHomeNodeSummaries } from "@/hooks/useNode";
 import { usePublicConfig } from "@/hooks/usePublicConfig";
 import { useHourlyClock } from "@/hooks/useClock";
 import { queryClient } from "@/services/queryClient";
@@ -47,6 +51,7 @@ import {
 } from "@/services/api";
 import type {
   AdminClient,
+  OverviewCardId,
   PingLatencyColors,
   PingLatencyThresholds,
   PingLossColors,
@@ -91,6 +96,10 @@ import {
   DEFAULT_PING_LOSS_THRESHOLDS,
   DEFAULT_TRAFFIC_SPECTRUM_COLORS,
   STATUS_BAR_PRESETS,
+  DEFAULT_OVERVIEW_CARDS,
+  ALL_OVERVIEW_CARD_IDS,
+  OVERVIEW_CARD_SLOT_COUNT,
+  normalizeOverviewCards,
   normalizeThemeSettings,
   normalizePingLatencyColors,
   normalizePingLatencyThresholds,
@@ -136,14 +145,6 @@ const COLOR_THEME_OPTIONS: ColorThemeOption[] = [
     desc: "机体紫 · 荧光绿 · 警告橙 · 暴走红",
     colors: ["#7c3aed", "#00ff66", "#f97316", "#ef4444"],
     badgeClass: "bg-purple-500/15 text-purple-600 dark:text-purple-300 border-purple-500/30",
-  },
-  {
-    id: "cyberpunk",
-    label: "夜之城 2077",
-    badge: "NIGHT CITY",
-    desc: "斯安威斯坦青 · 霓虹亮黄 · 超频绯红",
-    colors: ["#00f0ff", "#fcee0a", "#ff0055", "#ef4444"],
-    badgeClass: "bg-cyan-500/15 text-cyan-600 dark:text-cyan-300 border-cyan-500/30",
   },
   {
     id: "divergence",
@@ -193,6 +194,8 @@ const BOOT_EFFECT_OPTIONS: BootEffectOption[] = [
     badgeClass: "bg-orange-500/15 text-orange-600 dark:text-orange-300 border-orange-500/30",
   },
 ];
+
+
 
 const PREVIEW_LATENCY_SAMPLES = [
   15, 25, 40, 55, 65, 80, 95, 110, 130, 150, 165, 185, 195, 210, 260, 320,
@@ -487,6 +490,7 @@ function pickManagedThemeSettings(settings: ResolvedThemeSettings) {
     pingLossColors: settings.pingLossColors,
     trafficSpectrumColors: settings.trafficSpectrumColors,
     showHomeOverview: settings.showHomeOverview,
+    overviewCards: settings.overviewCards,
     showGroupTabs: settings.showGroupTabs,
     showRegionBar: settings.showRegionBar,
     showCardGroup: settings.showCardGroup,
@@ -1290,6 +1294,46 @@ export function ThemeManage() {
     patch("homeGroupOrder", next);
   };
 
+  const currentOverviewCards = useMemo(
+    () => normalizeOverviewCards(draft.overviewCards),
+    [draft.overviewCards],
+  );
+
+  const availablePoolCards = useMemo(
+    () => ALL_OVERVIEW_CARD_IDS.filter((id) => !currentOverviewCards.includes(id)),
+    [currentOverviewCards],
+  );
+
+  const [draggingCard, setDraggingCard] = useState<{
+    source: "slot" | "pool";
+    cardId: OverviewCardId;
+    slotIndex?: number;
+  } | null>(null);
+  const [dragOverSlotIndex, setDragOverSlotIndex] = useState<number | null>(null);
+  const [selectedSlotIndex, setSelectedSlotIndex] = useState<number | null>(null);
+
+  const swapSlots = (indexA: number, indexB: number) => {
+    if (indexA === indexB || indexA < 0 || indexA >= OVERVIEW_CARD_SLOT_COUNT || indexB < 0 || indexB >= OVERVIEW_CARD_SLOT_COUNT) return;
+    const next = [...currentOverviewCards];
+    [next[indexA], next[indexB]] = [next[indexB], next[indexA]];
+    patch("overviewCards", next);
+  };
+
+  const replaceSlot = (slotIndex: number, newCardId: OverviewCardId) => {
+    if (slotIndex < 0 || slotIndex >= OVERVIEW_CARD_SLOT_COUNT) return;
+    const next = [...currentOverviewCards];
+    next[slotIndex] = newCardId;
+    patch("overviewCards", normalizeOverviewCards(next));
+    setSelectedSlotIndex(null);
+  };
+
+
+  const resetOverviewCards = () => {
+    patch("overviewCards", [...DEFAULT_OVERVIEW_CARDS]);
+    setSelectedSlotIndex(null);
+  };
+
+
   const filteredTasks = useMemo(() => {
     const keyword = taskSearch.trim().toLowerCase();
     if (!keyword) return sortedTasks;
@@ -1377,6 +1421,74 @@ export function ThemeManage() {
     staleTime: 60_000,
     retry: 1,
   });
+
+  const nodeSummaries = useHomeNodeSummaries();
+  const realOverview = useMemo<OverviewData | undefined>(() => {
+    if (!nodeSummaries || nodeSummaries.length === 0) return undefined;
+    let onlineNodes = 0;
+    let offlineNodes = 0;
+    let trafficUp = 0;
+    let trafficDown = 0;
+    let netUp = 0;
+    let netDown = 0;
+    let totalCpu = 0;
+    let totalRamUsed = 0;
+    let totalRamTotal = 0;
+    let totalSwapUsed = 0;
+    let totalSwapTotal = 0;
+    let totalDiskUsed = 0;
+    let totalDiskTotal = 0;
+    let totalTcpConn = 0;
+    let totalUdpConn = 0;
+    let totalProcesses = 0;
+
+    for (const node of nodeSummaries) {
+      if (node.online === true) onlineNodes++;
+      else if (node.online === false) offlineNodes++;
+
+      trafficUp += node.trafficUp || 0;
+      trafficDown += node.trafficDown || 0;
+      netUp += node.netUp || 0;
+      netDown += node.netDown || 0;
+      totalCpu += node.cpuPct || 0;
+      totalRamUsed += node.ramUsed || 0;
+      totalRamTotal += node.ramTotal || 0;
+      totalSwapUsed += node.swapUsed || 0;
+      totalSwapTotal += node.swapTotal || 0;
+      totalDiskUsed += node.diskUsed || 0;
+      totalDiskTotal += node.diskTotal || 0;
+      totalTcpConn += node.connectionsTcp || 0;
+      totalUdpConn += node.connectionsUdp || 0;
+      totalProcesses += node.process || 0;
+    }
+
+    const totalNodes = onlineNodes + offlineNodes;
+    const avgCpu = onlineNodes > 0 ? totalCpu / onlineNodes : 0;
+
+    return {
+      totalNodes,
+      onlineNodes,
+      offlineNodes,
+      trafficUp,
+      trafficDown,
+      netUp,
+      netDown,
+      avgCpu,
+      totalRamUsed,
+      totalRamTotal,
+      ramPct: totalRamTotal > 0 ? (totalRamUsed / totalRamTotal) * 100 : 0,
+      totalDiskUsed,
+      totalDiskTotal,
+      diskPct: totalDiskTotal > 0 ? (totalDiskUsed / totalDiskTotal) * 100 : 0,
+      totalTcpConn,
+      totalUdpConn,
+      totalSwapUsed,
+      totalSwapTotal,
+      swapPct: totalSwapTotal > 0 ? (totalSwapUsed / totalSwapTotal) * 100 : 0,
+      totalProcesses,
+      totalCores: allMeta.length > 0 ? allMeta.reduce((sum, n) => sum + (n.cpu_cores || 0), 0) : 0,
+    };
+  }, [nodeSummaries, allMeta]);
   const premiumRateQuery = useQuery({
     queryKey: ["cost-rates", sourceThemeSettings.costRateApiUrl],
     queryFn: ({ signal }) => getExchangeRates(sourceThemeSettings.costRateApiUrl, { signal }),
@@ -1396,6 +1508,17 @@ export function ThemeManage() {
     );
     for (const detail of summary.details) map.set(detail.uuid, detail);
     return map;
+  }, [allMeta, now, sourceThemeSettings.costIgnoredNodes, premiumRateQuery.data]);
+
+  const realCostSummary = useMemo(() => {
+    if (!premiumRateQuery.data || allMeta.length === 0) return null;
+    return calculateCostSummary(
+      allMeta,
+      sourceThemeSettings.costIgnoredNodes,
+      premiumRateQuery.data.rates,
+      undefined,
+      now,
+    );
   }, [allMeta, now, sourceThemeSettings.costIgnoredNodes, premiumRateQuery.data]);
 
   // 使用当前价格、周期、到期日和汇率回算指定收购日的剩余价值；结果只在用户编辑
@@ -1515,6 +1638,7 @@ function draftToThemeSettings(targetDraft: ThemeDraft): ThemeSettings {
     pingLossThresholds: normalizePingLossThresholds(rest.pingLossThresholds),
     pingLossColors: normalizePingLossColors(rest.pingLossColors),
     trafficSpectrumColors: normalizeTrafficSpectrumColors(rest.trafficSpectrumColors),
+    overviewCards: normalizeOverviewCards(rest.overviewCards),
     homepagePingBindings: pruneBindings(rest.homepagePingBindings),
     homeGroupOrder: normalizeHomeGroupOrder(rest.homeGroupOrder),
     trafficRatingLabels: ratingLabels.traffic,
@@ -1653,6 +1777,7 @@ function draftToThemeSettings(targetDraft: ThemeDraft): ThemeSettings {
     return () => {
       if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     config,
     draftCostRateApiUrlInvalid,
@@ -1860,11 +1985,42 @@ function draftToThemeSettings(targetDraft: ThemeDraft): ThemeSettings {
                 />
 
                 {(draft.showHomeOverview ?? true) && (
-                  <div className="mt-4 pt-3.5 border-t border-(--hairline)">
-                    <div className="flex items-center justify-between gap-3 mb-2.5">
-                      <div className="min-w-0">
-                        <div className="text-xs font-semibold text-(--text-primary) flex items-center gap-1.5">
-                          <span>高光配色</span>
+                  <div className="mt-4 flex flex-col gap-5">
+                    {/* 模块 1：左侧 · 指标小卡定制（高光配色 + 6 槽位 + 备选抽屉） */}
+                    <div
+                      className="rounded-2xl border border-(--hairline) bg-[color-mix(in_srgb,var(--bg-card)_55%,transparent)] p-4 sm:p-5 shadow-xs"
+                      data-palette={draft.matrixColorTheme || "default"}
+                    >
+                      {/* 模块头部：标题 + 状态角标 + 恢复默认按钮 */}
+                      <div className="flex items-start justify-between gap-3 pb-3.5 mb-4 border-b border-(--hairline)">
+                        <div className="min-w-0">
+                          <div className="text-xs font-semibold text-(--text-primary) flex items-center gap-1.5">
+                            <span>指标小卡定制</span>
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded border border-(--hairline) bg-(--bg-card) text-(--accent-500)">
+                              固定 6 槽位
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-(--text-muted) mt-0.5">
+                            展示在首页的核心小卡片。可调换位置或更换指标。
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          className="theme-reset-pill-btn"
+                          onClick={resetOverviewCards}
+                          title="恢复官方默认 6 卡片配置与排序"
+                        >
+                          <RotateCcw size={12} strokeWidth={2.2} />
+                          <span>重置默认</span>
+                        </button>
+                      </div>
+
+                      {/* 高光配色方案：内嵌在指标小卡定制顶部 */}
+                      <div className="mb-4">
+                        <div className="flex items-center justify-between gap-2 mb-2">
+                          <span className="text-[11px] font-medium text-(--text-secondary)">
+                            高光配色方案（联动定制小卡图标、科技光晕与方格矩阵）
+                          </span>
                           {(() => {
                             const currentOpt = COLOR_THEME_OPTIONS.find(
                               (opt) => opt.id === (draft.matrixColorTheme ?? "default"),
@@ -1878,51 +2034,455 @@ function draftToThemeSettings(targetDraft: ThemeDraft): ThemeSettings {
                             );
                           })()}
                         </div>
-                        <p className="text-[11px] text-(--text-muted) mt-0.5">
-                          定制总览指标卡片、HUD 科技光晕与机架矩阵的高光配色方案。
-                        </p>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2.5">
+                          {COLOR_THEME_OPTIONS.map((opt) => {
+                            const isSelected = (draft.matrixColorTheme ?? "default") === opt.id;
+                            return (
+                              <button
+                                key={opt.id}
+                                type="button"
+                                onClick={() => patch("matrixColorTheme", opt.id)}
+                                data-active={isSelected ? "true" : "false"}
+                                aria-pressed={isSelected}
+                                className={`setting-color-theme-card ${opt.id === "eva" ? "is-eva" : ""}`}
+                              >
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <div className="flex items-center gap-1 shrink-0 p-1 rounded-md bg-(--bg-card) border border-(--hairline)">
+                                    {opt.colors.map((c, i) => (
+                                      <span
+                                        key={i}
+                                        className="w-2.5 h-2.5 rounded-xs"
+                                        style={{ backgroundColor: c }}
+                                      />
+                                    ))}
+                                  </div>
+                                  <div className="min-w-0">
+                                    <span className="text-xs font-medium text-(--text-primary) block truncate">
+                                      {opt.label}
+                                    </span>
+                                    <span className="text-[10px] text-(--text-muted) block truncate">
+                                      {opt.desc}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="setting-color-theme-radio" aria-hidden="true">
+                                  {isSelected && (
+                                    <div className="setting-color-theme-radio-dot" />
+                                  )}
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* 1. 首页 6 槽位虚线卡片网格 (3x2 布局，1:1 所见即所得) */}
+                      <div className="mb-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[12px] font-semibold text-(--text-primary)">
+                            当前展示卡片
+                          </span>
+                          <span className="text-[11px] text-(--text-muted)">
+                            <span className="theme-manage-guide-mouse">拖拽调序，点击对调或更换</span>
+                            <span className="theme-manage-guide-touch">点两张卡对调，点备选卡更换</span>
+                          </span>
+                        </div>
+
+                        {selectedSlotIndex !== null && (
+                          <div className="mb-2.5 px-3 py-1.5 rounded-xl bg-(--accent-500)/10 border border-(--accent-500)/30 flex items-center justify-between gap-2 shadow-xs transition-all animate-fade-in">
+                            <div className="flex items-center gap-1.5 min-w-0 text-xs">
+                              <span className="inline-flex items-center justify-center h-4.5 px-1.5 text-[10px] font-mono font-bold rounded-full bg-(--accent-500) text-white shrink-0">
+                                #{selectedSlotIndex + 1}
+                              </span>
+                              <span className="font-semibold text-(--accent-500) shrink-0">
+                                已选中
+                              </span>
+                              <span className="text-[11px] text-(--text-secondary) truncate">
+                                点其他卡对调位置，或点下方备选卡更换
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedSlotIndex(null);
+                              }}
+                              className="p-1 rounded-md text-(--text-muted) hover:text-(--text-primary) hover:bg-(--accent-500)/20 transition-colors cursor-pointer shrink-0"
+                              title="取消选择"
+                              aria-label="取消选择"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                          {currentOverviewCards.map((cardId, slotIndex) => {
+                            const isBeingDragged = draggingCard?.source === "slot" && draggingCard.slotIndex === slotIndex;
+                            const isDragOver = dragOverSlotIndex === slotIndex;
+                            const isSelected = selectedSlotIndex === slotIndex;
+
+                            return (
+                              <div
+                                key={`slot-${slotIndex}-${cardId}`}
+                                onDragOver={(e) => {
+                                  e.preventDefault();
+                                  e.dataTransfer.dropEffect = "move";
+                                  if (dragOverSlotIndex !== slotIndex) setDragOverSlotIndex(slotIndex);
+                                }}
+                                onDragLeave={() => {
+                                  if (dragOverSlotIndex === slotIndex) setDragOverSlotIndex(null);
+                                }}
+                                onDrop={(e) => {
+                                  e.preventDefault();
+                                  setDragOverSlotIndex(null);
+                                  if (!draggingCard) return;
+                                  if (draggingCard.source === "slot") {
+                                    if (draggingCard.slotIndex !== undefined) {
+                                      swapSlots(draggingCard.slotIndex, slotIndex);
+                                    }
+                                  } else if (draggingCard.source === "pool") {
+                                    replaceSlot(slotIndex, draggingCard.cardId);
+                                  }
+                                  setDraggingCard(null);
+                                }}
+                                onClick={() => {
+                                  if (selectedSlotIndex === null) {
+                                    setSelectedSlotIndex(slotIndex);
+                                  } else if (selectedSlotIndex === slotIndex) {
+                                    setSelectedSlotIndex(null);
+                                  } else {
+                                    swapSlots(selectedSlotIndex, slotIndex);
+                                    setSelectedSlotIndex(null);
+                                  }
+                                }}
+                                className={`group relative rounded-2xl border-2 border-dashed p-1.5 transition-all select-none cursor-pointer ${
+                                  isDragOver
+                                    ? "border-(--accent-500) bg-(--accent-500)/15 scale-[1.02] shadow-lg ring-2 ring-(--accent-500)/40"
+                                    : isSelected
+                                      ? "border-(--accent-500) bg-(--accent-500)/10 ring-2 ring-(--accent-500)/50 shadow-md"
+                                      : "border-(--hairline) bg-(--bg-card)/40 hover:border-(--accent-500)/50 hover:bg-(--surface-elev)/40"
+                                }`}
+                              >
+                                {/* 右上角极简槽位序号徽章 */}
+                                <div className="absolute top-3 right-3 z-10 pointer-events-none">
+                                  <span className={`inline-flex items-center justify-center h-4.5 px-1.5 text-[10px] font-mono font-bold rounded-full backdrop-blur-sm border shadow-xs transition-all ${
+                                    isSelected
+                                      ? "bg-(--accent-500) text-white border-(--accent-500) scale-110 shadow-(--accent-500)/30"
+                                      : "bg-(--bg-card)/80 text-(--text-muted) border-(--hairline) group-hover:border-(--accent-500)/40 group-hover:text-(--accent-500)"
+                                  }`}>
+                                    #{slotIndex + 1}
+                                  </span>
+                                </div>
+
+                                {/* 所见即所得：真实指标卡实体，支持拖拽 */}
+                                <div
+                                  draggable
+                                  onDragStart={(e) => {
+                                    e.dataTransfer.setData("text/plain", cardId);
+                                    setDraggingCard({ source: "slot", cardId, slotIndex });
+                                  }}
+                                  onDragEnd={() => {
+                                    setDraggingCard(null);
+                                    setDragOverSlotIndex(null);
+                                  }}
+                                  className={`transition-opacity cursor-grab active:cursor-grabbing ${
+                                    isBeingDragged ? "opacity-30" : "opacity-100"
+                                  }`}
+                                  title="按住卡片直接拖动调换顺序，或点击选中后在下方选择替换"
+                                >
+                                  <OverviewStatCard
+                                    cardId={cardId}
+                                    overview={realOverview}
+                                    costSummary={realCostSummary}
+                                    className="w-full pointer-events-none shadow-none"
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* 2. 备选指标卡片池 (明确作为指标小卡的内嵌收纳抽屉) */}
+                      <div className="rounded-xl border border-dashed border-(--hairline) bg-[color-mix(in_srgb,var(--surface-inset)_65%,var(--bg-card))] p-3 sm:p-3.5">
+                        <div className="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+                          <div className="flex items-center gap-1.5">
+                            <PackagePlus size={13} className="text-(--text-muted)" />
+                            <span className="text-[11px] font-semibold text-(--text-secondary)">
+                              更多备选卡
+                            </span>
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-(--hairline) bg-(--bg-card) text-(--text-muted)">
+                              {availablePoolCards.length} 张可用
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-(--text-muted)">
+                            {selectedSlotIndex !== null ? (
+                              <span className="text-(--accent-500) font-medium">
+                                点击卡片直接换入 #{selectedSlotIndex + 1}
+                              </span>
+                            ) : (
+                              <>
+                                <span className="theme-manage-guide-mouse">
+                                  拖入上方或点击换入
+                                </span>
+                                <span className="theme-manage-guide-touch">
+                                  点上方卡片后点此换入
+                                </span>
+                              </>
+                            )}
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
+                          {availablePoolCards.map((cardId) => {
+                            const isBeingDragged = draggingCard?.source === "pool" && draggingCard.cardId === cardId;
+
+                            return (
+                              <div
+                                key={`pool-${cardId}`}
+                                draggable
+                                onDragStart={(e) => {
+                                  e.dataTransfer.setData("text/plain", cardId);
+                                  setDraggingCard({ source: "pool", cardId });
+                                }}
+                                onDragEnd={() => {
+                                  setDraggingCard(null);
+                                  setDragOverSlotIndex(null);
+                                }}
+                                onClick={() => {
+                                  if (selectedSlotIndex !== null) {
+                                    replaceSlot(selectedSlotIndex, cardId);
+                                  }
+                                }}
+                                className={`rounded-xl transition-all cursor-grab active:cursor-grabbing select-none ${
+                                  isBeingDragged ? "opacity-30 scale-95" : "opacity-90 hover:opacity-100 hover:scale-[1.01]"
+                                } ${
+                                  selectedSlotIndex !== null
+                                    ? "ring-2 ring-(--accent-500)/60 shadow-md cursor-pointer hover:ring-(--accent-500)"
+                                    : ""
+                                }`}
+                                title={
+                                  selectedSlotIndex !== null
+                                    ? `点击放入 #${selectedSlotIndex + 1} 槽位`
+                                    : "按住拖拽至上方槽位进行替换"
+                                }
+                              >
+                                <OverviewStatCard
+                                  cardId={cardId}
+                                  overview={realOverview}
+                                  costSummary={realCostSummary}
+                                  className="w-full pointer-events-none shadow-xs"
+                                />
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2.5">
-                      {COLOR_THEME_OPTIONS.map((opt) => {
-                        const isSelected = (draft.matrixColorTheme ?? "default") === opt.id;
-                        return (
-                          <button
-                            key={opt.id}
-                            type="button"
-                            onClick={() => patch("matrixColorTheme", opt.id)}
-                            data-active={isSelected ? "true" : "false"}
-                            aria-pressed={isSelected}
-                            className={`setting-color-theme-card ${opt.id === "eva" ? "is-eva" : ""}`}
-                          >
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <div className="flex items-center gap-1 shrink-0 p-1 rounded-md bg-(--bg-card) border border-(--hairline)">
-                                {opt.colors.map((c, i) => (
-                                  <span
-                                    key={i}
-                                    className="w-2.5 h-2.5 rounded-xs"
-                                    style={{ backgroundColor: c }}
-                                  />
-                                ))}
+                    {/* 模块 2：右侧 · 集群主展台呈现 */}
+                    <div
+                      id="set-cluster-overview-mode"
+                      className="rounded-2xl border border-(--hairline) bg-[color-mix(in_srgb,var(--bg-card)_55%,transparent)] p-4 sm:p-5 shadow-xs"
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 mb-4 border-b border-(--hairline)">
+                        <div className="min-w-0">
+                          <div className="text-xs font-semibold text-(--text-primary) flex items-center gap-1.5">
+                            <span>集群主展台呈现</span>
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded border border-(--hairline) bg-(--bg-card) text-(--accent-500)">
+                              {draft.clusterOverviewMode === "nodes" ? "方格矩阵" : "经典布局"}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-(--text-muted) mt-0.5">
+                            对应首页右侧主展台形态。可呈现双曲线图或方格机架矩阵。
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="setting-mode-cards">
+                        {[
+                          {
+                            value: "classic" as const,
+                            label: "经典布局",
+                            desc: "展示在线率与实时上下行带宽双曲线图。",
+                            icon: Layers,
+                          },
+                          {
+                            value: "nodes" as const,
+                            label: "方格矩阵",
+                            desc: "以机架方块直观排查每台机器负载与健康。",
+                            icon: LayoutGrid,
+                          },
+                        ].map(({ value, label, desc, icon: ModeIcon }) => {
+                          const isActive = (draft.clusterOverviewMode ?? "classic") === value;
+                          return (
+                            <button
+                              key={value}
+                              type="button"
+                              onClick={() => patch("clusterOverviewMode", value)}
+                              data-active={isActive ? "true" : "false"}
+                              aria-pressed={isActive}
+                              className="setting-mode-card"
+                            >
+                              <div className="setting-mode-card-head">
+                                <div className="setting-mode-card-title">
+                                  <ModeIcon size={15} />
+                                  <span>{label}</span>
+                                </div>
+                                <div className="setting-mode-card-radio" aria-hidden="true">
+                                  <div className="setting-mode-card-radio-dot" />
+                                </div>
                               </div>
+                              <div className="setting-mode-card-desc">{desc}</div>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* 当切换到「方格矩阵」时，直接在容器内展开专属定制项 */}
+                      {draft.clusterOverviewMode === "nodes" && (
+                        <div className="mt-4 pt-4 border-t border-(--hairline) space-y-4">
+                          {/* 1. SAO 主题开场动画 */}
+                          <div>
+                            <label className="flex items-center justify-between gap-3 cursor-pointer">
                               <div className="min-w-0">
-                                <span className="text-xs font-medium text-(--text-primary) block truncate">
-                                  {opt.label}
-                                </span>
-                                <span className="text-[10px] text-(--text-muted) block truncate">
-                                  {opt.desc}
-                                </span>
+                                <div className="text-xs font-semibold text-(--text-primary) flex items-center gap-1.5">
+                                  <span>开屏动画</span>
+                                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-300 border border-amber-500/30">
+                                    BOOT INTRO
+                                  </span>
+                                </div>
+                                <p className="text-[11px] text-(--text-muted) mt-0.5">
+                                  进入首页时播放光效开屏动画，随后载入数据。
+                                </p>
                               </div>
-                            </div>
-                            <div className="setting-color-theme-radio" aria-hidden="true">
-                              {isSelected && (
-                                <div className="setting-color-theme-radio-dot" />
-                              )}
-                            </div>
-                          </button>
-                        );
-                      })}
+                              <input
+                                type="checkbox"
+                                checked={draft.matrixBootAnimation ?? true}
+                                onChange={(event) => patch("matrixBootAnimation", event.target.checked)}
+                                className="h-4 w-4 shrink-0 accent-(--accent-500)"
+                              />
+                            </label>
+
+                            {/* 开场点阵图案自定义画布与动效形式（仅在开启开场动画时展开） */}
+                            {(draft.matrixBootAnimation ?? true) && (
+                              <div className="mt-3.5 space-y-4">
+                                {/* 动效形式独立选择器 */}
+                                <div className="rounded-xl border border-(--hairline) bg-[color-mix(in_srgb,var(--bg-card)_55%,transparent)] p-3 sm:p-3.5">
+                                  <div className="flex items-center justify-between gap-2 mb-2.5">
+                                    <div>
+                                      <div className="text-xs font-semibold text-(--text-primary) flex items-center gap-1.5">
+                                        <span>动效样式</span>
+                                        {(() => {
+                                          const currentEffect =
+                                            BOOT_EFFECT_OPTIONS.find(
+                                              (e) => e.id === (draft.matrixBootEffect ?? "laser-scan"),
+                                            ) ?? BOOT_EFFECT_OPTIONS[0];
+                                          return (
+                                            <span
+                                              className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${currentEffect.badgeClass}`}
+                                            >
+                                              {currentEffect.badge}
+                                            </span>
+                                          );
+                                        })()}
+                                      </div>
+                                      <p className="text-[11px] text-(--text-muted) mt-0.5">
+                                        选择开屏画面的入场动效样式。
+                                      </p>
+                                    </div>
+                                  </div>
+
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                    {BOOT_EFFECT_OPTIONS.map((opt) => {
+                                      const isSelected = (draft.matrixBootEffect ?? "laser-scan") === opt.id;
+                                      return (
+                                        <button
+                                          key={opt.id}
+                                          type="button"
+                                          onClick={() => patch("matrixBootEffect", opt.id)}
+                                          data-active={isSelected ? "true" : "false"}
+                                          aria-pressed={isSelected}
+                                          className="setting-color-theme-card"
+                                        >
+                                          <div className="flex items-center gap-2.5 min-w-0">
+                                            <div className="min-w-0">
+                                              <div className="flex items-center gap-1.5">
+                                                <span className="text-xs font-medium text-(--text-primary) truncate">
+                                                  {opt.label}
+                                                </span>
+                                              </div>
+                                              <span className="text-[10px] text-(--text-muted) block truncate mt-0.5">
+                                                {opt.desc}
+                                              </span>
+                                            </div>
+                                          </div>
+                                          <div className="setting-color-theme-radio" aria-hidden="true">
+                                            {isSelected && (
+                                              <div className="setting-color-theme-radio-dot" />
+                                            )}
+                                          </div>
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+
+                                {/* 点阵画板 */}
+                                <MatrixPatternEditor
+                                  value={draft.matrixCustomPattern}
+                                  userPresets={draft.matrixUserPresets}
+                                  colorTheme={draft.matrixColorTheme ?? "default"}
+                                  bootEffect={draft.matrixBootEffect ?? "laser-scan"}
+                                  onApply={async (pattern) => {
+                                    patch("matrixCustomPattern", pattern);
+                                    try {
+                                      await handleSave({ matrixCustomPattern: pattern });
+                                      showToast("已将点阵图案应用到首页并保存生效");
+                                    } catch {
+                                      showToast("已应用到画板，请点击右上角保存");
+                                    }
+                                  }}
+                                  onSaveUserPresets={async (presets) => {
+                                    patch("matrixUserPresets", presets);
+                                    try {
+                                      await handleSave({ matrixUserPresets: presets });
+                                      showToast("用户预设已更新并保存生效");
+                                    } catch {
+                                      showToast("预设已更新，请点击右上角保存");
+                                    }
+                                  }}
+                                />
+                              </div>
+                            )}
+                          </div>
+
+                          {/* 2. 模拟数据填充空闲机位插槽 */}
+                          <div className="pt-3.5 border-t border-(--hairline)">
+                            <label className="flex items-center justify-between gap-3 cursor-pointer">
+                              <div className="min-w-0">
+                                <div className="text-xs font-semibold text-(--text-primary) flex items-center gap-1.5">
+                                  <span>模拟数据填充空闲机位插槽</span>
+                                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-600 dark:text-blue-300 border border-blue-500/30">
+                                    MOCK FILL
+                                  </span>
+                                </div>
+                                <p className="text-[11px] text-(--text-muted) mt-0.5">
+                                  开启后，机架方格矩阵中未接入服务器的闲置插槽将使用模拟数据填满，并在运行期间周期性随机变幻「空闲待机」、「活跃传输」与「高吞吐」状态及吞吐速率，令机架方格更显生机灵动。
+                                </p>
+                              </div>
+                              <input
+                                type="checkbox"
+                                checked={draft.matrixMockFill ?? false}
+                                onChange={(event) => patch("matrixMockFill", event.target.checked)}
+                                className="h-4 w-4 shrink-0 accent-(--accent-500)"
+                              />
+                            </label>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -1982,204 +2542,6 @@ function draftToThemeSettings(targetDraft: ThemeDraft): ThemeSettings {
                   </div>
                 </div>
               </InstancePanel>
-
-              <InstancePanel
-                id="set-cluster-overview-mode"
-                kicker="模式"
-                title="集群展台"
-                aside={<Activity size={16} />}
-              >
-                <p className="text-xs text-(--text-muted) mb-3 leading-relaxed">
-                  选择首页右侧主展台的呈现形式。
-                </p>
-                <div className="setting-mode-cards">
-                  {[
-                    {
-                      value: "classic" as const,
-                      label: "经典布局",
-                      desc: "展示在线率与实时上下行带宽双曲线图。",
-                      icon: Layers,
-                    },
-                    {
-                      value: "nodes" as const,
-                      label: "方格矩阵",
-                      desc: "以机架方块直观排查每台机器负载与健康。",
-                      icon: LayoutGrid,
-                    },
-                  ].map(({ value, label, desc, icon: ModeIcon }) => {
-                    const isActive = (draft.clusterOverviewMode ?? "classic") === value;
-                    return (
-                      <button
-                        key={value}
-                        type="button"
-                        onClick={() => patch("clusterOverviewMode", value)}
-                        data-active={isActive ? "true" : "false"}
-                        aria-pressed={isActive}
-                        className="setting-mode-card"
-                      >
-                        <div className="setting-mode-card-head">
-                          <div className="setting-mode-card-title">
-                            <ModeIcon size={15} />
-                            <span>{label}</span>
-                          </div>
-                          <div className="setting-mode-card-radio" aria-hidden="true">
-                            <div className="setting-mode-card-radio-dot" />
-                          </div>
-                        </div>
-                        <div className="setting-mode-card-desc">{desc}</div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </InstancePanel>
-
-              {/* 当选择「方格矩阵」展示模式时，在下方动态呈现专属方格矩阵设置卡 */}
-              {draft.clusterOverviewMode === "nodes" && (
-                <InstancePanel
-                  id="set-matrix-settings"
-                  kicker="矩阵"
-                  title="矩阵定制"
-                  aside={<LayoutGrid size={16} />}
-                >
-                  {/* 1. SAO 主题开场动画 */}
-                  <div>
-                    <label className="flex items-center justify-between gap-3 cursor-pointer">
-                      <div className="min-w-0">
-                        <div className="text-xs font-semibold text-(--text-primary) flex items-center gap-1.5">
-                          <span>开屏动画</span>
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-300 border border-amber-500/30">
-                            BOOT INTRO
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-(--text-muted) mt-0.5">
-                          进入首页时播放光效开屏动画，随后载入数据。
-                        </p>
-                      </div>
-                      <input
-                        type="checkbox"
-                        checked={draft.matrixBootAnimation ?? true}
-                        onChange={(event) => patch("matrixBootAnimation", event.target.checked)}
-                        className="h-4 w-4 shrink-0 accent-(--accent-500)"
-                      />
-                    </label>
-
-                    {/* 开场点阵图案自定义画布与动效形式（仅在开启开场动画时展开） */}
-                    {(draft.matrixBootAnimation ?? true) && (
-                      <div className="mt-3.5 space-y-4">
-                        {/* 动效形式独立选择器 */}
-                        <div className="rounded-xl border border-(--hairline) bg-[color-mix(in_srgb,var(--bg-card)_55%,transparent)] p-3 sm:p-3.5">
-                          <div className="flex items-center justify-between gap-2 mb-2.5">
-                            <div>
-                              <div className="text-xs font-semibold text-(--text-primary) flex items-center gap-1.5">
-                                <span>动效样式</span>
-                                {(() => {
-                                  const currentEffect =
-                                    BOOT_EFFECT_OPTIONS.find(
-                                      (e) => e.id === (draft.matrixBootEffect ?? "laser-scan"),
-                                    ) ?? BOOT_EFFECT_OPTIONS[0];
-                                  return (
-                                    <span
-                                      className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${currentEffect.badgeClass}`}
-                                    >
-                                      {currentEffect.badge}
-                                    </span>
-                                  );
-                                })()}
-                              </div>
-                              <p className="text-[11px] text-(--text-muted) mt-0.5">
-                                选择开屏画面的入场动效样式。
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                            {BOOT_EFFECT_OPTIONS.map((opt) => {
-                              const isSelected = (draft.matrixBootEffect ?? "laser-scan") === opt.id;
-                              return (
-                                <button
-                                  key={opt.id}
-                                  type="button"
-                                  onClick={() => patch("matrixBootEffect", opt.id)}
-                                  data-active={isSelected ? "true" : "false"}
-                                  aria-pressed={isSelected}
-                                  className="setting-color-theme-card"
-                                >
-                                  <div className="flex items-center gap-2.5 min-w-0">
-                                    <div className="min-w-0">
-                                      <div className="flex items-center gap-1.5">
-                                        <span className="text-xs font-medium text-(--text-primary) truncate">
-                                          {opt.label}
-                                        </span>
-                                      </div>
-                                      <span className="text-[10px] text-(--text-muted) block truncate mt-0.5">
-                                        {opt.desc}
-                                      </span>
-                                    </div>
-                                  </div>
-                                  <div className="setting-color-theme-radio" aria-hidden="true">
-                                    {isSelected && (
-                                      <div className="setting-color-theme-radio-dot" />
-                                    )}
-                                  </div>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-
-                        {/* 点阵画板 */}
-                        <MatrixPatternEditor
-                          value={draft.matrixCustomPattern}
-                          userPresets={draft.matrixUserPresets}
-                          colorTheme={draft.matrixColorTheme ?? "default"}
-                          bootEffect={draft.matrixBootEffect ?? "laser-scan"}
-                          onApply={async (pattern) => {
-                            patch("matrixCustomPattern", pattern);
-                            try {
-                              await handleSave({ matrixCustomPattern: pattern });
-                              showToast("已将点阵图案应用到首页并保存生效");
-                            } catch {
-                              showToast("已应用到画板，请点击右上角保存");
-                            }
-                          }}
-                          onSaveUserPresets={async (presets) => {
-                            patch("matrixUserPresets", presets);
-                            try {
-                              await handleSave({ matrixUserPresets: presets });
-                              showToast("用户预设已更新并保存生效");
-                            } catch {
-                              showToast("预设已更新，请点击右上角保存");
-                            }
-                          }}
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* 3. 模拟数据填充空闲机位插槽 */}
-                  <div className="mt-4 pt-3.5 border-t border-(--hairline)">
-                    <label className="flex items-center justify-between gap-3 cursor-pointer">
-                      <div className="min-w-0">
-                        <div className="text-xs font-semibold text-(--text-primary) flex items-center gap-1.5">
-                          <span>模拟数据填充空闲机位插槽</span>
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-600 dark:text-blue-300 border border-blue-500/30">
-                            MOCK FILL
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-(--text-muted) mt-0.5">
-                          开启后，机架方格矩阵中未接入服务器的闲置插槽将使用模拟数据填满，并在运行期间周期性随机变幻「空闲待机」、「活跃传输」与「高吞吐」状态及吞吐速率，令机架方格更显生机灵动。
-                        </p>
-                      </div>
-                      <input
-                        type="checkbox"
-                        checked={draft.matrixMockFill ?? false}
-                        onChange={(event) => patch("matrixMockFill", event.target.checked)}
-                        className="h-4 w-4 shrink-0 accent-(--accent-500)"
-                      />
-                    </label>
-                  </div>
-                </InstancePanel>
-              )}
 
               <InstancePanel
                 kicker="评级"

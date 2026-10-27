@@ -64,13 +64,15 @@ body {
   box-sizing: border-box;
 }
 
-button {
-  font: inherit;
-  color: inherit;
-  background: transparent;
-  border: 0;
-  cursor: pointer;
-  padding: 0;
+@layer base {
+  button {
+    font: inherit;
+    color: inherit;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    padding: 0;
+  }
 }
 
 a {

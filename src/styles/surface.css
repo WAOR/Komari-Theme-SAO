@@ -834,6 +834,47 @@
   gap: 10px;
 }
 
+/* 高对比度胶囊按钮（同站点配置报错重试按钮规范：深色模式浅色按钮、浅色模式深色按钮、圆润胶囊形态） */
+.theme-reset-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: var(--text-primary);
+  color: var(--bg-0);
+  border: 1px solid var(--text-primary);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  user-select: none;
+  text-decoration: none;
+  box-shadow: 0 4px 12px -3px color-mix(in srgb, var(--text-primary) 28%, transparent);
+  transition:
+    opacity 160ms ease,
+    transform 160ms cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 160ms ease;
+}
+
+.theme-reset-pill-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px -3px color-mix(in srgb, var(--text-primary) 38%, transparent);
+}
+
+.theme-reset-pill-btn:active {
+  transform: translateY(0) scale(0.96);
+}
+
+.theme-reset-pill-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .theme-manage-button {
   display: inline-flex;
   align-items: center;
@@ -2144,3 +2185,21 @@
     text-overflow: ellipsis;
   }
 }
+
+/* 指针特性自适应引导文案：鼠标/触控板 vs 触屏（手机/平板/模拟器） */
+.theme-manage-guide-touch {
+  display: none;
+}
+.theme-manage-guide-mouse {
+  display: inline;
+}
+
+@media (pointer: coarse), (max-width: 640px) {
+  .theme-manage-guide-touch {
+    display: inline;
+  }
+  .theme-manage-guide-mouse {
+    display: none;
+  }
+}
+

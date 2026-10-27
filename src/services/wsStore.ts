@@ -32,10 +32,16 @@ export interface HomeNodeSummary {
   cpuPct: number;
   ramUsed: number;
   ramTotal: number;
+  swapUsed: number;
+  swapTotal: number;
   diskUsed: number;
   diskTotal: number;
   connectionsTcp: number;
   connectionsUdp: number;
+  process: number;
+  load1: number;
+  load5: number;
+  load15: number;
 }
 
 export interface NodeOnlineSummary {
@@ -1102,10 +1108,16 @@ export function getHomeNodeSummariesSnapshot(): HomeNodeSummary[] {
         cpuPct: metrics?.online === false ? 0 : metrics?.cpuPct ?? 0,
         ramUsed: metrics?.online === false ? 0 : metrics?.ramUsed ?? 0,
         ramTotal: metrics?.ramTotal || meta.mem_total || 0,
+        swapUsed: metrics?.online === false ? 0 : metrics?.swapUsed ?? 0,
+        swapTotal: metrics?.swapTotal || meta.swap_total || 0,
         diskUsed: metrics?.online === false ? 0 : metrics?.diskUsed ?? 0,
         diskTotal: metrics?.diskTotal || meta.disk_total || 0,
         connectionsTcp: metrics?.online === false ? 0 : metrics?.connectionsTcp ?? 0,
         connectionsUdp: metrics?.online === false ? 0 : metrics?.connectionsUdp ?? 0,
+        process: metrics?.online === false ? 0 : metrics?.process ?? 0,
+        load1: metrics?.online === false ? 0 : metrics?.load1 ?? 0,
+        load5: metrics?.online === false ? 0 : metrics?.load5 ?? 0,
+        load15: metrics?.online === false ? 0 : metrics?.load15 ?? 0,
       };
     })
     .filter((item): item is HomeNodeSummary => Boolean(item));
@@ -1129,10 +1141,16 @@ export function getHomeNodeSummariesSnapshot(): HomeNodeSummary[] {
         prev.cpuPct === item.cpuPct &&
         prev.ramUsed === item.ramUsed &&
         prev.ramTotal === item.ramTotal &&
+        prev.swapUsed === item.swapUsed &&
+        prev.swapTotal === item.swapTotal &&
         prev.diskUsed === item.diskUsed &&
         prev.diskTotal === item.diskTotal &&
         prev.connectionsTcp === item.connectionsTcp &&
-        prev.connectionsUdp === item.connectionsUdp
+        prev.connectionsUdp === item.connectionsUdp &&
+        prev.process === item.process &&
+        prev.load1 === item.load1 &&
+        prev.load5 === item.load5 &&
+        prev.load15 === item.load15
       );
     })
   ) {

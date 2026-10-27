@@ -1,25 +1,55 @@
 import { GitBranch, ExternalLink } from "lucide-react";
-import pkg from "../../../package.json" with { type: "json" };
+import clsx from "clsx";
+import { useThemeUpdate } from "@/hooks/useThemeUpdate";
 
 export function HomeFooter() {
-  const themeVersion = pkg.version ? `v${pkg.version}` : "v1.2.3";
+  const { hasUpdate, currentVersion, latestVersion, releaseUrl, toggleMockUpdate } = useThemeUpdate();
 
   return (
     <footer className="home-site-footer" aria-label="主题版本与仓库链接">
       <div className="home-footer-capsule">
         {/* 左侧呼吸点与主题标识 */}
         <div className="home-footer-brand">
-          <span className="home-footer-pulse" aria-hidden="true" />
+          <button
+            type="button"
+            className={clsx("home-footer-pulse", hasUpdate && "has-update")}
+            title={hasUpdate ? `发现新版本 ${latestVersion} (点击可切换预览状态)` : "状态正常 (点击可切换更新预览)"}
+            onClick={toggleMockUpdate}
+            aria-label="版本状态指示点"
+          />
           <span className="home-footer-title">SAO</span>
         </div>
 
         <span className="home-footer-divider" aria-hidden="true" />
 
-        {/* 版本芯片 */}
-        <span className="home-footer-version" title={`主题版本 ${themeVersion}`}>
-          <GitBranch size={10} className="home-footer-branch-icon" aria-hidden="true" />
-          <span>{themeVersion}</span>
-        </span>
+        {/* 版本芯片：若有更新则图标与版本号作为一体同步上下翻滚 */}
+        {hasUpdate ? (
+          <a
+            href={releaseUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="home-footer-version"
+            title={`当前版本 ${currentVersion} · 发现新版本 ${latestVersion} (点击前往 GitHub 查看更新)`}
+          >
+            <span className="home-footer-ticker-viewport">
+              <span className="home-footer-ticker-track">
+                <span className="home-footer-ticker-item current">
+                  <GitBranch size={10} className="home-footer-branch-icon" aria-hidden="true" />
+                  <span>{currentVersion}</span>
+                </span>
+                <span className="home-footer-ticker-item latest">
+                  <GitBranch size={10} className="home-footer-branch-icon" aria-hidden="true" />
+                  <span>{latestVersion}</span>
+                </span>
+              </span>
+            </span>
+          </a>
+        ) : (
+          <span className="home-footer-version" title={`主题版本 ${currentVersion}`}>
+            <GitBranch size={10} className="home-footer-branch-icon" aria-hidden="true" />
+            <span>{currentVersion}</span>
+          </span>
+        )}
 
         <span className="home-footer-divider" aria-hidden="true" />
 

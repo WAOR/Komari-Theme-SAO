@@ -1,19 +1,12 @@
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
-import { Link } from "react-router-dom";
+import { memo, useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
-  CircleDollarSign,
-  Cpu,
-  HardDrive,
-  Layers,
-  Network,
   Server,
   Sparkles,
-  TrendingUp,
 } from "lucide-react";
 import { Flag } from "@/components/ui/Flag";
-import { StatMetricIcon } from "../ui/StatMetricIcon";
+import { OverviewStatCard } from "./OverviewStatCard";
 import { FloatingAssetButton } from "@/components/cost/FloatingAssetButton";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -27,7 +20,6 @@ import { usePublicConfig } from "@/hooks/usePublicConfig";
 import { useThemeSettings } from "@/hooks/useThemeSettings";
 import { useViewMode } from "@/hooks/useViewMode";
 import { usePriceVisibility } from "@/hooks/usePriceVisibility";
-import { formatBytes } from "@/utils/format";
 import { calculateCostSummary, getExchangeRates } from "@/utils/cost";
 import { useHiddenNodeUuids } from "@/hooks/useVisibleNodes";
 import {
@@ -52,7 +44,6 @@ import {
 import { HomeSortControl } from "./HomeSortControl";
 import {
   getOverviewRating,
-  type OverviewRating,
 } from "@/utils/overviewRating";
 import { CompactNodeCard } from "./CompactNodeCard";
 import { MiniNodeCard } from "./MiniNodeCard";
@@ -60,8 +51,14 @@ import { NodeCard } from "./NodeCard";
 import { OverviewTrafficChart } from "./OverviewTrafficChart";
 import { ClusterHeatmap } from "./ClusterHeatmap";
 import { NodeListView } from "./NodeListView";
-import { RenewalReminder } from "./RenewalReminder";
-import type { NodeViewMode, ClusterOverviewMode, MatrixColorTheme, MatrixBootEffect } from "@/utils/themeSettings";
+import {
+  normalizeOverviewCards,
+  type NodeViewMode,
+  type ClusterOverviewMode,
+  type MatrixColorTheme,
+  type MatrixBootEffect,
+} from "@/utils/themeSettings";
+import type { OverviewCardId } from "@/types/komari";
 import type { HomeNodeSummary } from "@/services/wsStore";
 import { getRenewalReminders, type RenewalReminderSource } from "@/utils/renewalReminder";
 import { DiaTextReveal } from "@/components/ui/DiaTextReveal";
@@ -102,22 +99,16 @@ interface HomeOverview {
   diskPct: number;
   totalTcpConn: number;
   totalUdpConn: number;
-}
-
-function TrafficBarsIcon({ size = 19 }: { size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 20 20"
-      fill="none"
-      aria-hidden
-    >
-      <rect x="2" y="10" width="4" height="8" rx="1.2" fill="currentColor" />
-      <rect x="8" y="5.5" width="4" height="12.5" rx="1.2" fill="currentColor" />
-      <rect x="14" y="2" width="4" height="16" rx="1.2" fill="currentColor" />
-    </svg>
-  );
+  totalSwapUsed: number;
+  totalSwapTotal: number;
+  swapPct: number;
+  avgLoad1: number;
+  avgLoad5: number;
+  avgLoad15: number;
+  totalProcesses: number;
+  totalCores: number;
+  avgPing: number | null;
+  avgLoss: number | null;
 }
 
 function HomeBrand({ siteName }: { siteName: string }) {
@@ -205,7 +196,7 @@ function getTimeGreetingInfo(
   };
 }
 
-function HomeOverviewCards({
+const HomeOverviewCards = memo(function HomeOverviewCards({
   overview,
   costSummary,
   costLoading,
@@ -233,6 +224,8 @@ function HomeOverviewCards({
   matrixBootAnimation = true,
   matrixBootEffect = "laser-scan",
   matrixCustomPattern = null,
+  overviewCards,
+  overviewCardOrder,
 }: {
   overview: HomeOverview;
   costSummary: { remainingCny: number; totalOriginalPriceCny?: number } | null;
@@ -261,37 +254,13 @@ function HomeOverviewCards({
   matrixBootAnimation?: boolean;
   matrixBootEffect?: MatrixBootEffect;
   matrixCustomPattern?: number[] | null;
+  overviewCards?: OverviewCardId[];
+  overviewCardOrder?: OverviewCardId[];
 }) {
-  const [renewalPopoverOpen, setRenewalPopoverOpen] = useState(false);
-  const todayTrafficBytes = todayTrafficTotal ?? 0;
-  const [trafficValue, trafficUnit] = todayTrafficLoading && todayTrafficTotal === null
-    ? ["—", ""]
-    : formatBytes(todayTrafficBytes).split(" ");
-  const [ramUsedValue, ramUsedUnit] = formatBytes(overview.totalRamUsed).split(" ");
-  const [diskUsedValue, diskUsedUnit] = formatBytes(overview.totalDiskUsed).split(" ");
-  const totalConnections = overview.totalTcpConn + overview.totalUdpConn;
-
+  const { isPriceVisible } = usePriceVisibility();
   const onlinePct =
     overview.totalNodes > 0 ? (overview.onlineNodes / overview.totalNodes) * 100 : 0;
-  const { isPriceVisible } = usePriceVisibility();
-  const renderAssetValue = () => {
-    if (!isPriceVisible) return "保密";
-    if (!costSummary) return costLoading ? "计算中" : "—";
-    const totalOriginal = costSummary.totalOriginalPriceCny ?? 0;
-    if (totalOriginal > 0 || costSummary.remainingCny > 0) {
-      return (
-        <>
-          <span>¥{Math.round(costSummary.remainingCny).toLocaleString("zh-CN")}</span>
-          <em className="mao-stat-slash-total"> / ¥{Math.round(totalOriginal).toLocaleString("zh-CN")}</em>
-        </>
-      );
-    }
-    return "—";
-  };
-
-  const trafficDetailLabel = todayTrafficTotal !== null
-    ? `今日全节点出入站累计 ${formatBytes(todayTrafficTotal)}`
-    : "今日流量统计中...";
+  const todayTrafficBytes = todayTrafficTotal ?? 0;
   const trafficRating =
     showOverviewRatings && showTrafficRating && todayTrafficTotal !== null
       ? getOverviewRating({
@@ -319,13 +288,6 @@ function HomeOverviewCards({
       })
       : null;
 
-  const renderRating = (rating: OverviewRating | null) =>
-    rating ? (
-      <span className="overview-card-rating" data-rating-level={rating.level} title={rating.label}>
-        {rating.label}
-      </span>
-    ) : null;
-
   const renewalReminders = getRenewalReminders(renewalNodes, Date.now(), {
     requireOnlineForExpired: true,
   });
@@ -337,13 +299,39 @@ function HomeOverviewCards({
     renewalCount,
   );
 
+  const activeCardIds = useMemo(() => {
+    return normalizeOverviewCards(overviewCards ?? overviewCardOrder);
+  }, [overviewCards, overviewCardOrder]);
+
+  const renderCard = (cardId: OverviewCardId) => {
+    return (
+      <OverviewStatCard
+        key={cardId}
+        cardId={cardId}
+        overview={overview}
+        todayTrafficTotal={todayTrafficTotal}
+        todayTrafficLoading={todayTrafficLoading}
+        showAssetCard={showAssetCard}
+        isPriceVisible={isPriceVisible}
+        costSummary={costSummary}
+        costLoading={costLoading}
+        showTrafficDetailButton={showTrafficDetailButton}
+        showDetailButton={showDetailButton}
+        trafficRating={trafficRating}
+        assetRating={assetRating}
+        renewalNodes={renewalNodes}
+        onWarmTraffic={onWarmTraffic}
+      />
+    );
+  };
+
   return (
     <section
       className={`mao-dashboard-hero home-overview${dense ? " is-dense" : ""}`}
       aria-label="首页总览"
       data-palette={matrixColorTheme || "default"}
     >
-      {/* 左侧主要区域：问候语 + 6 宫格指标小卡片 */}
+      {/* 左侧主要区域：问候语 + 指标小卡片 */}
       <div className="mao-hero-main">
         <div className="mao-hero-header">
           <div className="mao-badge">
@@ -359,147 +347,9 @@ function HomeOverviewCards({
           </p>
         </div>
 
-        {/* 6 宫格指标卡片 */}
-        <div className="mao-stat-grid" data-cards={showAssetCard ? 6 : 5}>
-          {/* 1. 活跃连接 (全站活跃连接数，对齐 CFSM-SAO 样式) */}
-          <div className="mao-stat-card" data-metric="connections">
-            <div className="mao-stat-head">
-              <div className="mao-stat-title-wrap">
-                <StatMetricIcon metric="connections" icon={Network} />
-                <span className="mao-stat-label">活跃连接</span>
-              </div>
-            </div>
-            <div className="mao-stat-value">
-              {totalConnections.toLocaleString()} <span className="mao-stat-unit">Conn</span>
-            </div>
-            <div className="mao-stat-footer">
-              <span
-                className="mao-stat-caption"
-                title={`TCP 连接: ${overview.totalTcpConn.toLocaleString()} · UDP 连接: ${overview.totalUdpConn.toLocaleString()}`}
-              >
-                TCP {overview.totalTcpConn.toLocaleString()} · UDP {overview.totalUdpConn.toLocaleString()}
-              </span>
-            </div>
-          </div>
-
-          {/* 2. 平均 CPU */}
-          <div className="mao-stat-card" data-metric="cpu">
-            <div className="mao-stat-head">
-              <div className="mao-stat-title-wrap">
-                <StatMetricIcon metric="cpu" icon={Cpu} />
-                <span className="mao-stat-label">平均 CPU</span>
-              </div>
-            </div>
-            <div className="mao-stat-value">
-              {overview.avgCpu.toFixed(1)} <span className="mao-stat-unit">%</span>
-            </div>
-            <div className="mao-stat-footer">
-              <span className="mao-stat-caption">
-                {overview.onlineNodes > 0 ? `${overview.onlineNodes} 台在线服务器` : "暂无在线服务器"}
-              </span>
-            </div>
-          </div>
-
-          {/* 3. 内存用量 */}
-          <div className="mao-stat-card" data-metric="ram">
-            <div className="mao-stat-head">
-              <div className="mao-stat-title-wrap">
-                <StatMetricIcon metric="ram" icon={Layers} />
-                <span className="mao-stat-label">内存用量</span>
-              </div>
-            </div>
-            <div className="mao-stat-value">
-              {ramUsedValue} <span className="mao-stat-unit">{ramUsedUnit}</span>
-            </div>
-            <div className="mao-stat-footer">
-              <span className="mao-stat-caption" title={`已用: ${formatBytes(overview.totalRamUsed)} / 总量: ${formatBytes(overview.totalRamTotal)}`}>
-                共 {formatBytes(overview.totalRamTotal)} · {overview.ramPct.toFixed(1)}%
-              </span>
-            </div>
-          </div>
-
-          {/* 4. 硬盘用量 */}
-          <div className="mao-stat-card" data-metric="disk">
-            <div className="mao-stat-head">
-              <div className="mao-stat-title-wrap">
-                <StatMetricIcon metric="disk" icon={HardDrive} />
-                <span className="mao-stat-label">硬盘用量</span>
-              </div>
-            </div>
-            <div className="mao-stat-value">
-              {diskUsedValue} <span className="mao-stat-unit">{diskUsedUnit}</span>
-            </div>
-            <div className="mao-stat-footer">
-              <span className="mao-stat-caption" title={`已用: ${formatBytes(overview.totalDiskUsed)} / 总量: ${formatBytes(overview.totalDiskTotal)}`}>
-                共 {formatBytes(overview.totalDiskTotal)} · {overview.diskPct.toFixed(1)}%
-              </span>
-            </div>
-          </div>
-
-          {/* 5. 今日流量 */}
-          <div className="mao-stat-card" data-metric="traffic">
-            <div className="mao-stat-head">
-              <div className="mao-stat-title-wrap">
-                <StatMetricIcon metric="traffic" icon={TrendingUp} />
-                <span className="mao-stat-label">今日流量</span>
-              </div>
-              {showTrafficDetailButton && (
-                <Link
-                  to="/traffic"
-                  className="overview-card-action mao-stat-action"
-                  aria-label="打开今日流量统计页"
-                  title="今日流量详情"
-                  onPointerEnter={onWarmTraffic}
-                  onFocus={onWarmTraffic}
-                  onClick={onWarmTraffic}
-                >
-                  <TrafficBarsIcon size={14} />
-                </Link>
-              )}
-            </div>
-            <div className="mao-stat-value">
-              {trafficValue}{trafficUnit && <span className="mao-stat-unit"> {trafficUnit}</span>}
-            </div>
-            <div className="mao-stat-footer">
-              <span className="mao-stat-caption truncate" title={trafficDetailLabel}>
-                全节点出入站累计
-              </span>
-              {renderRating(trafficRating)}
-            </div>
-          </div>
-
-          {/* 6. 资产总值 (右上角钱币图标集成临期提醒悬浮窗) */}
-          {showAssetCard && (
-            <div className={`mao-stat-card${renewalPopoverOpen ? " is-popover-open" : ""}`} data-metric="asset">
-              <div className="mao-stat-head">
-                <div className="mao-stat-title-wrap">
-                  <StatMetricIcon metric="asset" icon={CircleDollarSign} />
-                  <span className="mao-stat-label">资产总值</span>
-                </div>
-                {showDetailButton && (
-                  <RenewalReminder nodes={renewalNodes} onOpenChange={setRenewalPopoverOpen}>
-                    <Link
-                      to="/assets"
-                      className="overview-card-action mao-stat-action"
-                      aria-label="打开资产统计页"
-                      title={renewalCount > 0 ? `${renewalCount} 台设备即将到期` : "资产统计"}
-                    >
-                      <CircleDollarSign size={14} className={renewalCount > 0 ? "text-(--status-warning)" : ""} />
-                    </Link>
-                  </RenewalReminder>
-                )}
-              </div>
-              <div className="mao-stat-value">
-                {renderAssetValue()}
-              </div>
-              <div className="mao-stat-footer">
-                <span className="mao-stat-caption">
-                  {!isPriceVisible ? "仅管理员可见" : "实时汇率折算"}
-                </span>
-                {renderRating(assetRating)}
-              </div>
-            </div>
-          )}
+        {/* 指标卡片网格（固定 6 槽位 3x2 布局） */}
+        <div className="mao-stat-grid">
+          {activeCardIds.map((cardId) => renderCard(cardId))}
         </div>
       </div>
 
@@ -637,7 +487,7 @@ function HomeOverviewCards({
       </div>
     </section>
   );
-}
+});
 
 function GroupTabs({
   groups,
@@ -790,23 +640,36 @@ export function NodeGrid() {
     let totalCpu = 0;
     let totalRamUsed = 0;
     let totalRamTotal = 0;
+    let totalSwapUsed = 0;
+    let totalSwapTotal = 0;
     let totalDiskUsed = 0;
     let totalDiskTotal = 0;
     let totalTcpConn = 0;
     let totalUdpConn = 0;
+    let totalProcesses = 0;
+    let totalLoad1 = 0;
+    let totalLoad5 = 0;
+    let totalLoad15 = 0;
+    let totalCores = 0;
 
     for (const node of visibleNodes) {
       if (node.online === true) {
         onlineNodes += 1;
         totalCpu += node.cpuPct || 0;
         totalRamUsed += node.ramUsed || 0;
+        totalSwapUsed += node.swapUsed || 0;
         totalDiskUsed += node.diskUsed || 0;
         totalTcpConn += node.connectionsTcp || 0;
         totalUdpConn += node.connectionsUdp || 0;
+        totalProcesses += node.process || 0;
+        totalLoad1 += node.load1 || 0;
+        totalLoad5 += node.load5 || 0;
+        totalLoad15 += node.load15 || 0;
       } else if (node.online === false) {
         offlineNodes += 1;
       }
       totalRamTotal += node.ramTotal || 0;
+      totalSwapTotal += node.swapTotal || 0;
       totalDiskTotal += node.diskTotal || 0;
       trafficUp += node.trafficUp;
       trafficDown += node.trafficDown;
@@ -814,8 +677,16 @@ export function NodeGrid() {
       netDown += node.netDown;
     }
 
+    for (const meta of visibleMeta) {
+      totalCores += meta.cpu_cores || 0;
+    }
+
     const avgCpu = onlineNodes > 0 ? totalCpu / onlineNodes : 0;
+    const avgLoad1 = onlineNodes > 0 ? totalLoad1 / onlineNodes : 0;
+    const avgLoad5 = onlineNodes > 0 ? totalLoad5 / onlineNodes : 0;
+    const avgLoad15 = onlineNodes > 0 ? totalLoad15 / onlineNodes : 0;
     const ramPct = totalRamTotal > 0 ? (totalRamUsed / totalRamTotal) * 100 : 0;
+    const swapPct = totalSwapTotal > 0 ? (totalSwapUsed / totalSwapTotal) * 100 : 0;
     const diskPct = totalDiskTotal > 0 ? (totalDiskUsed / totalDiskTotal) * 100 : 0;
 
     return {
@@ -835,8 +706,18 @@ export function NodeGrid() {
       diskPct,
       totalTcpConn,
       totalUdpConn,
+      totalSwapUsed,
+      totalSwapTotal,
+      swapPct,
+      avgLoad1,
+      avgLoad5,
+      avgLoad15,
+      totalProcesses,
+      totalCores,
+      avgPing: null,
+      avgLoss: null,
     };
-  }, [visibleNodes]);
+  }, [visibleNodes, visibleMeta]);
   const showHomeOverview = themeSettings.isReady && themeSettings.showHomeOverview;
   const showTrafficPopover = themeSettings.isReady && themeSettings.showTodayTrafficPopover;
   const loggedIn = Boolean(me?.logged_in);
@@ -1084,6 +965,7 @@ export function NodeGrid() {
           matrixBootAnimation={themeSettings.matrixBootAnimation}
           matrixBootEffect={themeSettings.matrixBootEffect}
           matrixCustomPattern={themeSettings.matrixCustomPattern}
+          overviewCards={themeSettings.overviewCards}
         />
       )}
     </>

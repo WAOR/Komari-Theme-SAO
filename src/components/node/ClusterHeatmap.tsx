@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo, useEffect, useCallback } from "react";
+import { useState, useRef, useMemo, useEffect, useCallback, memo } from "react";
 import { Flag } from "@/components/ui/Flag";
 import { formatByteRateLabel } from "@/utils/format";
 import {
@@ -106,7 +106,7 @@ export function resolveNodeThroughputStatus(node: HomeNodeSummary): {
   };
 }
 
-export function ClusterHeatmap({
+export const ClusterHeatmap = memo(function ClusterHeatmap({
   nodes,
   nameByUuid,
   onlinePct,
@@ -868,4 +868,4 @@ export function ClusterHeatmap({
       </div>
     </div>
   );
-}
+});

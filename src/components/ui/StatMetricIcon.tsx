@@ -7,7 +7,14 @@ export type MetricType =
   | "disk"
   | "traffic"
   | "uptime"
-  | "asset";
+  | "asset"
+  | "nodes"
+  | "bandwidth"
+  | "swap"
+  | "load"
+  | "process"
+  | "cores"
+  | "ping";
 
 export interface StatMetricIconProps {
   metric: MetricType;

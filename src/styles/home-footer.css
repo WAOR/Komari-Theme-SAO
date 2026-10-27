@@ -80,6 +80,11 @@
   height: 5px;
   border-radius: 50%;
   background-color: var(--status-healthy, #10b981);
+  padding: 0;
+  border: none;
+  cursor: pointer;
+  outline: none;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .home-footer-pulse::after {
@@ -90,6 +95,17 @@
   background-color: var(--status-healthy, #10b981);
   opacity: 0.5;
   animation: sao-pulse-ring 2.4s cubic-bezier(0.24, 0, 0.38, 1) infinite;
+}
+
+/* 发现新版本时的警示橘黄色闪烁呼吸点 */
+.home-footer-pulse.has-update {
+  background-color: var(--sao-warning, #f59e0b);
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.7);
+}
+
+.home-footer-pulse.has-update::after {
+  background-color: var(--sao-warning, #f59e0b);
+  animation: sao-pulse-ring-amber 1.8s cubic-bezier(0.24, 0, 0.38, 1) infinite;
 }
 
 @keyframes sao-pulse-ring {
@@ -103,6 +119,21 @@
   }
   100% {
     transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+@keyframes sao-pulse-ring-amber {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.85;
+  }
+  60% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(2.4);
     opacity: 0;
   }
 }
@@ -137,12 +168,64 @@
   font-family: var(--font-mono, monospace);
   font-size: 0.65rem;
   font-weight: 600;
-  color: var(--accent, #6366f1);
+  color: var(--status-healthy, #10b981);
   letter-spacing: -0.01em;
+  text-decoration: none;
 }
 
 .home-footer-branch-icon {
   opacity: 0.75;
+}
+
+/* 垂直滚动视窗：保持原版芯片高度与字体，仅文字平滑滚动 */
+.home-footer-ticker-viewport {
+  display: inline-block;
+  height: 1.15em;
+  line-height: 1.15em;
+  overflow: hidden;
+  vertical-align: middle;
+}
+
+/* 垂直滚动轨道：从 3.6s 放慢到 6s，每个版本停留 2.5s，更加舒缓沉稳 */
+.home-footer-ticker-track {
+  display: flex;
+  flex-direction: column;
+  animation: sao-version-scroll 6s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+.home-footer-ticker-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  height: 1.15em;
+  line-height: 1.15em;
+  white-space: nowrap;
+  font-family: inherit;
+  font-size: inherit;
+}
+
+/* 当前版本号：对应左侧绿色呼吸圆点（健康正常绿） */
+.home-footer-ticker-item.current {
+  color: var(--status-healthy, #10b981);
+  font-weight: 600;
+}
+
+/* 滚动出的新版本号：对应左侧警示橘黄圆点（警戒更新橙） */
+.home-footer-ticker-item.latest {
+  color: var(--sao-warning, #f59e0b);
+  font-weight: 700;
+}
+
+@keyframes sao-version-scroll {
+  0%, 42% {
+    transform: translateY(0%);
+  }
+  50%, 92% {
+    transform: translateY(-50%);
+  }
+  100% {
+    transform: translateY(0%);
+  }
 }
 
 /* 版权文字 */

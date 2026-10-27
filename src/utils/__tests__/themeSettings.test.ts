@@ -102,8 +102,8 @@ describe("normalizeThemeSettings", () => {
   it("normalizes matrixColorTheme correctly", () => {
     expect(normalizeThemeSettings({ matrixColorTheme: "default" }).matrixColorTheme).toBe("default");
     expect(normalizeThemeSettings({ matrixColorTheme: "eva" }).matrixColorTheme).toBe("eva");
-    expect(normalizeThemeSettings({ matrixColorTheme: "cyberpunk" }).matrixColorTheme).toBe("cyberpunk");
     expect(normalizeThemeSettings({ matrixColorTheme: "divergence" }).matrixColorTheme).toBe("divergence");
+    expect(normalizeThemeSettings({ matrixColorTheme: "cyberpunk" as never }).matrixColorTheme).toBe("default");
     expect(normalizeThemeSettings({ matrixColorTheme: "matrix-code" as never }).matrixColorTheme).toBe("default");
     expect(normalizeThemeSettings({ matrixColorTheme: "dual-blades" as never }).matrixColorTheme).toBe("default");
     expect(normalizeThemeSettings({ matrixColorTheme: "red-comet" as never }).matrixColorTheme).toBe("default");
@@ -263,6 +263,52 @@ describe("normalizeThemeSettings", () => {
       high: "#f97316",
       end: "#ef4444",
     });
+  });
+
+  it("normalizes overviewCards with exact 6 slots, fallback fill, and deduplication", () => {
+    const defaults = normalizeThemeSettings({});
+    expect(defaults.overviewCards).toEqual([
+      "connections",
+      "cpu",
+      "ram",
+      "disk",
+      "traffic",
+      "asset",
+    ]);
+    expect(defaults.overviewCards.length).toBe(6);
+
+    // 用户自定义传入部分槽位：过滤非法项，自动补齐至 6 个不同的卡片
+    const custom = normalizeThemeSettings({
+      overviewCards: ["nodes", "cpu", "bandwidth", "invalid_id" as never],
+    });
+    expect(custom.overviewCards.slice(0, 3)).toEqual(["nodes", "cpu", "bandwidth"]);
+    expect(custom.overviewCards.length).toBe(6);
+    expect(custom.overviewCards).not.toContain("invalid_id");
+    // 确保 6 个元素互不重复
+    expect(new Set(custom.overviewCards).size).toBe(6);
+
+    // 传入超过 6 个时严格截断为 6 个
+    const overflow = normalizeThemeSettings({
+      overviewCards: [
+        "nodes",
+        "cpu",
+        "bandwidth",
+        "swap",
+        "process",
+        "cores",
+        "disk",
+        "traffic",
+      ],
+    });
+    expect(overflow.overviewCards.length).toBe(6);
+    expect(overflow.overviewCards).toEqual([
+      "nodes",
+      "cpu",
+      "bandwidth",
+      "swap",
+      "process",
+      "cores",
+    ]);
   });
 });
 

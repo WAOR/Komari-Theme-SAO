@@ -285,11 +285,11 @@ export interface ResolvedThemeSettings {
 }
 
 export const DEFAULT_THEME_SETTINGS: ResolvedThemeSettings = {
-  defaultAppearance: "system",
+  defaultAppearance: "dark",
   desktopNodeViewMode: "large",
   mobileNodeViewMode: "compact",
   clusterOverviewMode: "classic",
-  matrixColorTheme: "default",
+  matrixColorTheme: "eva",
   matrixMockFill: false,
   matrixBootAnimation: true,
   matrixBootEffect: "laser-scan",

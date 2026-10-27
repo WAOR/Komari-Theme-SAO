@@ -142,55 +142,58 @@ export const ClusterHeatmap = memo(function ClusterHeatmap({
     setBootPhase("scan");
     setScanStep(-1);
 
-    let interval: ReturnType<typeof setInterval> | null = null;
+    let loopRafId: number | null = null;
     let holdTimer: ReturnType<typeof setTimeout> | null = null;
     let dissolveTimer: ReturnType<typeof setTimeout> | null = null;
     let startDelayTimer: ReturnType<typeof setTimeout> | null = null;
-    let raf1: number | null = null;
-    let raf2: number | null = null;
 
-    raf1 = requestAnimationFrame(() => {
-      raf2 = requestAnimationFrame(() => {
-        startDelayTimer = setTimeout(() => {
-          let current = 0;
-          let stepIntervalMs = 36;
-          let maxStep: number = GRID_COLUMNS;
+    startDelayTimer = setTimeout(() => {
+      let stepIntervalMs = 36;
+      let maxStep: number = GRID_COLUMNS;
 
-          if (bootEffect === "digital-rain") {
-            stepIntervalMs = 46;
-            maxStep = MATRIX_RAIN_TOTAL_STEPS;
-          } else if (bootEffect === "cyber-glitch") {
-            stepIntervalMs = 42;
-            maxStep = 18;
-          } else if (bootEffect === "divergence-flux") {
-            stepIntervalMs = 46;
-            maxStep = GRID_COLUMNS;
-          }
+      if (bootEffect === "digital-rain") {
+        stepIntervalMs = 46;
+        maxStep = MATRIX_RAIN_TOTAL_STEPS;
+      } else if (bootEffect === "cyber-glitch") {
+        stepIntervalMs = 42;
+        maxStep = 18;
+      } else if (bootEffect === "divergence-flux") {
+        stepIntervalMs = 46;
+        maxStep = GRID_COLUMNS;
+      }
 
-          interval = setInterval(() => {
-            setScanStep(current);
-            current++;
-            if (current > maxStep) {
-              if (interval) clearInterval(interval);
-              setBootPhase("hold");
-              // 呼吸三下（每次 600ms，共 1800ms）后进入平滑溶解阶段
-              holdTimer = setTimeout(() => {
-                setBootPhase("dissolve");
-                dissolveTimer = setTimeout(() => {
-                  setBootPhase("idle");
-                }, 350);
-              }, 1800);
-            }
-          }, stepIntervalMs);
-        }, 360);
-      });
-    });
+      const startTime = performance.now();
+      let lastStep = -1;
+
+      const loop = (now: number) => {
+        const elapsed = now - startTime;
+        const current = Math.floor(elapsed / stepIntervalMs);
+
+        if (current !== lastStep) {
+          lastStep = current;
+          setScanStep(current);
+        }
+
+        if (current <= maxStep) {
+          loopRafId = requestAnimationFrame(loop);
+        } else {
+          setBootPhase("hold");
+          // 呼吸三下（每次 600ms，共 1800ms）后进入平滑溶解阶段
+          holdTimer = setTimeout(() => {
+            setBootPhase("dissolve");
+            dissolveTimer = setTimeout(() => {
+              setBootPhase("idle");
+            }, 350);
+          }, 1800);
+        }
+      };
+
+      loopRafId = requestAnimationFrame(loop);
+    }, 120);
 
     return () => {
-      if (raf1 !== null) cancelAnimationFrame(raf1);
-      if (raf2 !== null) cancelAnimationFrame(raf2);
       if (startDelayTimer) clearTimeout(startDelayTimer);
-      if (interval) clearInterval(interval);
+      if (loopRafId !== null) cancelAnimationFrame(loopRafId);
       if (holdTimer) clearTimeout(holdTimer);
       if (dissolveTimer) clearTimeout(dissolveTimer);
     };

@@ -77,11 +77,11 @@
           return value;
         };
 
-        let appearance = "system";
+        let appearance = "dark";
         try {
-          appearance = readAppearance("appearance") ?? readAppearance("appearance_default") ?? "system";
+          appearance = readAppearance("appearance") ?? readAppearance("appearance_default") ?? "dark";
         } catch {
-          appearance = "system";
+          appearance = "dark";
         }
         const resolved =
           appearance === "system"

@@ -103,11 +103,11 @@ describe("normalizeThemeSettings", () => {
     expect(normalizeThemeSettings({ matrixColorTheme: "default" }).matrixColorTheme).toBe("default");
     expect(normalizeThemeSettings({ matrixColorTheme: "eva" }).matrixColorTheme).toBe("eva");
     expect(normalizeThemeSettings({ matrixColorTheme: "divergence" }).matrixColorTheme).toBe("divergence");
-    expect(normalizeThemeSettings({ matrixColorTheme: "cyberpunk" as never }).matrixColorTheme).toBe("default");
-    expect(normalizeThemeSettings({ matrixColorTheme: "matrix-code" as never }).matrixColorTheme).toBe("default");
-    expect(normalizeThemeSettings({ matrixColorTheme: "dual-blades" as never }).matrixColorTheme).toBe("default");
-    expect(normalizeThemeSettings({ matrixColorTheme: "red-comet" as never }).matrixColorTheme).toBe("default");
-    expect(normalizeThemeSettings({ matrixColorTheme: "invalid" as never }).matrixColorTheme).toBe("default");
+    expect(normalizeThemeSettings({ matrixColorTheme: "cyberpunk" as never }).matrixColorTheme).toBe("eva");
+    expect(normalizeThemeSettings({ matrixColorTheme: "matrix-code" as never }).matrixColorTheme).toBe("eva");
+    expect(normalizeThemeSettings({ matrixColorTheme: "dual-blades" as never }).matrixColorTheme).toBe("eva");
+    expect(normalizeThemeSettings({ matrixColorTheme: "red-comet" as never }).matrixColorTheme).toBe("eva");
+    expect(normalizeThemeSettings({ matrixColorTheme: "invalid" as never }).matrixColorTheme).toBe("eva");
   });
 
   it("normalizes matrixMockFill correctly", () => {

@@ -818,6 +818,30 @@
   background: var(--status-offline);
 }
 
+/* EVA 初号机：集群状态经典模式在线指示条（荧光绿高亮） */
+.mao-progress-container[data-palette="eva"] .mao-node-block.is-online,
+.mao-progress-container[data-palette="eva"] .mao-seamless-segment.is-online {
+  background: #059669;
+}
+
+:root[data-appearance="dark"] .mao-progress-container[data-palette="eva"] .mao-node-block.is-online,
+:root[data-appearance="dark"] .mao-progress-container[data-palette="eva"] .mao-seamless-segment.is-online {
+  background: #00ff66;
+  box-shadow: 0 0 6px rgba(0, 255, 102, 0.45);
+}
+
+/* 命运石之门：集群状态经典模式在线指示条（辉光管放电暖橙） */
+.mao-progress-container[data-palette="divergence"] .mao-node-block.is-online,
+.mao-progress-container[data-palette="divergence"] .mao-seamless-segment.is-online {
+  background: #ea580c;
+}
+
+:root[data-appearance="dark"] .mao-progress-container[data-palette="divergence"] .mao-node-block.is-online,
+:root[data-appearance="dark"] .mao-progress-container[data-palette="divergence"] .mao-seamless-segment.is-online {
+  background: #ff7700;
+  box-shadow: 0 0 7px rgba(255, 119, 0, 0.5);
+}
+
 .mao-progress-section-footer {
   display: flex;
   align-items: center;
@@ -3221,72 +3245,128 @@
   }
 }
 
-/* 地区筛选栏：流式胶囊标签组，去除多余内层厚重大框 */
+/* 地区筛选栏：无壳极简单行循环流动视口（无外框无底色，仅保留两端自然羽化渐隐） */
 .home-region-bar {
-  margin-bottom: 8px;
-  padding: 0;
-  border: none;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  width: 100%;
 }
 
-.home-region-chips {
+.home-region-capsule {
+  position: relative;
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
+  width: fit-content;
+  max-width: min(100%, 510px);
+  padding: 4px 0;
+  overflow: hidden;
+}
+
+/* 溢出循环时双端渐隐羽化遮罩 (Edge Fade Mask) */
+.home-region-capsule[data-looping="true"] {
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 28px, black calc(100% - 28px), transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0%, black 28px, black calc(100% - 28px), transparent 100%);
+}
+
+/* 硬件加速无缝无限循环关键帧：通过合成器线程 (Compositor Thread) 完全独立于 JS 主线程运行 */
+@keyframes home-region-marquee {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.home-region-track {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 0;
+  padding: 2px 2px;
+  user-select: none;
+}
+
+.home-region-track.is-animated {
+  animation: home-region-marquee var(--marquee-duration, 40s) linear infinite;
+  will-change: transform;
+}
+
+/* 鼠标悬浮或触摸时在合成器层即时暂停，移开后无缝恢复流动 */
+.home-region-capsule:hover .home-region-track.is-animated,
+.home-region-capsule:active .home-region-track.is-animated {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-region-track.is-animated {
+    animation: none;
+  }
+}
+
+.home-region-set {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
   gap: 6px;
+  padding-right: 6px;
+  flex-shrink: 0;
 }
 
 .home-region-chip {
+  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 28px;
+  height: 28px;
   padding: 0 10px;
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 999px;
-  background: #ffffff;
+  background: var(--bg-card, #ffffff);
   color: var(--text-secondary);
   font-size: 11.5px;
   font-weight: 600;
   line-height: 1;
   white-space: nowrap;
   cursor: pointer;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
-  transition: all 160ms ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  transition: transform 120ms ease, background 160ms ease, border-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
+  user-select: none;
 }
 
 :root[data-appearance="dark"] .home-region-chip {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 .home-region-chip:hover {
   color: var(--text-primary);
-  background: #ffffff;
-  border-color: rgba(0, 0, 0, 0.14);
+  background: var(--bg-card, #ffffff);
+  border-color: rgba(0, 0, 0, 0.16);
+  transform: translateY(-0.5px);
 }
 
 :root[data-appearance="dark"] .home-region-chip:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.18);
   color: var(--text-primary);
 }
 
 .home-region-chip[data-active="true"] {
   background: color-mix(in srgb, var(--accent-500) 14%, #ffffff);
   color: var(--accent-500, #3b82f6);
-  border-color: color-mix(in srgb, var(--accent-500) 45%, transparent);
-  box-shadow: 0 0 10px -2px color-mix(in srgb, var(--accent-500) 25%, transparent);
+  border-color: color-mix(in srgb, var(--accent-500) 50%, transparent);
+  box-shadow: 0 0 10px -2px color-mix(in srgb, var(--accent-500) 28%, transparent);
   font-weight: 700;
+  transform: scale(1.02);
 }
 
 :root[data-appearance="dark"] .home-region-chip[data-active="true"] {
-  background: color-mix(in srgb, var(--accent-500) 22%, rgba(255, 255, 255, 0.06));
+  background: color-mix(in srgb, var(--accent-500) 24%, rgba(255, 255, 255, 0.06));
   color: color-mix(in srgb, var(--accent-500) 90%, white);
-  border-color: color-mix(in srgb, var(--accent-500) 50%, transparent);
-  box-shadow: 0 0 12px -2px color-mix(in srgb, var(--accent-500) 35%, transparent);
+  border-color: color-mix(in srgb, var(--accent-500) 55%, transparent);
+  box-shadow: 0 0 12px -2px color-mix(in srgb, var(--accent-500) 38%, transparent);
 }
 
 .home-region-chip-code {
@@ -3341,6 +3421,10 @@
 /* 首页控件条复用卡片网格列定义：分组标签落在第一列，排序控件钉在最后一列。 */
 .home-controls-bar {
   align-items: center;
+}
+
+.home-controls-bar + .home-region-bar {
+  margin-top: -4px;
 }
 
 .home-sort {
@@ -3541,7 +3625,7 @@
 .mao-pattern-editor {
   margin-top: 10px;
   padding: 11px 13px;
-  background: var(--bg-card);
+  background: var(--bg-card, #ffffff);
   border: 1px solid var(--hairline);
   border-radius: 10px;
 }
@@ -3558,7 +3642,7 @@
   font-weight: 500;
   padding: 3px 8px;
   border-radius: 6px;
-  background: var(--bg-card);
+  background: var(--bg-card, #ffffff);
   border: 1px solid var(--hairline);
   color: var(--text-secondary);
   cursor: pointer;
@@ -3592,7 +3676,7 @@
   position: relative;
   color: var(--text-secondary);
   border-color: var(--hairline);
-  background: var(--bg-card);
+  background: var(--bg-card, #ffffff);
 }
 
 .mao-pattern-action-btn.is-apply:hover:not(:disabled) {
@@ -3699,7 +3783,7 @@
   font-size: 10.5px;
   padding: 2px 7px;
   border-radius: 4px;
-  background: var(--bg-card);
+  background: var(--bg-card, #ffffff);
   border: 1px solid var(--hairline);
   color: var(--text-secondary);
   cursor: pointer;

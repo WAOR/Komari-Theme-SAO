@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { formatByteRate, formatByteRateLabel } from "@/utils/format";
+import { usePreferences } from "@/hooks/usePreferences";
+import { useThemeSettings } from "@/hooks/useThemeSettings";
+import type { MatrixColorTheme } from "@/utils/themeSettings";
 
 interface SingleTrafficPoint {
   time: number;
@@ -49,6 +52,107 @@ function getNiceRateCeiling(value: number): number {
   return Math.ceil(value / GIB) * GIB;
 }
 
+export interface TrafficChartDirectionStyle {
+  color: string;
+  gradientTop: string;
+  gradientBottom: string;
+  haloRgba: string;
+}
+
+export interface TrafficChartPalette {
+  up: TrafficChartDirectionStyle;
+  down: TrafficChartDirectionStyle;
+}
+
+export function getTrafficChartThemeStyles(
+  theme: MatrixColorTheme = "default",
+  isDark = true,
+): TrafficChartPalette {
+  switch (theme) {
+    case "eva":
+      return {
+        // 上行：EVA 初号机紫 (Unit-01 Purple)
+        up: isDark
+          ? {
+              color: "#8b5cf6",
+              gradientTop: "rgba(139, 92, 246, 0.26)",
+              gradientBottom: "rgba(139, 92, 246, 0.01)",
+              haloRgba: "rgba(139, 92, 246, 0.35)",
+            }
+          : {
+              color: "#7c3aed",
+              gradientTop: "rgba(124, 58, 237, 0.22)",
+              gradientBottom: "rgba(124, 58, 237, 0.01)",
+              haloRgba: "rgba(124, 58, 237, 0.25)",
+            },
+        // 下行：EVA 初号机荧光能量绿 (Neon Energy Green)
+        down: isDark
+          ? {
+              color: "#00ff66",
+              gradientTop: "rgba(0, 255, 102, 0.22)",
+              gradientBottom: "rgba(0, 255, 102, 0.01)",
+              haloRgba: "rgba(0, 255, 102, 0.30)",
+            }
+          : {
+              color: "#059669",
+              gradientTop: "rgba(5, 150, 105, 0.22)",
+              gradientBottom: "rgba(5, 150, 105, 0.01)",
+              haloRgba: "rgba(5, 150, 105, 0.25)",
+            },
+      };
+
+    case "divergence":
+      return {
+        // 上行：电离白炽金 (Incandescent Ionization Gold)
+        up: isDark
+          ? {
+              color: "#facc15",
+              gradientTop: "rgba(250, 204, 21, 0.24)",
+              gradientBottom: "rgba(250, 204, 21, 0.01)",
+              haloRgba: "rgba(250, 204, 21, 0.32)",
+            }
+          : {
+              color: "#d97706",
+              gradientTop: "rgba(217, 119, 6, 0.22)",
+              gradientBottom: "rgba(217, 119, 6, 0.01)",
+              haloRgba: "rgba(217, 119, 6, 0.25)",
+            },
+        // 下行：辉光管氖气放电暖橙 (Nixie Tube Neon Orange)
+        down: isDark
+          ? {
+              color: "#ff7700",
+              gradientTop: "rgba(255, 119, 0, 0.26)",
+              gradientBottom: "rgba(255, 119, 0, 0.01)",
+              haloRgba: "rgba(255, 119, 0, 0.35)",
+            }
+          : {
+              color: "#ea580c",
+              gradientTop: "rgba(234, 88, 12, 0.22)",
+              gradientBottom: "rgba(234, 88, 12, 0.01)",
+              haloRgba: "rgba(234, 88, 12, 0.25)",
+            },
+      };
+
+    case "default":
+    default:
+      // 经典标准：保持现状，常规监控蓝 (Up) / 绿 (Down)
+      return {
+        up: {
+          color: "#3b82f6",
+          gradientTop: "rgba(59, 130, 246, 0.22)",
+          gradientBottom: "rgba(59, 130, 246, 0.01)",
+          haloRgba: "rgba(59, 130, 246, 0.25)",
+        },
+        down: {
+          color: "#2f9e65",
+          gradientTop: "rgba(47, 158, 101, 0.22)",
+          gradientBottom: "rgba(47, 158, 101, 0.01)",
+          haloRgba: "rgba(47, 158, 101, 0.25)",
+        },
+      };
+  }
+}
+
 function SingleTrafficCard({
   title,
   direction,
@@ -57,6 +161,7 @@ function SingleTrafficCard({
   gradientTop,
   gradientBottom,
   haloRgba,
+  isDark = true,
 }: {
   title: string;
   direction: "up" | "down";
@@ -65,6 +170,7 @@ function SingleTrafficCard({
   gradientTop: string;
   gradientBottom: string;
   haloRgba: string;
+  isDark?: boolean;
 }) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -192,7 +298,7 @@ function SingleTrafficCard({
     }
 
     if (points.length > 1) {
-      const isDark = typeof document !== "undefined" && document.documentElement.dataset.appearance === "dark";
+      const effectiveDark = isDark ?? (typeof document !== "undefined" && document.documentElement.dataset.appearance === "dark");
       const hoverIdx = hoverIndexRef.current;
 
       // 绘制悬浮垂直高亮轴
@@ -200,7 +306,7 @@ function SingleTrafficCard({
         const hoverX = paddingLeft + (hoverIdx / (points.length - 1)) * plotWidth;
         const barWidth = 18;
 
-        ctx.fillStyle = isDark ? "rgba(255, 255, 255, 0.06)" : haloRgba;
+        ctx.fillStyle = effectiveDark ? "rgba(255, 255, 255, 0.06)" : haloRgba;
         ctx.beginPath();
         if (typeof ctx.roundRect === "function") {
           ctx.roundRect(hoverX - barWidth / 2, paddingTop - 2, barWidth, plotHeight + 4, 5);
@@ -209,7 +315,7 @@ function SingleTrafficCard({
         }
         ctx.fill();
 
-        ctx.strokeStyle = isDark ? "rgba(255, 255, 255, 0.28)" : color;
+        ctx.strokeStyle = effectiveDark ? "rgba(255, 255, 255, 0.28)" : color;
         ctx.lineWidth = 1;
         ctx.setLineDash([2, 2]);
         ctx.beginPath();
@@ -271,7 +377,7 @@ function SingleTrafficCard({
         ctx.stroke();
       });
     }
-  }, [color, gradientBottom, gradientTop, haloRgba, rate]);
+  }, [color, gradientBottom, gradientTop, haloRgba, isDark, rate]);
 
   // 当依赖更新时立即重绘
   useEffect(() => {
@@ -416,10 +522,17 @@ function SingleTrafficCard({
 export function OverviewTrafficChart({
   netUp,
   netDown,
+  colorTheme: propColorTheme,
 }: {
   netUp: number;
   netDown: number;
+  colorTheme?: MatrixColorTheme;
 }) {
+  const { resolvedAppearance } = usePreferences();
+  const themeSettings = useThemeSettings();
+  const isDark = resolvedAppearance === "dark";
+  const activeTheme = propColorTheme ?? themeSettings.matrixColorTheme ?? "default";
+  const styles = getTrafficChartThemeStyles(activeTheme, isDark);
   const totalRate = formatByteRate(netUp + netDown);
 
   return (
@@ -440,19 +553,21 @@ export function OverviewTrafficChart({
           title="上行网络"
           direction="up"
           rate={netUp}
-          color="#3b82f6"
-          gradientTop="rgba(59, 130, 246, 0.22)"
-          gradientBottom="rgba(59, 130, 246, 0.01)"
-          haloRgba="rgba(59, 130, 246, 0.25)"
+          color={styles.up.color}
+          gradientTop={styles.up.gradientTop}
+          gradientBottom={styles.up.gradientBottom}
+          haloRgba={styles.up.haloRgba}
+          isDark={isDark}
         />
         <SingleTrafficCard
           title="下行网络"
           direction="down"
           rate={netDown}
-          color="#2f9e65"
-          gradientTop="rgba(47, 158, 101, 0.22)"
-          gradientBottom="rgba(47, 158, 101, 0.01)"
-          haloRgba="rgba(47, 158, 101, 0.25)"
+          color={styles.down.color}
+          gradientTop={styles.down.gradientTop}
+          gradientBottom={styles.down.gradientBottom}
+          haloRgba={styles.down.haloRgba}
+          isDark={isDark}
         />
       </div>
     </div>

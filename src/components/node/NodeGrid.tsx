@@ -461,6 +461,7 @@ const HomeOverviewCards = memo(function HomeOverviewCards({
               <OverviewTrafficChart
                 netUp={overview.netUp}
                 netDown={overview.netDown}
+                colorTheme={matrixColorTheme}
               />
             </>
           ) : (
@@ -524,9 +525,8 @@ function GroupTabs({
   );
 }
 
-// 地区筛选栏:按国旗聚合节点,点击某地区只看该地区;再点一次(或点已选中项)回到全部。
-// 与分组栏是两条独立筛选,可叠加(先分组、后地区)。
-function RegionTabs({
+// 地区筛选栏: 机能风极简循环流动视口（GPU 合成器纯 CSS 硬件加速、零 JS 主线程占用、无缝无限单向循环）
+const RegionTabs = memo(function RegionTabs({
   regions,
   selectedRegion,
   onSelectRegion,
@@ -535,31 +535,60 @@ function RegionTabs({
   selectedRegion: string;
   onSelectRegion: (region: string) => void;
 }) {
+  const isLooping = regions.length > 6;
+  const marqueeDuration = Math.max(16, regions.length * 2.8);
+
+  const renderChip = (code: string, count: number, suffix: string, isClone = false) => {
+    const active = selectedRegion === code;
+    return (
+      <button
+        key={`${code}-${suffix}`}
+        type="button"
+        className="home-region-chip"
+        data-active={active ? "true" : "false"}
+        aria-pressed={active}
+        tabIndex={isClone ? -1 : 0}
+        aria-hidden={isClone ? "true" : undefined}
+        onClick={() => {
+          onSelectRegion(active ? HOME_ALL_REGION : code);
+        }}
+        title={code}
+      >
+        <Flag region={code} size={14} />
+        <span className="home-region-chip-code">{code}</span>
+        <span className="home-region-chip-count">{count}</span>
+      </button>
+    );
+  };
+
   return (
     <section className="home-region-bar" aria-label="地区筛选">
-      <div className="home-region-chips" role="group">
-        {regions.map(({ code, count }) => {
-          const active = selectedRegion === code;
-          return (
-            <button
-              key={code}
-              type="button"
-              className="home-region-chip"
-              data-active={active ? "true" : "false"}
-              aria-pressed={active}
-              onClick={() => onSelectRegion(active ? HOME_ALL_REGION : code)}
-              title={code}
-            >
-              <Flag region={code} size={14} />
-              <span className="home-region-chip-code">{code}</span>
-              <span className="home-region-chip-count">{count}</span>
-            </button>
-          );
-        })}
+      <div
+        className="home-region-capsule"
+        data-looping={isLooping ? "true" : "false"}
+      >
+        <div
+          className={`home-region-track ${isLooping ? "is-animated" : ""}`}
+          role="group"
+          style={
+            isLooping
+              ? ({ "--marquee-duration": `${marqueeDuration}s` } as CSSProperties)
+              : undefined
+          }
+        >
+          <div className="home-region-set">
+            {regions.map(({ code, count }) => renderChip(code, count, "a"))}
+          </div>
+          {isLooping && (
+            <div className="home-region-set" aria-hidden="true">
+              {regions.map(({ code, count }) => renderChip(code, count, "b", true))}
+            </div>
+          )}
+        </div>
       </div>
     </section>
   );
-}
+});
 
 export function NodeGrid() {
   const now = useHourlyClock();
@@ -581,6 +610,15 @@ export function NodeGrid() {
   const [selectedGroup, setSelectedGroup] = useState(HOME_ALL_GROUP);
   const [selectedRegion, setSelectedRegion] = useState(HOME_ALL_REGION);
   useHomepagePingOverview(mode);
+
+  // 首帧优先让问候语昵称流光与方格热力矩阵独占主线程渲染，下一帧再挂载数十张服务器卡片，消除开屏掉帧
+  const [cardsReady, setCardsReady] = useState(false);
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => {
+      setCardsReady(true);
+    });
+    return () => cancelAnimationFrame(raf);
+  }, []);
 
   // 摘要不含名称，先从完整 meta 解析主题隐藏列表，再统一过滤各类数据。
   const hiddenUuids = useHiddenNodeUuids();
@@ -742,12 +780,12 @@ export function NodeGrid() {
 
     const idleWindow = window as IdleCapableWindow;
     if (idleWindow.requestIdleCallback) {
-      const handle = idleWindow.requestIdleCallback(preloadAssetsPage, { timeout: 2_000 });
+      const handle = idleWindow.requestIdleCallback(preloadAssetsPage, { timeout: 6_000 });
       return () => idleWindow.cancelIdleCallback?.(handle);
     }
 
-    // Safari 等无 requestIdleCallback 的浏览器，在首页稳定后再低优先级预取。
-    const handle = window.setTimeout(preloadAssetsPage, 1_000);
+    // Safari 等无 requestIdleCallback 的浏览器，在首页开屏动效完全就绪稳定后再低优先级预取。
+    const handle = window.setTimeout(preloadAssetsPage, 6_000);
     return () => window.clearTimeout(handle);
   }, [showCostDetailButton, showCostFloatingButton]);
 
@@ -904,7 +942,7 @@ export function NodeGrid() {
       : { gridTemplateColumns: `repeat(auto-fill, minmax(min(100%, ${minColumnWidth}px), 1fr))` };
   const gridElement = (
     <div className={gridWrapClassName} style={gridStyle}>
-      {cards}
+      {cardsReady ? cards : null}
     </div>
   );
   // 迷你与列表档的控件栏借用小卡列宽，避免跟随密集内容列而被压窄。
@@ -1032,7 +1070,7 @@ export function NodeGrid() {
           />
         )}
         {isList ? (
-          <NodeListView uuids={orderedUuids} />
+          cardsReady ? <NodeListView uuids={orderedUuids} /> : null
         ) : showTrafficPopover ? (
           <TodayTrafficStatsProvider uuids={trafficUuids}>
             {gridElement}

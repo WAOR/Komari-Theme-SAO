@@ -29,19 +29,28 @@ function compareSemver(latest: string, current: string): boolean {
   return false;
 }
 
+function getNextMockVersion(version: string): string {
+  const parts = version.replace(/^v/, "").trim().split(".").map(parseSemverPart);
+  const major = parts[0] ?? 1;
+  const minor = parts[1] ?? 0;
+  const patch = (parts[2] ?? 0) + 1;
+  return `v${major}.${minor}.${patch}`;
+}
+
 export function useThemeUpdate(repo = "WAOR/Komari-Theme-SAO") {
-  const currentVersion = pkg.version ? `v${pkg.version}` : "v1.2.3";
+  const currentVersion = `v${pkg.version || "1.0.0"}`;
+  const mockNextVersion = getNextMockVersion(currentVersion);
 
   // 仅在显式传入 ?mockUpdate=1 时强制进入演示模式，日常 ?mock=1 遵循真实状态判定
   const searchParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
   const isMockPreview = searchParams?.get("mockUpdate") === "1";
 
   const [state, setState] = useState<UpdateState>(() => {
-    // 如果 URL 带有 mockUpdate=1 或在 mock 调试下，默认开启演示效果展示 v1.2.4
+    // 如果 URL 带有 mockUpdate=1 或在 mock 调试下，默认开启演示效果展示自动递增的下一个版本
     if (isMockPreview) {
       return {
         hasUpdate: true,
-        latestVersion: "v1.2.4",
+        latestVersion: mockNextVersion,
         currentVersion,
         releaseUrl: `https://github.com/${repo}/releases`,
       };
@@ -153,7 +162,7 @@ export function useThemeUpdate(repo = "WAOR/Komari-Theme-SAO") {
     setState((prev) => ({
       ...prev,
       hasUpdate: !prev.hasUpdate,
-      latestVersion: !prev.hasUpdate ? "v1.2.4" : prev.currentVersion,
+      latestVersion: !prev.hasUpdate ? mockNextVersion : prev.currentVersion,
     }));
   };
 

@@ -28,7 +28,15 @@ import {
   Sliders,
   RotateCcw,
   PackagePlus,
+  Palette,
   X,
+  AlertCircle,
+  CheckCircle2,
+  ExternalLink,
+  Github,
+  HelpCircle,
+  MessageSquare,
+  Star,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { InstancePanel } from "@/components/instance/InstancePanel";
@@ -41,6 +49,7 @@ import { OverviewStatCard, type OverviewData } from "@/components/node/OverviewS
 import { useHomeNodeSummaries } from "@/hooks/useNode";
 import { usePublicConfig } from "@/hooks/usePublicConfig";
 import { useHourlyClock } from "@/hooks/useClock";
+import { useThemeUpdate } from "@/hooks/useThemeUpdate";
 import { queryClient } from "@/services/queryClient";
 import {
   ApiRequestError,
@@ -628,7 +637,7 @@ function SettingSelect({
   );
 }
 
-type ThemeTabId = "home" | "card" | "cost";
+type ThemeTabId = "home" | "card" | "cost" | "feedback";
 
 const THEME_TABS: ReadonlyArray<{
   id: ThemeTabId;
@@ -639,7 +648,44 @@ const THEME_TABS: ReadonlyArray<{
   { id: "home", label: "首页", hint: "外观、展台、权限与评级", icon: ListFilter },
   { id: "card", label: "服务器", hint: "视图、指标、排序与延迟", icon: Server },
   { id: "cost", label: "资产", hint: "费用统计与二手溢价", icon: CircleDollarSign },
+  { id: "feedback", label: "反馈", hint: "问题反馈与设计建议", icon: MessageSquare },
 ];
+
+const PROJECT_REPOS = [
+  {
+    id: "komari",
+    name: "Komari SAO",
+    tag: "Komari",
+    repo: "WAOR/Komari-Theme-SAO",
+    url: "https://github.com/WAOR/Komari-Theme-SAO",
+    issuesUrl: "https://github.com/WAOR/Komari-Theme-SAO/issues",
+    newIssueUrl: "https://github.com/WAOR/Komari-Theme-SAO/issues/new",
+    desc: "适配 Komari 探针的 SAO 风格主题。",
+    isCurrent: true,
+  },
+  {
+    id: "monitor",
+    name: "Monitor SAO",
+    tag: "Monitor 极简探针",
+    repo: "WAOR/Monitor-SAO",
+    url: "https://github.com/WAOR/Monitor-SAO",
+    issuesUrl: "https://github.com/WAOR/Monitor-SAO/issues",
+    newIssueUrl: "https://github.com/WAOR/Monitor-SAO/issues/new",
+    desc: "适配 Monitor 极简探针的 SAO 风格主题。",
+    isCurrent: false,
+  },
+  {
+    id: "cfsm",
+    name: "CFSM SAO",
+    tag: "Cloudflare Server Monitor",
+    repo: "WAOR/CFSM-SAO",
+    url: "https://github.com/WAOR/CFSM-SAO",
+    issuesUrl: "https://github.com/WAOR/CFSM-SAO/issues",
+    newIssueUrl: "https://github.com/WAOR/CFSM-SAO/issues/new",
+    desc: "适配 CFSM (Cloudflare Server Monitor) 探针的 SAO 风格主题。",
+    isCurrent: false,
+  },
+] as const;
 
 const DEFAULT_THEME_TAB: ThemeTabId = "home";
 
@@ -987,6 +1033,7 @@ function SiteSyncIndicator({
 
 export function ThemeManage() {
   const now = useHourlyClock();
+  const { currentVersion } = useThemeUpdate();
   const {
     data: config,
     isLoading: configLoading,
@@ -1299,10 +1346,27 @@ export function ThemeManage() {
     [draft.overviewCards],
   );
 
-  const availablePoolCards = useMemo(
-    () => ALL_OVERVIEW_CARD_IDS.filter((id) => !currentOverviewCards.includes(id)),
-    [currentOverviewCards],
-  );
+  const [poolCards, setPoolCards] = useState<OverviewCardId[]>(() => {
+    const current = normalizeOverviewCards(draft.overviewCards);
+    return ALL_OVERVIEW_CARD_IDS.filter((id) => !current.includes(id));
+  });
+
+  useEffect(() => {
+    setPoolCards((prev) => {
+      const currentSet = new Set(currentOverviewCards);
+      const remainingCards = ALL_OVERVIEW_CARD_IDS.filter((id) => !currentSet.has(id));
+      const kept = prev.filter((id) => !currentSet.has(id));
+      const missing = remainingCards.filter((id) => !kept.includes(id));
+      const next = [...kept, ...missing];
+      if (
+        next.length === prev.length &&
+        next.every((id, idx) => id === prev[idx])
+      ) {
+        return prev;
+      }
+      return next;
+    });
+  }, [currentOverviewCards]);
 
   const [draggingCard, setDraggingCard] = useState<{
     source: "slot" | "pool";
@@ -1321,15 +1385,28 @@ export function ThemeManage() {
 
   const replaceSlot = (slotIndex: number, newCardId: OverviewCardId) => {
     if (slotIndex < 0 || slotIndex >= OVERVIEW_CARD_SLOT_COUNT) return;
+    const oldCardId = currentOverviewCards[slotIndex];
+    if (oldCardId === newCardId) return;
+
+    setPoolCards((prev) => {
+      const idx = prev.indexOf(newCardId);
+      if (idx !== -1) {
+        const next = [...prev];
+        next[idx] = oldCardId;
+        return next;
+      }
+      return prev;
+    });
+
     const next = [...currentOverviewCards];
     next[slotIndex] = newCardId;
     patch("overviewCards", normalizeOverviewCards(next));
     setSelectedSlotIndex(null);
   };
 
-
   const resetOverviewCards = () => {
     patch("overviewCards", [...DEFAULT_OVERVIEW_CARDS]);
+    setPoolCards(ALL_OVERVIEW_CARD_IDS.filter((id) => !DEFAULT_OVERVIEW_CARDS.includes(id)));
     setSelectedSlotIndex(null);
   };
 
@@ -1986,7 +2063,79 @@ function draftToThemeSettings(targetDraft: ThemeDraft): ThemeSettings {
 
                 {(draft.showHomeOverview ?? true) && (
                   <div className="mt-4 flex flex-col gap-5">
-                    {/* 模块 1：左侧 · 指标小卡定制（高光配色 + 6 槽位 + 备选抽屉） */}
+                    {/* 模块 1：配色方案 */}
+                    <div
+                      className="rounded-2xl border border-(--hairline) bg-[color-mix(in_srgb,var(--bg-card)_55%,transparent)] p-4 sm:p-5 shadow-xs"
+                      data-palette={draft.matrixColorTheme || "default"}
+                    >
+                      {/* 模块头部：标题 + 当前生效角标 */}
+                      <div className="flex items-center justify-between gap-3 pb-3.5 mb-4 border-b border-(--hairline)">
+                        <div className="min-w-0">
+                          <div className="text-xs font-semibold text-(--text-primary) flex items-center gap-1.5">
+                            <Palette size={14} className="text-(--accent-500)" />
+                            <span>配色方案</span>
+                          </div>
+                          <p className="text-[11px] text-(--text-muted) mt-0.5">
+                            联动指标小卡、集群展台（经典双曲线与方格矩阵）的主题色彩体系。
+                          </p>
+                        </div>
+                        {(() => {
+                          const currentOpt = COLOR_THEME_OPTIONS.find(
+                            (opt) => opt.id === (draft.matrixColorTheme ?? "default"),
+                          ) ?? COLOR_THEME_OPTIONS[0];
+                          return (
+                            <span
+                              className={`text-[10px] font-bold px-1.5 py-0.5 rounded border shrink-0 ${currentOpt.badgeClass}`}
+                            >
+                              {currentOpt.badge}
+                            </span>
+                          );
+                        })()}
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2.5">
+                        {COLOR_THEME_OPTIONS.map((opt) => {
+                          const isSelected = (draft.matrixColorTheme ?? "default") === opt.id;
+                          return (
+                            <button
+                              key={opt.id}
+                              type="button"
+                              onClick={() => patch("matrixColorTheme", opt.id)}
+                              data-active={isSelected ? "true" : "false"}
+                              aria-pressed={isSelected}
+                              className={`setting-color-theme-card ${opt.id === "eva" ? "is-eva" : opt.id === "divergence" ? "is-divergence" : ""}`}
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="flex items-center gap-1 shrink-0 p-1 rounded-md bg-(--bg-card) border border-(--hairline)">
+                                  {opt.colors.map((c, i) => (
+                                    <span
+                                      key={i}
+                                      className="w-2.5 h-2.5 rounded-xs"
+                                      style={{ backgroundColor: c }}
+                                    />
+                                  ))}
+                                </div>
+                                <div className="min-w-0">
+                                  <span className="text-xs font-medium text-(--text-primary) block truncate">
+                                    {opt.label}
+                                  </span>
+                                  <span className="text-[10px] text-(--text-muted) block truncate">
+                                    {opt.desc}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="setting-color-theme-radio" aria-hidden="true">
+                                {isSelected && (
+                                  <div className="setting-color-theme-radio-dot" />
+                                )}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* 模块 2：指标小卡定制（6 槽位 + 备选抽屉） */}
                     <div
                       className="rounded-2xl border border-(--hairline) bg-[color-mix(in_srgb,var(--bg-card)_55%,transparent)] p-4 sm:p-5 shadow-xs"
                       data-palette={draft.matrixColorTheme || "default"}
@@ -2015,77 +2164,15 @@ function draftToThemeSettings(targetDraft: ThemeDraft): ThemeSettings {
                         </button>
                       </div>
 
-                      {/* 高光配色方案：内嵌在指标小卡定制顶部 */}
-                      <div className="mb-4">
-                        <div className="flex items-center justify-between gap-2 mb-2">
-                          <span className="text-[11px] font-medium text-(--text-secondary)">
-                            高光配色方案（联动定制小卡图标、科技光晕与方格矩阵）
-                          </span>
-                          {(() => {
-                            const currentOpt = COLOR_THEME_OPTIONS.find(
-                              (opt) => opt.id === (draft.matrixColorTheme ?? "default"),
-                            ) ?? COLOR_THEME_OPTIONS[0];
-                            return (
-                              <span
-                                className={`text-[10px] font-bold px-1.5 py-0.5 rounded border shrink-0 ${currentOpt.badgeClass}`}
-                              >
-                                {currentOpt.badge}
-                              </span>
-                            );
-                          })()}
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2.5">
-                          {COLOR_THEME_OPTIONS.map((opt) => {
-                            const isSelected = (draft.matrixColorTheme ?? "default") === opt.id;
-                            return (
-                              <button
-                                key={opt.id}
-                                type="button"
-                                onClick={() => patch("matrixColorTheme", opt.id)}
-                                data-active={isSelected ? "true" : "false"}
-                                aria-pressed={isSelected}
-                                className={`setting-color-theme-card ${opt.id === "eva" ? "is-eva" : ""}`}
-                              >
-                                <div className="flex items-center gap-2.5 min-w-0">
-                                  <div className="flex items-center gap-1 shrink-0 p-1 rounded-md bg-(--bg-card) border border-(--hairline)">
-                                    {opt.colors.map((c, i) => (
-                                      <span
-                                        key={i}
-                                        className="w-2.5 h-2.5 rounded-xs"
-                                        style={{ backgroundColor: c }}
-                                      />
-                                    ))}
-                                  </div>
-                                  <div className="min-w-0">
-                                    <span className="text-xs font-medium text-(--text-primary) block truncate">
-                                      {opt.label}
-                                    </span>
-                                    <span className="text-[10px] text-(--text-muted) block truncate">
-                                      {opt.desc}
-                                    </span>
-                                  </div>
-                                </div>
-                                <div className="setting-color-theme-radio" aria-hidden="true">
-                                  {isSelected && (
-                                    <div className="setting-color-theme-radio-dot" />
-                                  )}
-                                </div>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-
                       {/* 1. 首页 6 槽位虚线卡片网格 (3x2 布局，1:1 所见即所得) */}
                       <div className="mb-4">
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-[12px] font-semibold text-(--text-primary)">
-                            当前展示卡片
+                            展示卡池
                           </span>
                           <span className="text-[11px] text-(--text-muted)">
                             <span className="theme-manage-guide-mouse">拖拽调序，点击对调或更换</span>
-                            <span className="theme-manage-guide-touch">点两张卡对调，点备选卡更换</span>
+                            <span className="theme-manage-guide-touch">点两张卡对调，点闲置卡更换</span>
                           </span>
                         </div>
 
@@ -2211,10 +2298,10 @@ function draftToThemeSettings(targetDraft: ThemeDraft): ThemeSettings {
                           <div className="flex items-center gap-1.5">
                             <PackagePlus size={13} className="text-(--text-muted)" />
                             <span className="text-[11px] font-semibold text-(--text-secondary)">
-                              更多备选卡
+                              闲置卡池
                             </span>
                             <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-(--hairline) bg-(--bg-card) text-(--text-muted)">
-                              {availablePoolCards.length} 张可用
+                              {poolCards.length} 张可用
                             </span>
                           </div>
                           <span className="text-[10px] text-(--text-muted)">
@@ -2236,7 +2323,7 @@ function draftToThemeSettings(targetDraft: ThemeDraft): ThemeSettings {
                         </div>
 
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
-                          {availablePoolCards.map((cardId) => {
+                          {poolCards.map((cardId) => {
                             const isBeingDragged = draggingCard?.source === "pool" && draggingCard.cardId === cardId;
 
                             return (
@@ -2250,6 +2337,18 @@ function draftToThemeSettings(targetDraft: ThemeDraft): ThemeSettings {
                                 onDragEnd={() => {
                                   setDraggingCard(null);
                                   setDragOverSlotIndex(null);
+                                }}
+                                onDragOver={(e) => {
+                                  if (draggingCard?.source === "slot") {
+                                    e.preventDefault();
+                                  }
+                                }}
+                                onDrop={(e) => {
+                                  if (draggingCard?.source === "slot" && draggingCard.slotIndex !== undefined) {
+                                    e.preventDefault();
+                                    replaceSlot(draggingCard.slotIndex, cardId);
+                                    setDraggingCard(null);
+                                  }
                                 }}
                                 onClick={() => {
                                   if (selectedSlotIndex !== null) {
@@ -3548,6 +3647,202 @@ function draftToThemeSettings(targetDraft: ThemeDraft): ThemeSettings {
               </InstancePanel>
 
               </>
+          )}
+
+          {activeTab === "feedback" && (
+            <>
+              {/* 面板 1：三大项目反馈通道 */}
+              <InstancePanel
+                kicker="反馈"
+                title="项目反馈与代码仓库"
+                aside={<MessageSquare size={16} />}
+              >
+                <div className="space-y-4">
+                  <p className="text-xs text-(--text-muted) leading-relaxed">
+                    SAO 主题目前适配了三大探针。为确保您的反馈能由对应仓库维护者快速跟进，请优先在当前使用的项目仓库中提交 Issue。
+                  </p>
+
+                  <div className="grid grid-cols-1 gap-3.5">
+                    {PROJECT_REPOS.map((proj) => (
+                      <div
+                        key={proj.id}
+                        className={`rounded-2xl border p-4 sm:p-5 transition-all shadow-xs ${
+                          proj.isCurrent
+                            ? "border-(--accent-500)/40 bg-[color-mix(in_srgb,var(--accent-500)_4%,var(--bg-card))] ring-1 ring-(--accent-500)/20"
+                            : "border-(--hairline) bg-[color-mix(in_srgb,var(--bg-card)_55%,transparent)]"
+                        }`}
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 mb-3 border-b border-(--hairline)">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-sm font-semibold text-(--text-primary)">
+                              {proj.name}
+                            </span>
+                            <span className="text-[10px] font-medium px-2 py-0.5 rounded border border-(--hairline) bg-(--bg-card) text-(--text-secondary)">
+                              {proj.tag}
+                            </span>
+                            {proj.isCurrent && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-(--accent-500)/15 text-(--accent-500) border border-(--accent-500)/30">
+                                <span className="w-1.5 h-1.5 rounded-full bg-(--accent-500) animate-pulse" />
+                                当前运行版本
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-[11px] font-mono text-(--text-muted) shrink-0">
+                            {proj.repo}
+                          </span>
+                        </div>
+
+                        <p className="text-xs text-(--text-secondary) leading-relaxed mb-4">
+                          {proj.desc}
+                        </p>
+
+                        <div className="flex flex-wrap items-center gap-2.5">
+                          <a
+                            href={proj.newIssueUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer ${
+                              proj.isCurrent
+                                ? "bg-(--accent-500) text-white hover:bg-(--accent-600)"
+                                : "border border-(--hairline) bg-(--bg-card) text-(--text-primary) hover:border-(--accent-500) hover:text-(--accent-500)"
+                            }`}
+                          >
+                            <span>提交 Issue 反馈</span>
+                            <ExternalLink size={12} strokeWidth={2.2} />
+                          </a>
+
+                          <a
+                            href={proj.issuesUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-(--hairline) bg-(--bg-card) text-(--text-secondary) hover:text-(--text-primary) hover:border-(--hairline-hover) transition-colors cursor-pointer"
+                          >
+                            <span>查看已知问题</span>
+                            <ExternalLink size={12} />
+                          </a>
+
+                          <a
+                            href={proj.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-(--hairline) bg-(--bg-card) text-(--text-secondary) hover:text-(--text-primary) hover:border-(--hairline-hover) transition-colors cursor-pointer"
+                          >
+                            <Github size={12} />
+                            <span>访问 GitHub 仓库</span>
+                          </a>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </InstancePanel>
+
+              {/* 面板 2：反馈范围与提单指引 */}
+              <InstancePanel
+                kicker="指引"
+                title="反馈范围与提单指引"
+                aside={<AlertCircle size={16} />}
+              >
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                  <div className="rounded-2xl border border-(--hairline) bg-[color-mix(in_srgb,var(--bg-card)_55%,transparent)] p-4 sm:p-5 shadow-xs">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-(--text-primary) pb-2.5 mb-3 border-b border-(--hairline)">
+                      <CheckCircle2 size={15} className="text-emerald-500 shrink-0" />
+                      <span>建议在本仓库反馈的问题</span>
+                    </div>
+                    <ul className="text-xs text-(--text-secondary) space-y-2 leading-relaxed list-disc list-inside">
+                      <li>首页与内页的功能BUG反馈</li>
+                      <li>具有普适性的主题功能需求建议</li>
+                      <li>设计呈现与色彩方案建议与异常反馈</li>
+                      <li>手机端、平板等不同分辨率下的响应式排版优化建议</li>
+                    </ul>
+                  </div>
+
+                  <div className="rounded-2xl border border-(--hairline) bg-[color-mix(in_srgb,var(--bg-card)_55%,transparent)] p-4 sm:p-5 shadow-xs">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-(--text-primary) pb-2.5 mb-3 border-b border-(--hairline)">
+                      <AlertCircle size={15} className="text-amber-500 shrink-0" />
+                      <span>建议前往原探针系统反馈的问题</span>
+                    </div>
+                    <ul className="text-xs text-(--text-secondary) space-y-2 leading-relaxed list-disc list-inside">
+                      <li>探针客户端（Agent）掉线、离线重连或节点在线状态误报</li>
+                      <li>探针底层系统指标采集不准（如 CPU/内存/磁盘占用率异常）</li>
+                      <li>服务端 Docker 容器部署、反向代理或 WebSocket 连接中断</li>
+                      <li>原系统基础权限管理与后端数据库存储错误</li>
+                    </ul>
+                  </div>
+                </div>
+              </InstancePanel>
+
+              {/* 面板 3：常见问题排查 (FAQ) */}
+              <InstancePanel
+                kicker="帮助"
+                title="常见问题速查 (FAQ)"
+                aside={<HelpCircle size={16} />}
+              >
+                <div className="space-y-2.5">
+                  <details className="group rounded-2xl border border-(--hairline) bg-[color-mix(in_srgb,var(--bg-card)_55%,transparent)] p-4 transition-all shadow-xs open:ring-1 open:ring-(--accent-500)/30">
+                    <summary className="flex items-center justify-between cursor-pointer list-none font-medium text-xs text-(--text-primary)">
+                      <span>Q: 为什么勾选了悬浮入口没有任何变化？</span>
+                      <ChevronDown size={14} className="text-(--text-muted) transition-transform duration-200 group-open:rotate-180 shrink-0" />
+                    </summary>
+                    <div className="mt-2.5 pt-2.5 border-t border-(--hairline) text-xs text-(--text-secondary) leading-relaxed">
+                      「悬浮入口」与「资产入口」存在互斥展示逻辑，旨在避免界面上重复出现操作入口。只有在未勾选「资产入口」或者未开启首页「总览区域」时，页面右下角的悬浮入口才会显示。
+                    </div>
+                  </details>
+
+                  <details className="group rounded-2xl border border-(--hairline) bg-[color-mix(in_srgb,var(--bg-card)_55%,transparent)] p-4 transition-all shadow-xs open:ring-1 open:ring-(--accent-500)/30">
+                    <summary className="flex items-center justify-between cursor-pointer list-none font-medium text-xs text-(--text-primary)">
+                      <span>Q: 集群展台的「经典双曲线」与「方格矩阵」如何切换？</span>
+                      <ChevronDown size={14} className="text-(--text-muted) transition-transform duration-200 group-open:rotate-180 shrink-0" />
+                    </summary>
+                    <div className="mt-2.5 pt-2.5 border-t border-(--hairline) text-xs text-(--text-secondary) leading-relaxed">
+                      在设置分类中切换至「首页」，找到「集群展台模式」选项，即可一键在「经典双曲线（优雅平滑曲线）」与「方格矩阵（机架热力像素感）」之间无缝切换，两种模式均已全面适配所选配色方案。
+                    </div>
+                  </details>
+
+                  <details className="group rounded-2xl border border-(--hairline) bg-[color-mix(in_srgb,var(--bg-card)_55%,transparent)] p-4 transition-all shadow-xs open:ring-1 open:ring-(--accent-500)/30">
+                    <summary className="flex items-center justify-between cursor-pointer list-none font-medium text-xs text-(--text-primary)">
+                      <span>Q: 提交 Bug 时如何能让问题更快得到定位与修复？</span>
+                      <ChevronDown size={14} className="text-(--text-muted) transition-transform duration-200 group-open:rotate-180 shrink-0" />
+                    </summary>
+                    <div className="mt-2.5 pt-2.5 border-t border-(--hairline) text-xs text-(--text-secondary) leading-relaxed">
+                      在 GitHub Issue 中写明：1. 遇到的现象与期望效果；2. 使用的浏览器与操作系统（如 PC Chrome、手机 Safari 等）；3. 若有界面错位，附带一张清晰截图；若有控制台红字报错，复制控制台日志可大幅加快排错效率。
+                    </div>
+                  </details>
+                </div>
+              </InstancePanel>
+
+              {/* 面板 4：关于与致谢 */}
+              <InstancePanel
+                kicker="关于"
+                title="关于 SAO 主题"
+                aside={<Sparkles size={16} />}
+              >
+                <div className="rounded-2xl border border-(--hairline) bg-[color-mix(in_srgb,var(--bg-card)_55%,transparent)] p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-(--text-primary)">
+                        Komari SAO Theme
+                      </span>
+                      <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border border-(--hairline) bg-(--bg-card) text-(--accent-500)">
+                        {currentVersion}
+                      </span>
+                    </div>
+                    <p className="text-xs text-(--text-muted)">
+                      极简机能风格探针监控主题 · 开源遵循 MIT License
+                    </p>
+                  </div>
+                  <a
+                    href="https://github.com/WAOR/Komari-Theme-SAO"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border border-(--hairline) bg-(--bg-card) text-(--text-primary) hover:border-(--accent-500) hover:text-(--accent-500) shadow-xs transition-colors shrink-0 cursor-pointer"
+                  >
+                    <Star size={13} className="text-amber-400 fill-amber-400" />
+                    <span>在 GitHub 上 Star 支持</span>
+                  </a>
+                </div>
+              </InstancePanel>
+            </>
           )}
         </div>
       </div>

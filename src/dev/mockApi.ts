@@ -210,13 +210,18 @@ function getMockNodes(): NodeInfo[] {
   }
 
   // 如果用户指定了像 ?mock=1&nodes=60 或 100，自动扩充复制
+  const DIVERSE_REGIONS = [
+    "NL", "GB", "FR", "KR", "CA", "TW", "SE", "CH", "IN", "BR", "RU", "ZA", "IT", "ES",
+  ];
   const result: NodeInfo[] = [...BASE_NODES];
   let i = BASE_NODES.length;
   while (result.length < targetCount) {
     const template = BASE_NODES[i % BASE_NODES.length]!;
     const copyIndex = Math.floor(i / BASE_NODES.length) + 1;
+    const extraRegion = DIVERSE_REGIONS[(i - BASE_NODES.length) % DIVERSE_REGIONS.length];
     result.push({
       ...template,
+      region: extraRegion,
       uuid: `${template.uuid}-sub-${copyIndex}`,
       name: `${template.name} #${copyIndex}`,
       weight: template.weight + i * 5,

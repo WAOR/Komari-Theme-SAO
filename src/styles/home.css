@@ -3261,6 +3261,14 @@
   max-width: 100%;
   padding: 4px 0;
   overflow: hidden;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
+}
+
+.home-region-capsule:active {
+  cursor: grabbing;
 }
 
 /* 溢出循环时视口限制与双端渐隐羽化遮罩 (Edge Fade Mask) */
@@ -3277,16 +3285,10 @@
   }
 }
 
-/* 非循环模式（<=6个地区）：在宽屏自然展开完整胶囊不截断，小屏自适应平滑横向滚动 */
+/* 非循环模式（<=6个地区）：在宽屏自然展开完整胶囊不截断 */
 .home-region-capsule[data-looping="false"] {
   max-width: 100%;
-  overflow-x: auto;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-.home-region-capsule[data-looping="false"]::-webkit-scrollbar {
-  display: none;
+  cursor: default;
 }
 
 /* 硬件加速无缝无限循环关键帧：通过合成器线程 (Compositor Thread) 完全独立于 JS 主线程运行 */
@@ -3295,7 +3297,7 @@
     transform: translate3d(0, 0, 0);
   }
   100% {
-    transform: translate3d(-50%, 0, 0);
+    transform: translate3d(-33.333333%, 0, 0);
   }
 }
 
@@ -3306,22 +3308,17 @@
   gap: 0;
   padding: 2px 2px;
   user-select: none;
-}
-
-.home-region-track.is-animated {
-  animation: home-region-marquee var(--marquee-duration, 40s) linear infinite;
+  -webkit-user-select: none;
   will-change: transform;
 }
 
-/* 鼠标悬浮或触摸时在合成器层即时暂停，移开后无缝恢复流动 */
-.home-region-capsule:hover .home-region-track.is-animated,
-.home-region-capsule:active .home-region-track.is-animated {
-  animation-play-state: paused;
+.home-region-track.is-animated {
+  animation: home-region-marquee var(--marquee-duration, 20s) linear infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .home-region-track.is-animated {
-    animation: none;
+    animation: none !important;
   }
 }
 

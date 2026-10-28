@@ -2155,7 +2155,7 @@ function draftToThemeSettings(targetDraft: ThemeDraft): ThemeSettings {
                         </div>
                         <button
                           type="button"
-                          className="theme-reset-pill-btn"
+                          className="theme-reset-pill-btn shrink-0 whitespace-nowrap"
                           onClick={resetOverviewCards}
                           title="恢复官方默认 6 卡片配置与排序"
                         >
@@ -2165,12 +2165,18 @@ function draftToThemeSettings(targetDraft: ThemeDraft): ThemeSettings {
                       </div>
 
                       {/* 1. 首页 6 槽位虚线卡片网格 (3x2 布局，1:1 所见即所得) */}
-                      <div className="mb-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-[12px] font-semibold text-(--text-primary)">
-                            展示卡池
-                          </span>
-                          <span className="text-[11px] text-(--text-muted)">
+                      <div className="rounded-xl border border-dashed border-(--hairline) bg-[color-mix(in_srgb,var(--surface-inset)_35%,var(--bg-card))] p-3 sm:p-3.5 mb-4">
+                        <div className="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+                          <div className="flex items-center gap-1.5">
+                            <LayoutGrid size={13} className="text-(--text-muted)" />
+                            <span className="text-[11px] font-semibold text-(--text-secondary)">
+                              展示卡池
+                            </span>
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-(--hairline) bg-(--bg-card) text-(--text-muted)">
+                              6 槽展示中
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-(--text-muted)">
                             <span className="theme-manage-guide-mouse">拖拽调序，点击对调或更换</span>
                             <span className="theme-manage-guide-touch">点两张卡对调，点闲置卡更换</span>
                           </span>
@@ -3696,40 +3702,41 @@ function draftToThemeSettings(targetDraft: ThemeDraft): ThemeSettings {
                           {proj.desc}
                         </p>
 
-                        <div className="flex flex-wrap items-center gap-2.5">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-2.5">
                           <a
                             href={proj.newIssueUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer ${
-                              proj.isCurrent
-                                ? "bg-(--accent-500) text-white hover:bg-(--accent-600)"
-                                : "border border-(--hairline) bg-(--bg-card) text-(--text-primary) hover:border-(--accent-500) hover:text-(--accent-500)"
-                            }`}
+                            className={`repo-action-btn w-full sm:w-auto ${proj.isCurrent ? "is-primary" : "is-secondary"}`}
                           >
                             <span>提交 Issue 反馈</span>
                             <ExternalLink size={12} strokeWidth={2.2} />
                           </a>
 
-                          <a
-                            href={proj.issuesUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-(--hairline) bg-(--bg-card) text-(--text-secondary) hover:text-(--text-primary) hover:border-(--hairline-hover) transition-colors cursor-pointer"
-                          >
-                            <span>查看已知问题</span>
-                            <ExternalLink size={12} />
-                          </a>
+                          <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:items-center sm:gap-2.5">
+                            <a
+                              href={proj.issuesUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="repo-action-btn is-secondary w-full sm:w-auto"
+                            >
+                              <span className="sm:hidden">已知问题</span>
+                              <span className="hidden sm:inline">查看已知问题</span>
+                              <ExternalLink size={12} />
+                            </a>
 
-                          <a
-                            href={proj.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-(--hairline) bg-(--bg-card) text-(--text-secondary) hover:text-(--text-primary) hover:border-(--hairline-hover) transition-colors cursor-pointer"
-                          >
-                            <Github size={12} />
-                            <span>访问 GitHub 仓库</span>
-                          </a>
+                            <a
+                              href={proj.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="repo-action-btn is-secondary w-full sm:w-auto"
+                            >
+                              <Github size={12} />
+                              <span className="sm:hidden">GitHub 仓库</span>
+                              <span className="hidden sm:inline">访问 GitHub 仓库</span>
+                              <ExternalLink size={12} />
+                            </a>
+                          </div>
                         </div>
                       </div>
                     ))}

@@ -3258,15 +3258,28 @@
   display: flex;
   align-items: center;
   width: fit-content;
-  max-width: min(100%, 510px);
+  max-width: 100%;
   padding: 4px 0;
   overflow: hidden;
 }
 
-/* 溢出循环时双端渐隐羽化遮罩 (Edge Fade Mask) */
+/* 溢出循环时视口限制与双端渐隐羽化遮罩 (Edge Fade Mask) */
 .home-region-capsule[data-looping="true"] {
+  max-width: min(100%, 540px);
   -webkit-mask-image: linear-gradient(to right, transparent 0%, black 28px, black calc(100% - 28px), transparent 100%);
   mask-image: linear-gradient(to right, transparent 0%, black 28px, black calc(100% - 28px), transparent 100%);
+}
+
+/* 非循环模式（<=6个地区）：在宽屏自然展开完整胶囊不截断，小屏自适应平滑横向滚动 */
+.home-region-capsule[data-looping="false"] {
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.home-region-capsule[data-looping="false"]::-webkit-scrollbar {
+  display: none;
 }
 
 /* 硬件加速无缝无限循环关键帧：通过合成器线程 (Compositor Thread) 完全独立于 JS 主线程运行 */

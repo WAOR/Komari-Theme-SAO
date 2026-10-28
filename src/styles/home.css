@@ -3270,6 +3270,13 @@
   mask-image: linear-gradient(to right, transparent 0%, black 28px, black calc(100% - 28px), transparent 100%);
 }
 
+@media (max-width: 640px) {
+  .home-region-capsule[data-looping="true"] {
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 16px, black calc(100% - 16px), transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0%, black 16px, black calc(100% - 16px), transparent 100%);
+  }
+}
+
 /* 非循环模式（<=6个地区）：在宽屏自然展开完整胶囊不截断，小屏自适应平滑横向滚动 */
 .home-region-capsule[data-looping="false"] {
   max-width: 100%;

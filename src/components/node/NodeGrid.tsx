@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
@@ -525,7 +525,7 @@ function GroupTabs({
   );
 }
 
-// 地区筛选栏: 机能风极简循环流动视口（GPU 合成器纯 CSS 硬件加速、零 JS 主线程占用、无缝无限单向循环）
+// 地区筛选栏: 机能风极简循环流动视口（自适应内容溢出检测，装不下时才自动启动 GPU 循环流动）
 const RegionTabs = memo(function RegionTabs({
   regions,
   selectedRegion,
@@ -535,7 +535,47 @@ const RegionTabs = memo(function RegionTabs({
   selectedRegion: string;
   onSelectRegion: (region: string) => void;
 }) {
-  const isLooping = regions.length > 6;
+  const barRef = useRef<HTMLElement>(null);
+  const singleSetRef = useRef<HTMLDivElement>(null);
+
+  const [isOverflowing, setIsOverflowing] = useState(() => {
+    if (typeof window !== "undefined") {
+      if (window.innerWidth < 640) return regions.length > 4;
+    }
+    return regions.length > 6;
+  });
+
+  const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
+
+  useIsomorphicLayoutEffect(() => {
+    const bar = barRef.current;
+    const singleSet = singleSetRef.current;
+    if (!bar || !singleSet) return;
+
+    const updateOverflow = () => {
+      // 桌面端视口上限 540px，移动端视口上限为容器自身宽度
+      const availableWidth = Math.min(bar.clientWidth, 540);
+      const contentWidth = singleSet.scrollWidth;
+      // 容差 2px 防止亚像素浮点舍入抖动
+      const overflow = contentWidth > availableWidth + 2;
+      setIsOverflowing(overflow);
+    };
+
+    updateOverflow();
+
+    const observer = new ResizeObserver(() => {
+      updateOverflow();
+    });
+
+    observer.observe(bar);
+    observer.observe(singleSet);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [regions]);
+
+  const isLooping = isOverflowing;
   const marqueeDuration = Math.max(16, regions.length * 2.8);
 
   const renderChip = (code: string, count: number, suffix: string, isClone = false) => {
@@ -562,7 +602,7 @@ const RegionTabs = memo(function RegionTabs({
   };
 
   return (
-    <section className="home-region-bar" aria-label="地区筛选">
+    <section ref={barRef} className="home-region-bar" aria-label="地区筛选">
       <div
         className="home-region-capsule"
         data-looping={isLooping ? "true" : "false"}
@@ -576,7 +616,7 @@ const RegionTabs = memo(function RegionTabs({
               : undefined
           }
         >
-          <div className="home-region-set">
+          <div className="home-region-set" ref={singleSetRef}>
             {regions.map(({ code, count }) => renderChip(code, count, "a"))}
           </div>
           {isLooping && (

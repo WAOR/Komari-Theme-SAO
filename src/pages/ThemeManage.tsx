@@ -48,7 +48,8 @@ import { QualityBars } from "@/components/node/QualityBars";
 import { OverviewStatCard, type OverviewData } from "@/components/node/OverviewStatCard";
 import { useHomeNodeSummaries } from "@/hooks/useNode";
 import { usePublicConfig } from "@/hooks/usePublicConfig";
-import { useHourlyClock } from "@/hooks/useClock";
+import { useHourlyClock, useMinuteClock } from "@/hooks/useClock";
+import { useTodayTrafficStats } from "@/hooks/useTodayTrafficStats";
 import { useThemeUpdate } from "@/hooks/useThemeUpdate";
 import { queryClient } from "@/services/queryClient";
 import {
@@ -1598,6 +1599,17 @@ export function ThemeManage() {
     );
   }, [allMeta, now, sourceThemeSettings.costIgnoredNodes, premiumRateQuery.data]);
 
+  const trafficUuids = useMemo(() => allMeta.map((n) => n.uuid), [allMeta]);
+  const todayTrafficClock = useMinuteClock();
+  const todayTrafficQuery = useTodayTrafficStats(trafficUuids, todayTrafficClock, "summary");
+  const todayTrafficTotal = useMemo(() => {
+    if (!todayTrafficQuery.data) return null;
+    return todayTrafficQuery.data.rows.reduce(
+      (sum, row) => sum + row.trafficUp + row.trafficDown,
+      0,
+    );
+  }, [todayTrafficQuery.data]);
+
   // 使用当前价格、周期、到期日和汇率回算指定收购日的剩余价值；结果只在用户编辑
   // 收购价/日期时用于固化溢价，不会因后续续费或汇率变化自动改写。
   const premiumBasisAt = useCallback(
@@ -2289,6 +2301,8 @@ function draftToThemeSettings(targetDraft: ThemeDraft): ThemeSettings {
                                     cardId={cardId}
                                     overview={realOverview}
                                     costSummary={realCostSummary}
+                                    todayTrafficTotal={todayTrafficTotal}
+                                    todayTrafficLoading={todayTrafficQuery.isPending}
                                     className="w-full pointer-events-none shadow-none"
                                   />
                                 </div>
@@ -2378,6 +2392,8 @@ function draftToThemeSettings(targetDraft: ThemeDraft): ThemeSettings {
                                   cardId={cardId}
                                   overview={realOverview}
                                   costSummary={realCostSummary}
+                                  todayTrafficTotal={todayTrafficTotal}
+                                  todayTrafficLoading={todayTrafficQuery.isPending}
                                   className="w-full pointer-events-none shadow-xs"
                                 />
                               </div>

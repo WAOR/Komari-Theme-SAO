@@ -818,10 +818,10 @@
   background: var(--status-offline);
 }
 
-/* EVA 初号机：集群状态经典模式在线指示条（荧光绿高亮） */
+/* EVA 初号机：集群状态经典模式在线指示条（浅色模式使用初号机经典紫，深色模式保持荧光绿高亮） */
 .mao-progress-container[data-palette="eva"] .mao-node-block.is-online,
 .mao-progress-container[data-palette="eva"] .mao-seamless-segment.is-online {
-  background: #059669;
+  background: #7c3aed;
 }
 
 :root[data-appearance="dark"] .mao-progress-container[data-palette="eva"] .mao-node-block.is-online,

@@ -3831,6 +3831,16 @@ function draftToThemeSettings(targetDraft: ThemeDraft): ThemeSettings {
                       在 GitHub Issue 中写明：1. 遇到的现象与期望效果；2. 使用的浏览器与操作系统（如 PC Chrome、手机 Safari 等）；3. 若有界面错位，附带一张清晰截图；若有控制台红字报错，复制控制台日志可大幅加快排错效率。
                     </div>
                   </details>
+
+                  <details className="group rounded-2xl border border-(--hairline) bg-[color-mix(in_srgb,var(--bg-card)_55%,transparent)] p-4 transition-all shadow-xs open:ring-1 open:ring-(--accent-500)/30">
+                    <summary className="flex items-center justify-between cursor-pointer list-none font-medium text-xs text-(--text-primary)">
+                      <span>Q: 可以 Fork 本主题进行二次开发并提交到主题市场吗？</span>
+                      <ChevronDown size={14} className="text-(--text-muted) transition-transform duration-200 group-open:rotate-180 shrink-0" />
+                    </summary>
+                    <div className="mt-2.5 pt-2.5 border-t border-(--hairline) text-xs text-(--text-secondary) leading-relaxed">
+                      欢迎 Fork SAO 实现您的个人需求定制开发。如果您的定制分支与 SAO 的外观设计依旧有着极高相似度时，为避免产生主题混淆困扰，建议不要提交相似度极高的 SAO 衍生主题至探针程序主题市场，当然，这只是建议不构成约束。
+                    </div>
+                  </details>
                 </div>
               </InstancePanel>
 
@@ -3851,7 +3861,7 @@ function draftToThemeSettings(targetDraft: ThemeDraft): ThemeSettings {
                       </span>
                     </div>
                     <p className="text-xs text-(--text-muted)">
-                      极简机能风格探针监控主题 · 开源遵循 MIT License
+                      服务于探针数据呈现本身的功能型探针主题
                     </p>
                   </div>
                   <a

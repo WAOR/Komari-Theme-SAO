@@ -6,7 +6,7 @@ vi.mock("@/services/rpc2Client", () => ({
   getRpc2Client: () => ({ call: rpcCallMock }),
 }));
 
-import { getMe, getPublic } from "@/services/api";
+import { getMe, getNodes, getPublic } from "@/services/api";
 
 type EarlyDataMap = Record<string, Promise<unknown> | null>;
 function getEarlyWindow(): { __EARLY_DATA__?: EarlyDataMap } {
@@ -71,5 +71,27 @@ describe("Early Data prefetch consumption", () => {
     expect(secondMe.logged_in).toBe(true);
     expect(secondMe.username).toBe("fresh-user");
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("consumes early RPC nodes without network roundtrip", async () => {
+    getEarlyWindow().__EARLY_DATA__ = {
+      rpc_nodes: Promise.resolve({
+        jsonrpc: "2.0",
+        id: 1,
+        result: {
+          "node-1": {
+            uuid: "node-1",
+            name: "Node One",
+            weight: 10,
+          },
+        },
+      }),
+    };
+
+    const nodes = await getNodes();
+    expect(nodes).toHaveLength(1);
+    expect(nodes[0].name).toBe("Node One");
+    expect(getEarlyWindow().__EARLY_DATA__?.rpc_nodes).toBeNull();
+    expect(rpcCallMock).not.toHaveBeenCalled();
   });
 });

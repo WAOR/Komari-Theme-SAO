@@ -338,6 +338,33 @@ async function rpcCall<T>(
   schema: z.ZodType<T>,
   options?: { timeout?: number; signal?: AbortSignal },
 ): Promise<T> {
+  const isPureGetNodes =
+    method === "common:getNodes" && (!params || Object.keys(params).length === 0);
+
+  const earlyKey = isPureGetNodes ? "rpc_nodes" : null;
+
+  if (earlyKey && typeof window !== "undefined" && !options?.signal?.aborted) {
+    const earlyObj = (window as unknown as { __EARLY_DATA__?: Record<string, Promise<unknown> | null> }).__EARLY_DATA__;
+    const earlyPromise = earlyObj?.[earlyKey];
+    if (earlyPromise) {
+      earlyObj[earlyKey] = null;
+      try {
+        const json = await earlyPromise;
+        if (options?.signal?.aborted) {
+          throw new DOMException("The operation was aborted.", "AbortError");
+        }
+        if (json && typeof json === "object" && "result" in json) {
+          const parsed = schema.safeParse((json as { result: unknown }).result);
+          if (parsed.success) {
+            return parsed.data;
+          }
+        }
+      } catch (err) {
+        if (options?.signal?.aborted) throw err;
+      }
+    }
+  }
+
   const startedAt = Date.now();
   try {
     const payload = await getRpc2Client().call(method, params, options);

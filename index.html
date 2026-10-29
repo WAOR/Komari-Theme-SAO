@@ -32,10 +32,22 @@
             const base = prefix ? prefix : "";
             const headers = { Accept: "application/json" };
             const opts = { credentials: "include", headers };
+            const rpcHeaders = { Accept: "application/json", "Content-Type": "application/json" };
+            const rpcPost = (method) =>
+              fetch(base + "/api/rpc2", {
+                method: "POST",
+                credentials: "include",
+                headers: rpcHeaders,
+                body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params: {} }),
+              })
+                .then((r) => (r.ok ? r.json() : null))
+                .catch(() => null);
+
             window.__EARLY_DATA__ = {
               public: fetch(base + "/api/public", opts).then((r) => (r.ok ? r.json() : null)).catch(() => null),
               me: fetch(base + "/api/me", opts).then((r) => (r.ok ? r.json() : null)).catch(() => null),
               nodes: fetch(base + "/api/nodes", opts).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+              rpc_nodes: rpcPost("common:getNodes"),
             };
           }
         } catch {}

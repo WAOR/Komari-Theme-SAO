@@ -701,88 +701,135 @@ function syncNodeInfo() {
   return nodeInfoPromise;
 }
 
+function applyNodeSync(
+  nodes: NodeInfo[],
+  initialStatusRecords?: Record<string, unknown> | null,
+) {
+  const order = nodes.map((node) => node.uuid);
+  const touchedMeta = new Set<string>();
+  const touchedMetrics = new Set<string>();
+  const previousUuids = new Set(state.order);
+  const nextUuids = new Set(order);
+  const orderChanged =
+    order.length !== state.order.length ||
+    order.some((uuid, index) => uuid !== state.order[index]);
+  const metaByUuid: Record<string, NodeInfo> = {};
+  const metricsByUuid: Record<string, NodeMetrics> = {};
+
+  for (const info of nodes) {
+    const prev = state.metaByUuid[info.uuid];
+    const isUnchanged = prev != null && shallowEqualNodeInfo(prev, info);
+    const merged = isUnchanged ? prev : { ...info };
+    metaByUuid[info.uuid] = merged;
+    const previousMetrics = state.metricsByUuid[info.uuid];
+    let nextMetrics: NodeMetrics;
+    if (previousMetrics) {
+      nextMetrics = alignEmptyMetricsTotals(previousMetrics, info);
+    } else {
+      const base = emptyMetrics(info, null);
+      const rawRecord = initialStatusRecords?.[info.uuid];
+      if (rawRecord != null) {
+        const online = resolveOnline(rawRecord);
+        const realtime = normalizeRealtime(rawRecord, info, base);
+        nextMetrics = realtime ? mergeRealtime(base, realtime, online) : { ...base, online };
+      } else {
+        nextMetrics = base;
+      }
+    }
+    metricsByUuid[info.uuid] = nextMetrics;
+    if (!isUnchanged) {
+      touchedMeta.add(info.uuid);
+    }
+    if (!previousMetrics || previousMetrics !== nextMetrics) {
+      touchedMetrics.add(info.uuid);
+    }
+  }
+
+  for (const uuid of previousUuids) {
+    if (!nextUuids.has(uuid)) {
+      touchedMeta.add(uuid);
+      touchedMetrics.add(uuid);
+    }
+  }
+
+  const trafficTrends = Object.fromEntries(
+    order.map((uuid) => {
+      const prevTrend = state.trafficTrends[uuid] ?? EMPTY_TRAFFIC_TREND;
+      const metrics = metricsByUuid[uuid];
+      if (initialStatusRecords && metrics && metrics.online != null) {
+        const nextUp = updateTrafficTrendSeries(
+          prevTrend.up,
+          metrics.netUp,
+          metrics.updatedAt,
+          metrics.online,
+        );
+        const nextDown = updateTrafficTrendSeries(
+          prevTrend.down,
+          metrics.netDown,
+          metrics.updatedAt,
+          metrics.online,
+        );
+        return [
+          uuid,
+          {
+            up: nextUp.series,
+            down: nextDown.series,
+            snapshot: {
+              up: nextUp.series.snapshot,
+              down: nextDown.series.snapshot,
+            },
+          },
+        ];
+      }
+      return [uuid, prevTrend];
+    }),
+  );
+
+  const nodeListChanged =
+    orderChanged ||
+    [...touchedMeta].some((uuid) => {
+      const prev = state.metaByUuid[uuid];
+      const next = metaByUuid[uuid];
+      return Boolean(prev?.hidden) !== Boolean(next?.hidden);
+    });
+
+  const storeStatusChanged = !hydrated || nodeInfoError;
+  hydrated = true;
+  nodeInfoError = false;
+  if (orderChanged || touchedMeta.size > 0 || touchedMetrics.size > 0 || storeStatusChanged) {
+    commit(
+      {
+        ...state,
+        order,
+        metaByUuid,
+        metricsByUuid,
+        trafficTrends,
+      },
+      {
+        meta: touchedMeta,
+        metrics: touchedMetrics,
+        // traffic trend 只由 refreshLatestStatus 改动;syncNodeInfo 原样带过来,这里无需通知。
+        nodeList: nodeListChanged,
+        allNodes: orderChanged || touchedMeta.size > 0,
+        storeStatus: storeStatusChanged,
+      },
+    );
+  }
+}
+
 async function performNodeInfoSync() {
   const controller = new AbortController();
   nodeInfoController = controller;
   try {
     const nodes = sortNodes(await getNodes({ signal: controller.signal }));
     if (controller.signal.aborted) return;
-    const order = nodes.map((node) => node.uuid);
-    const touchedMeta = new Set<string>();
-    const touchedMetrics = new Set<string>();
-    const previousUuids = new Set(state.order);
-    const nextUuids = new Set(order);
-    const orderChanged =
-      order.length !== state.order.length ||
-      order.some((uuid, index) => uuid !== state.order[index]);
-    const metaByUuid: Record<string, NodeInfo> = {};
-    const metricsByUuid: Record<string, NodeMetrics> = {};
-
-    for (const info of nodes) {
-      const prev = state.metaByUuid[info.uuid];
-      const isUnchanged = prev != null && shallowEqualNodeInfo(prev, info);
-      const merged = isUnchanged ? prev : { ...info };
-      metaByUuid[info.uuid] = merged;
-      const previousMetrics = state.metricsByUuid[info.uuid];
-      const nextMetrics = previousMetrics
-        ? alignEmptyMetricsTotals(previousMetrics, info)
-        : emptyMetrics(info, null);
-      metricsByUuid[info.uuid] = nextMetrics;
-      if (!isUnchanged) {
-        touchedMeta.add(info.uuid);
-      }
-      if (!previousMetrics || previousMetrics !== nextMetrics) {
-        touchedMetrics.add(info.uuid);
-      }
-    }
-
-    for (const uuid of previousUuids) {
-      if (!nextUuids.has(uuid)) {
-        touchedMeta.add(uuid);
-        touchedMetrics.add(uuid);
-      }
-    }
-
-    const trafficTrends = Object.fromEntries(
-      order.map((uuid) => [uuid, state.trafficTrends[uuid] ?? EMPTY_TRAFFIC_TREND]),
-    );
-
-    const nodeListChanged =
-      orderChanged ||
-      [...touchedMeta].some((uuid) => {
-        const prev = state.metaByUuid[uuid];
-        const next = metaByUuid[uuid];
-        return Boolean(prev?.hidden) !== Boolean(next?.hidden);
-      });
-
-    const storeStatusChanged = !hydrated || nodeInfoError;
-    hydrated = true;
-    nodeInfoError = false;
-    if (orderChanged || touchedMeta.size > 0 || touchedMetrics.size > 0 || storeStatusChanged) {
-      commit(
-        {
-          ...state,
-          order,
-          metaByUuid,
-          metricsByUuid,
-          trafficTrends,
-        },
-        {
-          meta: touchedMeta,
-          metrics: touchedMetrics,
-          // traffic trend 只由 refreshLatestStatus 改动;syncNodeInfo 原样带过来,这里无需通知。
-          nodeList: nodeListChanged,
-          allNodes: orderChanged || touchedMeta.size > 0,
-          storeStatus: storeStatusChanged,
-        },
-      );
-    }
-  } catch (error) {
+    applyNodeSync(nodes, null);
+  } catch (err) {
     if (!controller.signal.aborted && !nodeInfoError) {
       nodeInfoError = true;
       commit(state, { storeStatus: true });
     }
-    throw error;
+    throw err;
   } finally {
     if (nodeInfoController === controller) nodeInfoController = null;
   }
@@ -846,17 +893,47 @@ let bootstrapBackoffTicks = 0;
 let bootstrapSkipTicks = 0;
 
 async function bootstrap() {
+  const controller = new AbortController();
+  nodeInfoController = controller;
+  liveStatusController = controller;
+  refreshInFlight = true;
+
   try {
-    await syncNodeInfo();
-    await refreshLatestStatus();
+    // 1. 获取节点元数据列表（利用 index.html 超前预取的 rpc_nodes 瞬间返回）
+    const nodes = sortNodes(await getNodes({ signal: controller.signal }));
+    if (controller.signal.aborted) return;
+
+    const uuids = nodes.map((n) => n.uuid);
+
+    // 2. 携带获取到的节点 uuids 立即请求全量真实运行状态
+    let statusRecords: Record<string, unknown> | null = null;
+    if (uuids.length > 0) {
+      statusRecords = await getNodesLatestStatus(uuids, {
+        timeout: LIVE_STATUS_REQUEST_TIMEOUT_MS,
+        signal: controller.signal,
+      }).catch(() => null);
+    }
+
+    if (controller.signal.aborted) return;
+
+    // 3. 元数据与真实状态一次性合并完成，此后才置 hydrated = true，彻底告别 0% 骨架闪烁
+    applyNodeSync(nodes, statusRecords);
     bootstrapBackoffTicks = 0;
     bootstrapSkipTicks = 0;
   } catch {
+    if (!controller.signal.aborted && !nodeInfoError) {
+      nodeInfoError = true;
+      commit(state, { storeStatus: true });
+    }
     bootstrapBackoffTicks = Math.min(
       bootstrapBackoffTicks > 0 ? bootstrapBackoffTicks * 2 : 1,
       BOOTSTRAP_MAX_BACKOFF_TICKS,
     );
     bootstrapSkipTicks = bootstrapBackoffTicks;
+  } finally {
+    if (nodeInfoController === controller) nodeInfoController = null;
+    if (liveStatusController === controller) liveStatusController = null;
+    refreshInFlight = false;
   }
 }
 

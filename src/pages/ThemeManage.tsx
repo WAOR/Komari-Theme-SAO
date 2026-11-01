@@ -1712,13 +1712,18 @@ export function ThemeManage() {
   const trafficUuids = useMemo(() => allMeta.map((n) => n.uuid), [allMeta]);
   const todayTrafficClock = useMinuteClock();
   const todayTrafficQuery = useTodayTrafficStats(trafficUuids, todayTrafficClock, "summary");
-  const todayTrafficTotal = useMemo(() => {
+  const latestTrafficTotal = useMemo(() => {
     if (!todayTrafficQuery.data) return null;
     return todayTrafficQuery.data.rows.reduce(
       (sum, row) => sum + row.trafficUp + row.trafficDown,
       0,
     );
   }, [todayTrafficQuery.data]);
+  const lastTrafficTotalRef = useRef<number | null>(null);
+  if (latestTrafficTotal !== null) {
+    lastTrafficTotalRef.current = latestTrafficTotal;
+  }
+  const todayTrafficTotal = latestTrafficTotal ?? lastTrafficTotalRef.current;
 
   // 使用当前价格、周期、到期日和汇率回算指定收购日的剩余价值；结果只在用户编辑
   // 收购价/日期时用于固化溢价，不会因后续续费或汇率变化自动改写。
@@ -2413,7 +2418,7 @@ function draftToThemeSettings(targetDraft: ThemeDraft): ThemeSettings {
                                     overview={realOverview}
                                     costSummary={realCostSummary}
                                     todayTrafficTotal={todayTrafficTotal}
-                                    todayTrafficLoading={todayTrafficQuery.isPending}
+                                    todayTrafficLoading={todayTrafficTotal === null && todayTrafficQuery.isPending}
                                     className="w-full pointer-events-none shadow-none"
                                   />
                                 </div>
@@ -2504,7 +2509,7 @@ function draftToThemeSettings(targetDraft: ThemeDraft): ThemeSettings {
                                   overview={realOverview}
                                   costSummary={realCostSummary}
                                   todayTrafficTotal={todayTrafficTotal}
-                                  todayTrafficLoading={todayTrafficQuery.isPending}
+                                  todayTrafficLoading={todayTrafficTotal === null && todayTrafficQuery.isPending}
                                   className="w-full pointer-events-none shadow-xs"
                                 />
                               </div>

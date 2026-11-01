@@ -865,13 +865,20 @@ export function NodeGrid() {
   }, [queryClient, trafficUuids]);
   const todayTrafficClock = useMinuteClock();
   const todayTrafficQuery = useTodayTrafficStats(trafficUuids, todayTrafficClock, "summary");
-  const todayTrafficTotal = useMemo(() => {
+  const latestTrafficTotal = useMemo(() => {
     if (!todayTrafficQuery.data) return null;
     return todayTrafficQuery.data.rows.reduce(
       (sum, row) => sum + row.trafficUp + row.trafficDown,
       0,
     );
   }, [todayTrafficQuery.data]);
+  // 记忆锁定：一旦获取过有效数据，在用户未手动刷新页面的生命周期内永久记忆数值，
+  // 避免切出 APP 重新激活或后台静默刷新时因短暂 pending 退化为朦胧骨架屏
+  const lastTrafficTotalRef = useRef<number | null>(null);
+  if (latestTrafficTotal !== null) {
+    lastTrafficTotalRef.current = latestTrafficTotal;
+  }
+  const todayTrafficTotal = latestTrafficTotal ?? lastTrafficTotalRef.current;
   // 「名称」排序需要展示名(摘要无 name),从 meta 注入。
   const nameByUuid = useMemo(() => {
     const map = new Map<string, string>();
@@ -1200,7 +1207,7 @@ export function NodeGrid() {
           onWarmTraffic={warmTrafficPage}
           username={me?.username || (me?.logged_in ? "Admin" : "Guest")}
           todayTrafficTotal={todayTrafficTotal}
-          todayTrafficLoading={todayTrafficQuery.isPending}
+          todayTrafficLoading={todayTrafficTotal === null && todayTrafficQuery.isPending}
           visibleNodes={visibleNodes}
           nameByUuid={nameByUuid}
           clusterOverviewMode={themeSettings.clusterOverviewMode}

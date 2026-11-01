@@ -1,4 +1,4 @@
-﻿// 含 JSX 的 Provider 放这里，因此文件扩展名为 .tsx；外部导入路径不带扩展名，无需改动调用方。
+// 含 JSX 的 Provider 放这里，因此文件扩展名为 .tsx；外部导入路径不带扩展名，无需改动调用方。
 import {
   createContext,
   useCallback,
@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import {
+  keepPreviousData,
   queryOptions,
   useQueries,
   useQuery,
@@ -398,6 +399,7 @@ function getTodayTrafficQueryOptions(
       }
     },
     enabled: stableUuids.length > 0,
+    placeholderData: keepPreviousData,
     staleTime: 60_000,
     refetchInterval: (query) =>
       getTodayTrafficRefreshInterval(

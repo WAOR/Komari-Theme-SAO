@@ -50,6 +50,7 @@ import { usePublicConfig } from "@/hooks/usePublicConfig";
 import { useHourlyClock, useMinuteClock } from "@/hooks/useClock";
 import { useTodayTrafficStats } from "@/hooks/useTodayTrafficStats";
 import { useThemeUpdate } from "@/hooks/useThemeUpdate";
+import { usePreferences } from "@/hooks/usePreferences";
 import { queryClient } from "@/services/queryClient";
 import {
   ApiRequestError,
@@ -410,7 +411,7 @@ const BandwidthTierCard = memo(function BandwidthTierCard({
     <div className="surface-inset rounded-xl p-3.5 flex flex-col items-center justify-between gap-3 text-center border border-(--hairline) hover:border-(--hairline-hover) transition-colors group/card">
       <div className="w-full flex items-center justify-between text-[11px] text-(--text-muted)">
         <span className="font-medium text-(--text-secondary)">{tier.tierTitle}</span>
-        <span className="font-mono text-[10px] font-semibold px-2 py-0.5 rounded-md bg-black/5 dark:bg-white/12 text-(--text-secondary) dark:text-zinc-200 border border-(--hairline) dark:border-white/20 shadow-2xs">
+        <span className="font-mono text-[10px] font-semibold px-2 py-0.5 rounded-md bg-(--bg-card) text-(--text-secondary) border border-(--hairline) shadow-2xs">
           {tier.threshold}
         </span>
       </div>
@@ -1143,6 +1144,7 @@ function SiteSyncIndicator({
 export function ThemeManage() {
   const now = useHourlyClock();
   const { currentVersion } = useThemeUpdate();
+  const { setAppearance } = usePreferences();
   const {
     data: config,
     isLoading: configLoading,
@@ -2156,7 +2158,10 @@ function draftToThemeSettings(targetDraft: ThemeDraft): ThemeSettings {
                       type="button"
                       data-active={draft.defaultAppearance === value ? "true" : "false"}
                       aria-pressed={draft.defaultAppearance === value}
-                      onClick={() => patch("defaultAppearance", value)}
+                      onClick={() => {
+                        patch("defaultAppearance", value);
+                        setAppearance(value);
+                      }}
                       className="inline-flex items-center justify-center gap-2"
                     >
                       <Icon size={14} />

@@ -94,4 +94,35 @@ describe("Early Data prefetch consumption", () => {
     expect(getEarlyWindow().__EARLY_DATA__?.rpc_nodes).toBeNull();
     expect(rpcCallMock).not.toHaveBeenCalled();
   });
+
+  it("consumes early today_traffic metrics without network roundtrip", async () => {
+    getEarlyWindow().__EARLY_DATA__ = {
+      today_traffic: Promise.resolve({
+        jsonrpc: "2.0",
+        id: 1,
+        result: {
+          start: "2026-11-01T00:00:00Z",
+          end: "2026-11-01T02:00:00Z",
+          count: 1,
+          default_points: 500,
+          series: [
+            {
+              metric_key: "traffic.up",
+              entity_id: "node-1",
+              type: "gauge",
+              unit: "bytes",
+              points: [{ time: "2026-11-01T01:00:00Z", value: 1048576, count: 1 }],
+            },
+          ],
+        },
+      }),
+    };
+
+    const { getTodayTrafficMetrics } = await import("@/services/api");
+    const result = await getTodayTrafficMetrics(["node-1"], 1730419200000, 1730426400000);
+    expect(result.series).toHaveLength(1);
+    expect(result.series[0].client).toBe("node-1");
+    expect(getEarlyWindow().__EARLY_DATA__?.today_traffic).toBeNull();
+    expect(rpcCallMock).not.toHaveBeenCalled();
+  });
 });

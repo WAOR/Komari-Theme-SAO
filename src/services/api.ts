@@ -661,6 +661,39 @@ async function queryMetricPayload(
   signal?: AbortSignal,
   timeout?: number,
 ): Promise<z.output<typeof MetricQueryResponseSchema>> {
+  if (typeof window !== "undefined" && !signal?.aborted) {
+    const earlyObj = (window as unknown as { __EARLY_DATA__?: Record<string, Promise<unknown> | null> }).__EARLY_DATA__;
+    const earlyTraffic = earlyObj?.today_traffic;
+    if (earlyTraffic) {
+      earlyObj.today_traffic = null;
+      try {
+        const json = await earlyTraffic;
+        if (signal?.aborted) {
+          throw new DOMException("The operation was aborted.", "AbortError");
+        }
+        if (json && typeof json === "object" && "result" in json) {
+          const parsed = MetricQueryResponseSchema.safeParse((json as { result: unknown }).result);
+          if (parsed.success) {
+            metricQueryApiAvailable = true;
+            const entitySet =
+              Array.isArray(params.entity_ids) && params.entity_ids.length > 0
+                ? new Set(params.entity_ids as string[])
+                : null;
+            if (entitySet) {
+              return {
+                ...parsed.data,
+                series: parsed.data.series.filter((s) => entitySet.has(s.entity_id)),
+              };
+            }
+            return parsed.data;
+          }
+        }
+      } catch (err) {
+        if (signal?.aborted) throw err;
+      }
+    }
+  }
+
   const deadline = requestDeadline(timeout);
   const available = await waitForMetricQueryCapability({
     signal,

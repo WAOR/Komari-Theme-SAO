@@ -530,6 +530,21 @@
   color: var(--text-tertiary);
 }
 
+.mao-stat-skeleton {
+  display: inline-block;
+  width: 3.5rem;
+  height: 1.25rem;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--text-primary) 12%, transparent);
+  animation: mao-stat-skeleton-pulse 1.4s ease-in-out infinite;
+  vertical-align: middle;
+}
+
+@keyframes mao-stat-skeleton-pulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.75; }
+}
+
 .mao-stat-footer {
   display: flex;
   align-items: center;

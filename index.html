@@ -33,22 +33,47 @@
             const headers = { Accept: "application/json" };
             const opts = { credentials: "include", headers };
             const rpcHeaders = { Accept: "application/json", "Content-Type": "application/json" };
-            const rpcPost = (method) =>
+            const rpcPost = (method, params = {}) =>
               fetch(base + "/api/rpc2", {
                 method: "POST",
                 credentials: "include",
                 headers: rpcHeaders,
-                body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params: {} }),
+                body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
               })
                 .then((r) => (r.ok ? r.json() : null))
                 .catch(() => null);
+
+            const now = Date.now();
+            const d = new Date(now);
+            d.setHours(0, 0, 0, 0);
+            const startIso = d.toISOString();
+            const endIso = new Date(now).toISOString();
 
             window.__EARLY_DATA__ = {
               public: fetch(base + "/api/public", opts).then((r) => (r.ok ? r.json() : null)).catch(() => null),
               me: fetch(base + "/api/me", opts).then((r) => (r.ok ? r.json() : null)).catch(() => null),
               nodes: fetch(base + "/api/nodes", opts).then((r) => (r.ok ? r.json() : null)).catch(() => null),
               rpc_nodes: rpcPost("common:getNodes"),
+              today_traffic: rpcPost("public:queryMetrics", {
+                start: startIso,
+                end: endIso,
+                metric_keys: ["traffic.up", "traffic.down", "net.out.rate", "net.in.rate"],
+                aggregation_by_metric: {
+                  "traffic.up": "sum",
+                  "traffic.down": "sum",
+                  "net.out.rate": "max",
+                  "net.in.rate": "max",
+                },
+              }),
             };
+          }
+        } catch {}
+
+        try {
+          if (typeof window !== "undefined") {
+            window.addEventListener("vite:preloadError", () => {
+              window.location.reload();
+            });
           }
         } catch {}
 

@@ -274,7 +274,13 @@ export const OverviewStatCard: React.FC<OverviewStatCardProps> = ({
             )}
           </div>
           <div className="mao-stat-value">
-            {trafficValue} <span className="mao-stat-unit">{trafficUnit}</span>
+            {todayTrafficLoading && todayTrafficTotal === null ? (
+              <span className="mao-stat-skeleton" aria-hidden="true" />
+            ) : (
+              <>
+                {trafficValue} <span className="mao-stat-unit">{trafficUnit}</span>
+              </>
+            )}
           </div>
           <div className="mao-stat-footer">
             <span

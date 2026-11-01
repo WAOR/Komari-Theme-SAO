@@ -145,10 +145,28 @@ describe("getExpireDaysRemaining / formatExpireDays", () => {
   });
 
   it("handles the today / expired boundary", () => {
-    // 未来约 1 小时会向下取整成剩余 0 天
+    // 当天时刻会判定为今日到期
     expect(formatExpireDays(inDays(0, 1))).toEqual({ value: "今日", unit: "", tone: "critical" });
     // 已是过去时间
     expect(formatExpireDays(inDays(-2))).toEqual({ value: "已过期", unit: "", tone: "critical" });
+  });
+
+  it("calculates exact calendar day differences (e.g. 5号到期在1号查看为4天)", () => {
+    const nowNov1 = new Date("2026-11-01T14:04:45+08:00").getTime();
+    expect(getExpireDaysRemaining("2026-11-05", nowNov1)).toBe(4);
+    expect(formatExpireDays("2026-11-05", nowNov1)).toEqual({ value: "4", unit: "天", tone: "critical" });
+
+    const nowNov4 = new Date("2026-11-04T14:00:00+08:00").getTime();
+    expect(getExpireDaysRemaining("2026-11-05", nowNov4)).toBe(1);
+    expect(formatExpireDays("2026-11-05", nowNov4)).toEqual({ value: "1", unit: "天", tone: "critical" });
+
+    const nowNov5 = new Date("2026-11-05T14:00:00+08:00").getTime();
+    expect(getExpireDaysRemaining("2026-11-05", nowNov5)).toBe(0);
+    expect(formatExpireDays("2026-11-05", nowNov5)).toEqual({ value: "今日", unit: "", tone: "critical" });
+
+    const nowNov6 = new Date("2026-11-06T14:00:00+08:00").getTime();
+    expect(getExpireDaysRemaining("2026-11-05", nowNov6)).toBe(-1);
+    expect(formatExpireDays("2026-11-05", nowNov6)).toEqual({ value: "已过期", unit: "", tone: "critical" });
   });
 });
 

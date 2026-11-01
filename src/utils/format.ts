@@ -131,6 +131,15 @@ export function resolveExpireTimestamp(
     if (n <= 0) return null; // 0 / -1 "无到期" 哨兵值
     return n < 1e12 ? n * 1000 : n; // unix 秒 vs. 毫秒
   }
+  // 纯日期格式 "YYYY-MM-DD"：使用本地时区解析为当日零点，避免时区偏差跨日
+  const dateMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw);
+  if (dateMatch) {
+    const y = Number(dateMatch[1]);
+    const m = Number(dateMatch[2]) - 1;
+    const d = Number(dateMatch[3]);
+    const dt = new Date(y, m, d);
+    if (!Number.isNaN(dt.getTime())) return dt.getTime();
+  }
   const ts = Date.parse(raw);
   if (Number.isNaN(ts) || ts <= 0) return null; // 无法解析或 Go 零时
   return ts;
@@ -142,7 +151,22 @@ export function getExpireDaysRemaining(
 ): number | null {
   const ts = resolveExpireTimestamp(iso);
   if (ts == null || !Number.isFinite(now)) return null;
-  return Math.floor((ts - now) / 86400000);
+
+  // 按本地日历日对齐到零点计算日历差，杜绝白天查询时因为物理跨度不足24小时向下取整少算1天的问题
+  const targetDate = new Date(ts);
+  const currentDate = new Date(now);
+  const targetMidnight = new Date(
+    targetDate.getFullYear(),
+    targetDate.getMonth(),
+    targetDate.getDate(),
+  ).getTime();
+  const currentMidnight = new Date(
+    currentDate.getFullYear(),
+    currentDate.getMonth(),
+    currentDate.getDate(),
+  ).getTime();
+
+  return Math.round((targetMidnight - currentMidnight) / 86400000);
 }
 
 function resolveExpireTone(days: number | null | undefined): ExpireTone {

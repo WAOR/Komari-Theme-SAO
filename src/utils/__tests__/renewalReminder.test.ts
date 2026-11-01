@@ -89,13 +89,12 @@ describe("renewal reminders", () => {
     expect(RENEWAL_SNOOZE_MS).toBe(DAY_MS);
   });
 
-  it("uses the same whole-day rounding as cards and the assets page", () => {
+  it("uses the same calendar-day calculation as cards and the assets page", () => {
     const expiresAt = NOW + 3 * DAY_MS - 1;
     const [reminder] = getRenewalReminders(
       [node({ expired_at: new Date(expiresAt).toISOString() })],
       NOW,
     );
-    expect(reminder.daysRemaining).toBe(2);
     expect(reminder.daysRemaining).toBe(getExpireDaysRemaining(expiresAt, NOW));
   });
 

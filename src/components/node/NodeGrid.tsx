@@ -616,11 +616,16 @@ const RegionTabs = memo(function RegionTabs({
     if (singleWidth <= 0) return;
 
     const normX = getWrappedX(trackX, singleWidth);
-    const progress = (-normX) / singleWidth; // 0 到 1 之间的进度
+    let progress = (-normX) / singleWidth; // 0 到 1 之间的进度
+    if (progress >= 1 || progress <= 0) progress = 0;
     const delay = -(progress * marqueeDuration);
 
-    track.style.transform = "";
     track.style.animationDelay = `${delay}s`;
+    track.classList.add("is-animated");
+    // 强制触发重排，让浏览器在当前帧立即解析并装载 CSS 动画
+    void track.offsetWidth;
+    // 动画已在当前帧就绪接管，此时安全清除 inline transform，杜绝 1 帧归零空白闪烁
+    track.style.transform = "";
     setIsAnimated(true);
   };
 
@@ -645,8 +650,10 @@ const RegionTabs = memo(function RegionTabs({
     const matrix = new DOMMatrix(style.transform);
     const currentX = getWrappedX(matrix.m41, singleWidth);
 
-    setIsAnimated(false);
     track.style.transform = `translate3d(${currentX}px, 0, 0)`;
+    track.classList.remove("is-animated");
+    void track.offsetWidth;
+    setIsAnimated(false);
 
     isDraggingRef.current = true;
     hasMovedRef.current = false;

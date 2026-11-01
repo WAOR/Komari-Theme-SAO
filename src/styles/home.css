@@ -2681,35 +2681,6 @@
   text-overflow: ellipsis;
 }
 
-.overview-card-rating {
-  flex: 0 1 auto;
-  min-width: 0;
-  max-width: 48%;
-  overflow: hidden;
-  font-size: 12px;
-  font-weight: 720;
-  line-height: 1.2;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  font-variant-numeric: tabular-nums;
-}
-
-.overview-card-rating[data-rating-level="0"] {
-  color: color-mix(in srgb, var(--status-success) 72%, var(--text-secondary));
-}
-
-.overview-card-rating[data-rating-level="1"] {
-  color: var(--accent-500);
-}
-
-.overview-card-rating[data-rating-level="2"] {
-  color: var(--progress-memory);
-}
-
-.overview-card-rating[data-rating-level="3"] {
-  color: color-mix(in srgb, #f5b84b 82%, var(--text-primary));
-}
-
 /* 带宽评级徽章变体：格式与集群状态 .mao-status-pill 保持一致 */
 .overview-card-rating.is-bandwidth-badge {
   position: relative;
@@ -3218,12 +3189,6 @@
 
   .overview-card-sub-compact {
     display: inline;
-  }
-
-  .overview-card-rating {
-    flex: 0 0 auto;
-    max-width: 5.5em;
-    font-size: 11px;
   }
 
   .overview-card-caption {

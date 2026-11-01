@@ -15,7 +15,6 @@ import { Link } from "react-router-dom";
 import { StatMetricIcon } from "../ui/StatMetricIcon";
 import { formatBytes } from "@/utils/format";
 import type { OverviewCardId } from "@/types/komari";
-import type { OverviewRating } from "@/utils/overviewRating";
 import { RenewalReminder } from "./RenewalReminder";
 import type { RenewalReminderSource } from "@/utils/renewalReminder";
 import { getRenewalReminders } from "@/utils/renewalReminder";
@@ -55,8 +54,6 @@ export interface OverviewStatCardProps {
   costLoading?: boolean;
   showTrafficDetailButton?: boolean;
   showDetailButton?: boolean;
-  trafficRating?: OverviewRating | null;
-  assetRating?: OverviewRating | null;
   renewalNodes?: RenewalReminderSource[];
   onWarmTraffic?: () => void;
   className?: string;
@@ -91,8 +88,6 @@ export const OverviewStatCard: React.FC<OverviewStatCardProps> = ({
   costLoading = false,
   showTrafficDetailButton = false,
   showDetailButton = false,
-  trafficRating,
-  assetRating,
   renewalNodes,
   onWarmTraffic,
   className = "",
@@ -145,17 +140,6 @@ export const OverviewStatCard: React.FC<OverviewStatCardProps> = ({
 
   const totalProcesses = overview?.totalProcesses ?? 1842;
   const totalCores = overview?.totalCores ?? 64;
-
-  const renderRating = (rating: OverviewRating | null) =>
-    rating ? (
-      <span
-        className="overview-card-rating"
-        data-rating-level={rating.level}
-        title={`指标定级: ${rating.label}`}
-      >
-        {rating.label}
-      </span>
-    ) : null;
 
   const renderAssetValue = () => {
     if (!isPriceVisible) return "保密";
@@ -299,7 +283,6 @@ export const OverviewStatCard: React.FC<OverviewStatCardProps> = ({
             >
               全节点出入站累计
             </span>
-            {renderRating(trafficRating ?? null)}
           </div>
         </div>
       );
@@ -340,7 +323,6 @@ export const OverviewStatCard: React.FC<OverviewStatCardProps> = ({
           <div className="mao-stat-value">{renderAssetValue()}</div>
           <div className="mao-stat-footer">
             <span className="mao-stat-caption">{!isPriceVisible ? "仅管理员可见" : "实时汇率折算"}</span>
-            {renderRating(assetRating ?? null)}
           </div>
         </div>
       );

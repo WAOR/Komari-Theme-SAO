@@ -510,101 +510,6 @@
   }
 }
 
-/* 主题管理报头:eyebrow + 大标题 + 右侧账目式元信息,和资产页同一套编辑排版语言。 */
-.theme-masthead {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  overflow: hidden;
-  border: 1px solid var(--hairline);
-  border-radius: 20px;
-  background:
-    linear-gradient(
-      130deg,
-      color-mix(in srgb, var(--accent-500) 5%, transparent) 0%,
-      transparent 44%
-    ),
-    var(--surface-a);
-  padding: 20px 24px 22px;
-}
-
-.theme-masthead-topline {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.theme-masthead-main {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px 40px;
-  border-top: 1px solid color-mix(in srgb, var(--hairline) 90%, transparent);
-  padding-top: 18px;
-}
-
-.theme-masthead-headings {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.theme-masthead-kicker {
-  color: var(--text-tertiary);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.2em;
-}
-
-.theme-masthead-title {
-  margin: 0;
-  color: var(--text-primary);
-  font-size: clamp(26px, 3.4vw, 34px);
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  line-height: 1;
-}
-
-.theme-masthead-desc {
-  margin: 0;
-  max-width: 52ch;
-  color: var(--text-secondary);
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-.theme-masthead-meta {
-  display: flex;
-  flex: 0 0 auto;
-  gap: 26px;
-  margin: 0;
-}
-
-.theme-masthead-meta div {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.theme-masthead-meta dt {
-  color: var(--text-tertiary);
-  font-size: 10.5px;
-  font-weight: 680;
-  letter-spacing: 0.14em;
-}
-
-.theme-masthead-meta dd {
-  margin: 0;
-  color: var(--text-primary);
-  font-size: 15px;
-  font-weight: 740;
-  font-variant-numeric: tabular-nums;
-}
-
 /* 设置项卡片式选择网格（2个选项平分整行，撑满面板版面） */
 .setting-mode-cards {
   display: grid;
@@ -1139,14 +1044,6 @@
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.16em;
-}
-
-.instance-panel-kicker-num {
-  color: var(--accent-500);
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  font-variant-numeric: tabular-nums;
 }
 
 /* 带 kicker 的面板(主题管理各分区)标题区加一道发丝下线,读作报告的分节。 */

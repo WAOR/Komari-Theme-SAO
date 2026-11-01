@@ -228,13 +228,6 @@
   }
 }
 
-/* 版权文字 */
-.home-footer-copyright {
-  font-size: 0.65rem;
-  color: var(--text-secondary);
-  font-weight: 500;
-}
-
 /* GitHub 跃迁外链按钮 */
 .home-footer-github {
   display: inline-flex;

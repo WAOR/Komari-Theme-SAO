@@ -4,63 +4,64 @@ import {
   normalizeOverviewRatingLabels,
 } from "@/utils/overviewRating";
 
-const GB = 1024 ** 3;
-
 describe("overview ratings", () => {
-  it("rates assets by the configured CNY ranges", () => {
-    expect(getOverviewRating({ kind: "asset", value: 500 })).toEqual({
-      level: 0,
-      label: "Nano",
-    });
-    expect(getOverviewRating({ kind: "asset", value: 1500 })).toEqual({
-      level: 1,
-      label: "Micro",
-    });
-    expect(getOverviewRating({ kind: "asset", value: 3000 })).toEqual({
-      level: 2,
-      label: "Medium",
-    });
-    expect(getOverviewRating({ kind: "asset", value: 3000.01 })).toEqual({
-      level: 3,
-      label: "High-Spec",
-    });
-  });
-
-  it("rates traffic and bandwidth on their native byte inputs", () => {
-    expect(getOverviewRating({ kind: "traffic", value: 35 * GB })).toEqual({
-      level: 1,
-      label: "MED",
-    });
+  it("rates bandwidth on native byte inputs", () => {
+    // 672 Kbps <= 1 Mbps -> level 0 (IDLE)
     expect(getOverviewRating({ kind: "bandwidth", value: (672 * 1024) / 8 })).toEqual({
       level: 0,
       label: "IDLE",
     });
+    // 5 Mbps <= 10 Mbps -> level 1 (LIGHT)
+    expect(getOverviewRating({ kind: "bandwidth", value: (5 * 1_000_000) / 8 })).toEqual({
+      level: 1,
+      label: "LIGHT",
+    });
+    // 50 Mbps <= 100 Mbps -> level 2 (ACTIVE)
+    expect(getOverviewRating({ kind: "bandwidth", value: (50 * 1_000_000) / 8 })).toEqual({
+      level: 2,
+      label: "ACTIVE",
+    });
+    // 150 Mbps > 100 Mbps -> level 3 (SURGE)
+    expect(getOverviewRating({ kind: "bandwidth", value: (150 * 1_000_000) / 8 })).toEqual({
+      level: 3,
+      label: "SURGE",
+    });
   });
 
   it("accepts custom comma-separated labels and only takes the first four", () => {
-    expect(normalizeOverviewRatingLabels("asset", "一,二,三,四,五")).toEqual([
-      "一",
-      "二",
-      "三",
-      "四",
+    expect(normalizeOverviewRatingLabels("bandwidth", "空闲,轻载,活跃,激增,超载")).toEqual([
+      "空闲",
+      "轻载",
+      "活跃",
+      "激增",
     ]);
   });
 
   it("applies custom labels to the resolved rating", () => {
     expect(
-      getOverviewRating({ kind: "asset", value: 1063.83, customLabels: "练气,筑基,结丹,元婴" }),
+      getOverviewRating({
+        kind: "bandwidth",
+        value: (50 * 1_000_000) / 8,
+        customLabels: "空闲,轻微,高载,满载",
+      }),
     ).toEqual({
-      level: 1,
-      label: "筑基",
+      level: 2,
+      label: "高载",
     });
   });
 
   it("falls back by position when custom labels are incomplete", () => {
-    expect(normalizeOverviewRatingLabels("asset", "萌新,进阶")).toEqual([
-      "萌新",
-      "进阶",
-      "Medium",
-      "High-Spec",
+    expect(normalizeOverviewRatingLabels("bandwidth", "微量,平稳")).toEqual([
+      "微量",
+      "平稳",
+      "ACTIVE",
+      "SURGE",
+    ]);
+    expect(normalizeOverviewRatingLabels("bandwidth", "微量,,高载,")).toEqual([
+      "微量",
+      "LIGHT",
+      "高载",
+      "SURGE",
     ]);
   });
 });

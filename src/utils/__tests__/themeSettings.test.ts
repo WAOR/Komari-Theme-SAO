@@ -19,16 +19,12 @@ describe("normalizeThemeSettings", () => {
     );
   });
 
-  it("defaults overview ratings on unless explicitly disabled, while traffic and asset ratings default to false", () => {
+  it("defaults overview ratings on unless explicitly disabled", () => {
     const defaults = normalizeThemeSettings({});
     expect(defaults.showOverviewRatings).toBe(true);
     expect(defaults.showBandwidthRating).toBe(true);
-    expect(defaults.showTrafficRating).toBe(false);
-    expect(defaults.showAssetRating).toBe(false);
 
     expect(normalizeThemeSettings({ showOverviewRatings: false }).showOverviewRatings).toBe(false);
-    expect(normalizeThemeSettings({ showTrafficRating: true }).showTrafficRating).toBe(true);
-    expect(normalizeThemeSettings({ showAssetRating: true }).showAssetRating).toBe(true);
     expect(normalizeThemeSettings({ showBandwidthRating: false }).showBandwidthRating).toBe(false);
   });
 

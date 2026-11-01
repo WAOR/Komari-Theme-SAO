@@ -201,12 +201,8 @@ const HomeOverviewCards = memo(function HomeOverviewCards({
   costSummary,
   costLoading,
   showOverviewRatings,
-  showTrafficRating,
   showBandwidthRating,
-  showAssetRating,
-  trafficRatingLabels,
   bandwidthRatingLabels,
-  assetRatingLabels,
   showTrafficDetailButton = true,
   showDetailButton,
   showAssetCard,
@@ -232,12 +228,8 @@ const HomeOverviewCards = memo(function HomeOverviewCards({
   costLoading: boolean;
   dense: boolean;
   showOverviewRatings: boolean;
-  showTrafficRating: boolean;
   showBandwidthRating: boolean;
-  showAssetRating: boolean;
-  trafficRatingLabels: string;
   bandwidthRatingLabels: string;
-  assetRatingLabels: string;
   showTrafficDetailButton?: boolean;
   showDetailButton: boolean;
   showAssetCard: boolean;
@@ -260,15 +252,6 @@ const HomeOverviewCards = memo(function HomeOverviewCards({
   const { isPriceVisible } = usePriceVisibility();
   const onlinePct =
     overview.totalNodes > 0 ? (overview.onlineNodes / overview.totalNodes) * 100 : 0;
-  const todayTrafficBytes = todayTrafficTotal ?? 0;
-  const trafficRating =
-    showOverviewRatings && showTrafficRating && todayTrafficTotal !== null
-      ? getOverviewRating({
-        kind: "traffic",
-        value: todayTrafficBytes,
-        customLabels: trafficRatingLabels,
-      })
-      : null;
   const bandwidthRating =
     showOverviewRatings && showBandwidthRating
       ? getOverviewRating({
@@ -279,14 +262,6 @@ const HomeOverviewCards = memo(function HomeOverviewCards({
       : null;
 
   const isAllHealthy = overview.offlineNodes === 0 && overview.totalNodes > 0;
-  const assetRating =
-    isPriceVisible && showOverviewRatings && showAssetRating && costSummary
-      ? getOverviewRating({
-        kind: "asset",
-        value: costSummary.remainingCny,
-        customLabels: assetRatingLabels,
-      })
-      : null;
 
   const renewalReminders = getRenewalReminders(renewalNodes, Date.now(), {
     requireOnlineForExpired: true,
@@ -317,8 +292,6 @@ const HomeOverviewCards = memo(function HomeOverviewCards({
         costLoading={costLoading}
         showTrafficDetailButton={showTrafficDetailButton}
         showDetailButton={showDetailButton}
-        trafficRating={trafficRating}
-        assetRating={assetRating}
         renewalNodes={renewalNodes}
         onWarmTraffic={onWarmTraffic}
       />
@@ -1222,12 +1195,8 @@ export function NodeGrid() {
           costSummary={costSummary}
           costLoading={costLoading}
           showOverviewRatings={themeSettings.showOverviewRatings}
-          showTrafficRating={themeSettings.showTrafficRating}
           showBandwidthRating={themeSettings.showBandwidthRating}
-          showAssetRating={themeSettings.showAssetRating}
-          trafficRatingLabels={themeSettings.trafficRatingLabels}
           bandwidthRatingLabels={themeSettings.bandwidthRatingLabels}
-          assetRatingLabels={themeSettings.assetRatingLabels}
           onWarmTraffic={warmTrafficPage}
           username={me?.username || (me?.logged_in ? "Admin" : "Guest")}
           todayTrafficTotal={todayTrafficTotal}

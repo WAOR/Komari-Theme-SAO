@@ -99,6 +99,8 @@ export interface NodeMetrics {
   netDown: number;
   trafficUp: number;
   trafficDown: number;
+  cycleUp?: number | null;
+  cycleDown?: number | null;
   uptime: number;
   load1: number;
   load5: number;

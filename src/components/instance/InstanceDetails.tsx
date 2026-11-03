@@ -45,12 +45,15 @@ export function InstanceDetails({
 
   const isOnline = metrics.online;
   const uptime = formatUptimeDays(metrics.uptime);
+  const hasCycle = metrics.cycleUp != null && metrics.cycleDown != null;
+  const cycleUp = metrics.cycleUp ?? metrics.trafficUp;
+  const cycleDown = metrics.cycleDown ?? metrics.trafficDown;
   // 按 traffic_limit_type (max/sum/up/down/min) 归并上下行，和卡片、后端保持一致——
-  // 对非 "sum" 节点直接把上下行相加是错的。
+  // 对非 "sum" 节点直接把上下行相加是错的。优先使用 Agent 周期流量，否则兜底开机总流量。
   const trafficUsage = resolveTrafficUsage(
     meta.traffic_limit_type,
-    metrics.trafficUp,
-    metrics.trafficDown,
+    cycleUp,
+    cycleDown,
     meta.traffic_limit,
   );
   const lastUpdated =
@@ -139,9 +142,9 @@ export function InstanceDetails({
             value={formatTodayPeakValue(todayStat, trafficQuery.isPending)}
           />
           <div className="instance-info-item is-stack">
-            <span className="instance-info-label">总流量</span>
+            <span className="instance-info-label">{hasCycle ? "周期流量" : "总流量"}</span>
             <div className="instance-info-traffic">
-              <span className="instance-info-value">{`↑ ${formatBytes(metrics.trafficUp)} · ↓ ${formatBytes(metrics.trafficDown)}`}</span>
+              <span className="instance-info-value">{`↑ ${formatBytes(cycleUp)} · ↓ ${formatBytes(cycleDown)}`}</span>
               <div
                 className={`instance-progress-track${trafficUsage.unlimited ? " is-unlimited" : ""}`}
                 aria-hidden
@@ -158,6 +161,11 @@ export function InstanceDetails({
                   ? `${formatBytes(trafficUsage.used)} / ∞`
                   : `${formatBytes(trafficUsage.used)} / ${formatBytes(trafficUsage.limit)}`}
               </span>
+              {hasCycle && (
+                <span className="instance-info-note">
+                  开机累计：↑ {formatBytes(metrics.trafficUp)} · ↓ {formatBytes(metrics.trafficDown)}
+                </span>
+              )}
             </div>
           </div>
         </div>

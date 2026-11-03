@@ -54,17 +54,20 @@
               me: fetch(base + "/api/me", opts).then((r) => (r.ok ? r.json() : null)).catch(() => null),
               nodes: fetch(base + "/api/nodes", opts).then((r) => (r.ok ? r.json() : null)).catch(() => null),
               rpc_nodes: rpcPost("common:getNodes"),
-              today_traffic: rpcPost("public:queryMetrics", {
-                start: startIso,
-                end: endIso,
-                metric_keys: ["traffic.up", "traffic.down", "net.out.rate", "net.in.rate"],
-                aggregation_by_metric: {
-                  "traffic.up": "sum",
-                  "traffic.down": "sum",
-                  "net.out.rate": "max",
-                  "net.in.rate": "max",
-                },
-              }),
+              today_traffic: {
+                startMs: d.getTime(),
+                promise: rpcPost("public:queryMetrics", {
+                  start: startIso,
+                  end: endIso,
+                  metric_keys: ["traffic.up", "traffic.down", "net.out.rate", "net.in.rate"],
+                  aggregation_by_metric: {
+                    "traffic.up": "sum",
+                    "traffic.down": "sum",
+                    "net.out.rate": "max",
+                    "net.in.rate": "max",
+                  },
+                }),
+              },
             };
           }
         } catch {}

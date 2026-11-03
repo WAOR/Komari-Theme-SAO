@@ -82,6 +82,8 @@ const MetricSeriesSchema = z
     tags: z.record(z.string(), z.string()).optional(),
     tag: z.record(z.string(), z.string()).optional(),
     interval_seconds: z.number().default(0),
+    semantics: z.string().optional(),
+    quality: z.string().optional(),
     points: z.array(MetricPointSchema).default([]),
   })
   .passthrough();
@@ -660,14 +662,42 @@ async function queryMetricPayload(
   params: Record<string, unknown>,
   signal?: AbortSignal,
   timeout?: number,
+  useEarlyTodayTraffic = false,
 ): Promise<z.output<typeof MetricQueryResponseSchema>> {
-  if (typeof window !== "undefined" && !signal?.aborted) {
-    const earlyObj = (window as unknown as { __EARLY_DATA__?: Record<string, Promise<unknown> | null> }).__EARLY_DATA__;
+  const deadline = requestDeadline(timeout);
+  if (useEarlyTodayTraffic && typeof window !== "undefined" && !signal?.aborted) {
+    const earlyObj = (
+      window as unknown as {
+        __EARLY_DATA__?: {
+          today_traffic?:
+            | { startMs?: number; promise: Promise<unknown> }
+            | Promise<unknown>
+            | null;
+        };
+      }
+    ).__EARLY_DATA__;
     const earlyTraffic = earlyObj?.today_traffic;
-    if (earlyTraffic) {
+    const earlyPromise =
+      earlyTraffic && typeof earlyTraffic === "object" && "promise" in earlyTraffic
+        ? earlyTraffic.promise
+        : (earlyTraffic as Promise<unknown> | null);
+    const earlyStartMs =
+      earlyTraffic && typeof earlyTraffic === "object" && "startMs" in earlyTraffic
+        ? earlyTraffic.startMs
+        : null;
+
+    const isStartMatch =
+      typeof params.start === "string" &&
+      (earlyStartMs == null || Date.parse(params.start) === earlyStartMs);
+
+    if (earlyObj && earlyPromise && isStartMatch) {
       earlyObj.today_traffic = null;
       try {
-        const json = await earlyTraffic;
+        const json = await waitForSharedRequest(
+          earlyPromise,
+          signal,
+          remainingRequestTimeout(deadline),
+        );
         if (signal?.aborted) {
           throw new DOMException("The operation was aborted.", "AbortError");
         }
@@ -694,7 +724,6 @@ async function queryMetricPayload(
     }
   }
 
-  const deadline = requestDeadline(timeout);
   const available = await waitForMetricQueryCapability({
     signal,
     timeout: remainingRequestTimeout(deadline),
@@ -822,6 +851,7 @@ async function repairMetricBoundary<T extends MetricBoundarySeries>(
   aggregationByMetric: Partial<Record<string, MetricBoundaryAggregation>> = {},
   signal?: AbortSignal,
   timeout?: number,
+  canCombine?: (aggregate: T, raw: T) => boolean,
 ) {
   const payloadRange = getMetricPayloadRange(metricPayload, requestRange);
   const repairRange = getMetricBoundaryRepairRange(
@@ -849,9 +879,20 @@ async function repairMetricBoundary<T extends MetricBoundarySeries>(
       0,
       ...aggregateSeries.map((item) => item.intervalSeconds ?? 0),
     );
-    const rawSeries = rawPayload.series.map((item) =>
+    let rawSeries = rawPayload.series.map((item) =>
       mapRawSeries(item, fallbackInterval),
     );
+    if (canCombine) {
+      rawSeries = rawSeries.filter((raw) => {
+        const aggregate = aggregateSeries.find(
+          (item) =>
+            item.client === raw.client &&
+            item.metricKey === raw.metricKey &&
+            JSON.stringify(item.tags ?? {}) === JSON.stringify(raw.tags ?? {}),
+        );
+        return aggregate != null && canCombine(aggregate, raw);
+      });
+    }
     return fillMetricBoundaryGaps(
       aggregateSeries,
       rawSeries,
@@ -1187,11 +1228,14 @@ export async function getTodayTrafficMetrics(
     },
     options?.signal,
     remainingRequestTimeout(deadline),
+    true,
   );
   let series: TrafficMetricSeries[] = metricPayload.series.map((item) => ({
     metricKey: item.metric_key,
     client: item.entity_id,
     intervalSeconds: item.interval_seconds,
+    semantics: item.semantics,
+    quality: item.quality,
     points: item.points,
   }));
   series = await repairMetricBoundary(
@@ -1206,11 +1250,16 @@ export async function getTodayTrafficMetrics(
       metricKey: item.metric_key,
       client: item.entity_id,
       intervalSeconds,
+      semantics: item.semantics,
+      quality: item.quality,
       points: rawMetricPoints(item),
     }),
     TODAY_TRAFFIC_AGGREGATION,
     options?.signal,
     remainingRequestTimeout(deadline),
+    (aggregate, raw) =>
+      (aggregate.metricKey !== TRAFFIC_UP_METRIC && aggregate.metricKey !== TRAFFIC_DOWN_METRIC) ||
+      (aggregate.semantics === "interval_delta_v2" && raw.semantics === "interval_delta_v2"),
   );
   const intervalSeconds = Math.max(0, ...series.map((item) => item.intervalSeconds ?? 0));
   return {

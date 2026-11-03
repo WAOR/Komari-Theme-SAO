@@ -124,6 +124,8 @@ function emptyMetrics(info: NodeInfo, online: boolean | null): NodeMetrics {
     netDown: 0,
     trafficUp: 0,
     trafficDown: 0,
+    cycleUp: null,
+    cycleDown: null,
     uptime: 0,
     load1: 0,
     load5: 0,
@@ -225,6 +227,8 @@ function shallowEqualMetrics(a: NodeMetrics, b: NodeMetrics) {
     a.netDown === b.netDown &&
     a.trafficUp === b.trafficUp &&
     a.trafficDown === b.trafficDown &&
+    a.cycleUp === b.cycleUp &&
+    a.cycleDown === b.cycleDown &&
     a.uptime === b.uptime &&
     a.load1 === b.load1 &&
     a.load5 === b.load5 &&
@@ -491,6 +495,28 @@ function asRecord(value: unknown): RealtimePayload {
     : {};
 }
 
+export function cycleTrafficFromLatest(raw: unknown): { up: number | null; down: number | null } {
+  const payload = asRecord(raw);
+  const quality = asRecord(payload.quality);
+  const value = (input: unknown) =>
+    typeof input === "number" && Number.isSafeInteger(input) && input >= 0 ? input : null;
+
+  if (quality.traffic_cycle === "ok") {
+    return { up: value(payload.traffic_up), down: value(payload.traffic_down) };
+  }
+  if (payload.traffic_cycle != null && typeof payload.traffic_cycle === "object") {
+    const cycleRecord = asRecord(payload.traffic_cycle);
+    return {
+      up: value(cycleRecord.up ?? cycleRecord.traffic_up),
+      down: value(cycleRecord.down ?? cycleRecord.traffic_down),
+    };
+  }
+  if (payload.cycle_up != null || payload.cycle_down != null) {
+    return { up: value(payload.cycle_up), down: value(payload.cycle_down) };
+  }
+  return { up: null, down: null };
+}
+
 function asBoolean(value: unknown, fallback: boolean): boolean {
   if (typeof value === "boolean") return value;
   if (typeof value === "number") return value !== 0;
@@ -636,6 +662,9 @@ function applyLatestStatus(records: Record<string, unknown>) {
     const merged = realtime
       ? mergeRealtime(prev, realtime, online)
       : { ...prev, online };
+    const cycle = cycleTrafficFromLatest(rawRecord);
+    merged.cycleUp = cycle.up;
+    merged.cycleDown = cycle.down;
 
     if (!shallowEqualMetrics(prev, merged)) {
       if (nextMetricsByUuid === state.metricsByUuid) {
@@ -732,6 +761,9 @@ function applyNodeSync(
         const online = resolveOnline(rawRecord);
         const realtime = normalizeRealtime(rawRecord, info, base);
         nextMetrics = realtime ? mergeRealtime(base, realtime, online) : { ...base, online };
+        const cycle = cycleTrafficFromLatest(rawRecord);
+        nextMetrics.cycleUp = cycle.up;
+        nextMetrics.cycleDown = cycle.down;
       } else {
         nextMetrics = base;
       }

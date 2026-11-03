@@ -235,12 +235,13 @@ export function useNodeCardModel(
 
     const { loadBaseline } = metaModel;
 
-    // 流量配额：按节点的 traffic_limit_type（与后端一致）把累计上/下行算成"已用"，
-    // 在这里一次性算出剩余和使用占比，让两种卡片布局共用这套计算。
+    // 流量配额：优先使用 Agent 上报的周期流量（若有），否则兜底使用开机累计流量。
+    const cycleUp = metrics.cycleUp ?? metrics.trafficUp;
+    const cycleDown = metrics.cycleDown ?? metrics.trafficDown;
     const trafficUsage = resolveTrafficUsage(
       meta.traffic_limit_type,
-      metrics.trafficUp,
-      metrics.trafficDown,
+      cycleUp,
+      cycleDown,
       meta.traffic_limit,
     );
     const trafficUsedLabel = formatBytes(trafficUsage.used);

@@ -13,6 +13,8 @@ export interface MetricBoundarySeries {
   client: string;
   tags?: Record<string, string>;
   intervalSeconds?: number;
+  semantics?: string;
+  quality?: string;
   points: MetricBoundaryPoint[];
 }
 

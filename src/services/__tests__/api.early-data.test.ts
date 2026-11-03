@@ -97,25 +97,28 @@ describe("Early Data prefetch consumption", () => {
 
   it("consumes early today_traffic metrics without network roundtrip", async () => {
     getEarlyWindow().__EARLY_DATA__ = {
-      today_traffic: Promise.resolve({
-        jsonrpc: "2.0",
-        id: 1,
-        result: {
-          start: "2026-11-01T00:00:00Z",
-          end: "2026-11-01T02:00:00Z",
-          count: 1,
-          default_points: 500,
-          series: [
-            {
-              metric_key: "traffic.up",
-              entity_id: "node-1",
-              type: "gauge",
-              unit: "bytes",
-              points: [{ time: "2026-11-01T01:00:00Z", value: 1048576, count: 1 }],
-            },
-          ],
-        },
-      }),
+      today_traffic: {
+        startMs: 1730419200000,
+        promise: Promise.resolve({
+          jsonrpc: "2.0",
+          id: 1,
+          result: {
+            start: "2026-11-01T00:00:00.000Z",
+            end: "2026-11-01T02:00:00.000Z",
+            count: 1,
+            default_points: 500,
+            series: [
+              {
+                metric_key: "traffic.up",
+                entity_id: "node-1",
+                type: "gauge",
+                unit: "bytes",
+                points: [{ time: "2026-11-01T01:00:00.000Z", value: 1048576, count: 1 }],
+              },
+            ],
+          },
+        }),
+      } as unknown as Promise<unknown>,
     };
 
     const { getTodayTrafficMetrics } = await import("@/services/api");
@@ -124,5 +127,45 @@ describe("Early Data prefetch consumption", () => {
     expect(result.series[0].client).toBe("node-1");
     expect(getEarlyWindow().__EARLY_DATA__?.today_traffic).toBeNull();
     expect(rpcCallMock).not.toHaveBeenCalled();
+  });
+
+  it("does not consume early today_traffic if startMs mismatches (e.g. day rollover)", async () => {
+    getEarlyWindow().__EARLY_DATA__ = {
+      today_traffic: {
+        startMs: 1730332800000, // yesterday
+        promise: Promise.resolve({
+          jsonrpc: "2.0",
+          id: 1,
+          result: {
+            start: "2026-10-31T00:00:00.000Z",
+            end: "2026-10-31T02:00:00.000Z",
+            series: [],
+          },
+        }),
+      } as unknown as Promise<unknown>,
+    };
+
+    rpcCallMock.mockResolvedValueOnce({
+      start: "2026-11-01T00:00:00.000Z",
+      end: "2026-11-01T02:00:00.000Z",
+      series: [
+        {
+          metric_key: "traffic.up",
+          entity_id: "node-fresh",
+          points: [],
+        },
+      ],
+    });
+
+    const { getTodayTrafficMetrics } = await import("@/services/api");
+    const result = await getTodayTrafficMetrics(["node-fresh"], 1730419200000, 1730426400000);
+    expect(result.series[0]?.client).toBe("node-fresh");
+    expect(rpcCallMock).toHaveBeenCalledWith(
+      "public:queryMetrics",
+      expect.objectContaining({
+        start: new Date(1730419200000).toISOString(),
+      }),
+      expect.anything(),
+    );
   });
 });

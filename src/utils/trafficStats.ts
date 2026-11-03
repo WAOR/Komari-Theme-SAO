@@ -23,6 +23,8 @@ export interface TrafficMetricSeries {
   metricKey: string;
   client: string;
   intervalSeconds?: number;
+  semantics?: string;
+  quality?: string;
   points: Array<{ time: string; value: number | null; count: number }>;
 }
 

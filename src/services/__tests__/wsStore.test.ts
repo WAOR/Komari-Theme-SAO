@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { resolveFlatConnectionsTcp, resolveTrafficTotal } from "@/services/wsStore";
+import {
+  cycleTrafficFromLatest,
+  resolveFlatConnectionsTcp,
+  resolveTrafficTotal,
+} from "@/services/wsStore";
 
 // 像 resolveTrafficTotals 每个 tick 那样,把一串原始累计读数喂给 resolver:把上一个显示值
 //(store 存在 node metrics 上)往后传。
@@ -55,5 +59,44 @@ describe("resolveFlatConnectionsTcp", () => {
 
   it("clamps to 0 when udp exceeds the combined count", () => {
     expect(resolveFlatConnectionsTcp({ connections: 3, connections_udp: 5 })).toBe(0);
+  });
+});
+
+describe("cycleTrafficFromLatest", () => {
+  it("extracts cycle traffic when quality.traffic_cycle is ok", () => {
+    expect(
+      cycleTrafficFromLatest({
+        quality: { traffic_cycle: "ok" },
+        traffic_up: 1048576,
+        traffic_down: 2097152,
+      }),
+    ).toEqual({ up: 1048576, down: 2097152 });
+  });
+
+  it("extracts cycle traffic from traffic_cycle object", () => {
+    expect(
+      cycleTrafficFromLatest({
+        traffic_cycle: { up: 5000, down: 6000 },
+      }),
+    ).toEqual({ up: 5000, down: 6000 });
+  });
+
+  it("returns null when no cycle traffic is reported (standard Komari probe)", () => {
+    expect(
+      cycleTrafficFromLatest({
+        net_total_up: 1048576,
+        net_total_down: 2097152,
+      }),
+    ).toEqual({ up: null, down: null });
+  });
+
+  it("returns null when quality.traffic_cycle is not ok", () => {
+    expect(
+      cycleTrafficFromLatest({
+        quality: { traffic_cycle: "unknown" },
+        traffic_up: 1048576,
+        traffic_down: 2097152,
+      }),
+    ).toEqual({ up: null, down: null });
   });
 });

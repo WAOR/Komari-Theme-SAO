@@ -20,7 +20,7 @@ import { usePublicConfig } from "@/hooks/usePublicConfig";
 import { useThemeSettings } from "@/hooks/useThemeSettings";
 import { useViewMode } from "@/hooks/useViewMode";
 import { usePriceVisibility } from "@/hooks/usePriceVisibility";
-import { calculateCostSummary, getExchangeRates } from "@/utils/cost";
+import { calculateCostSummary, getExchangeRates, readCachedExchangeRates } from "@/utils/cost";
 import { useHiddenNodeUuids } from "@/hooks/useVisibleNodes";
 import {
   getHomeGroupLabel,
@@ -1011,6 +1011,7 @@ export function NodeGrid() {
   const rateQuery = useQuery({
     queryKey: ["cost-rates", themeSettings.costRateApiUrl],
     queryFn: ({ signal }) => getExchangeRates(themeSettings.costRateApiUrl, { signal }),
+    initialData: () => readCachedExchangeRates(themeSettings.costRateApiUrl, true) ?? undefined,
     staleTime: 60 * 60 * 1000,
     // 「价格」排序也要汇率换算月化价,即便没显示资产卡也得拉一次;但空列表无需拉。
     enabled: (costNeeded || sortField === "price") && hasNodes,

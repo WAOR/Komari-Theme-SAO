@@ -35,6 +35,7 @@ import {
   ExternalLink,
   Github,
   HelpCircle,
+  MessageSquare,
   Star,
 } from "lucide-react";
 import { clsx } from "clsx";
@@ -82,8 +83,11 @@ import {
   normalizeCostIgnoredNodes,
   normalizeCostPremiums,
   normalizeCostRateApiUrl,
+  readCachedExchangeRates,
+  COST_RATE_PRESETS,
   type CostPremiumEntry,
 } from "@/utils/cost";
+import { writeCachedThemeSettings } from "@/hooks/useThemeSettings";
 import { normalizeNodeIdentityList } from "@/utils/nodeIdentity";
 import {
   dedupeGroupLabels,
@@ -1680,6 +1684,7 @@ export function ThemeManage() {
   const premiumRateQuery = useQuery({
     queryKey: ["cost-rates", sourceThemeSettings.costRateApiUrl],
     queryFn: ({ signal }) => getExchangeRates(sourceThemeSettings.costRateApiUrl, { signal }),
+    initialData: () => readCachedExchangeRates(sourceThemeSettings.costRateApiUrl, true) ?? undefined,
     staleTime: 60 * 60 * 1000,
     enabled: allMeta.length > 0,
     retry: 1,
@@ -1922,6 +1927,7 @@ function draftToThemeSettings(targetDraft: ThemeDraft): ThemeSettings {
         ...(config.theme_settings ?? {}),
         ...currentDraftThemeSettings,
       };
+      writeCachedThemeSettings(nextSettings);
       const savePromise = saveThemeSettings(config.theme, nextSettings);
       const minDelayPromise = new Promise((resolve) => setTimeout(resolve, 260));
       await Promise.all([savePromise, minDelayPromise]);
@@ -3724,8 +3730,34 @@ function draftToThemeSettings(targetDraft: ThemeDraft): ThemeSettings {
 
 
                   <div className="grid gap-4 md:grid-cols-2">
-                    <label className="surface-inset flex flex-col gap-2 px-4 py-3">
-                      <span className="setting-subhead-title">汇率接口</span>
+                    <div className="surface-inset flex flex-col gap-2 px-4 py-3">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <span className="setting-subhead-title">汇率接口</span>
+                        <span className="setting-hint">留空使用默认</span>
+                      </div>
+
+                      <div className="cost-rate-presets">
+                        {COST_RATE_PRESETS.map((preset) => {
+                          const isDefault = preset.id === "frankfurter";
+                          const active =
+                            (draft.costRateApiUrl.trim() === "" && isDefault) ||
+                            draft.costRateApiUrl.trim() === preset.url;
+                          return (
+                            <button
+                              key={preset.id}
+                              type="button"
+                              data-active={active ? "true" : "false"}
+                              aria-pressed={active}
+                              onClick={() => {
+                                patch("costRateApiUrl", isDefault ? "" : preset.url);
+                              }}
+                            >
+                              <span>{preset.name}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+
                       <input
                         value={draft.costRateApiUrl}
                         onChange={(event) => patch("costRateApiUrl", event.target.value)}
@@ -3733,12 +3765,12 @@ function draftToThemeSettings(targetDraft: ThemeDraft): ThemeSettings {
                         aria-invalid={draftCostRateApiUrlInvalid}
                         className="surface-inset w-full px-3 py-2 text-[13px] outline-none"
                       />
-                      <span className="setting-hint">
+                      <span className="setting-hint text-pretty">
                         {draftCostRateApiUrlInvalid
                           ? "请输入 http(s) 链接，保存后将回退默认接口"
-                          : "留空使用默认公共汇率接口。"}
+                          : "点击上方预设一键切换，亦可直接输入自定义链接。"}
                       </span>
-                    </label>
+                    </div>
 
                     <div className="surface-inset flex flex-col gap-2 px-4 py-3">
                       <span className="setting-subhead-title">排除机器</span>
@@ -3816,11 +3848,93 @@ function draftToThemeSettings(targetDraft: ThemeDraft): ThemeSettings {
 
           {activeTab === "feedback" && (
             <>
-              {/* 面板 1：三大项目反馈与帮助通道 */}
+              {/* 面板 1：常见问题速查 (FAQ) */}
               <InstancePanel
                 kicker="帮助"
-                title="项目帮助与代码仓库"
+                title="常见问题速查 (FAQ)"
                 aside={<HelpCircle size={16} />}
+              >
+                <div className="space-y-2.5">
+                  <details className="group rounded-2xl border border-(--hairline) bg-[color-mix(in_srgb,var(--bg-card)_55%,transparent)] p-4 transition-all shadow-xs open:ring-1 open:ring-(--accent-500)/30">
+                    <summary className="flex items-center justify-between cursor-pointer list-none font-medium text-xs text-(--text-primary)">
+                      <span>Q: 为什么勾选了悬浮入口没有任何变化？</span>
+                      <ChevronDown size={14} className="text-(--text-muted) transition-transform duration-200 group-open:rotate-180 shrink-0" />
+                    </summary>
+                    <div className="mt-2.5 pt-2.5 border-t border-(--hairline) text-xs text-(--text-secondary) leading-relaxed">
+                      「悬浮入口」与「资产入口」存在互斥展示逻辑，旨在避免界面上重复出现操作入口。只有在未勾选「资产入口」或者未开启首页「总览区域」时，页面右下角的悬浮入口才会显示。
+                    </div>
+                  </details>
+
+                  <details className="group rounded-2xl border border-(--hairline) bg-[color-mix(in_srgb,var(--bg-card)_55%,transparent)] p-4 transition-all shadow-xs open:ring-1 open:ring-(--accent-500)/30">
+                    <summary className="flex items-center justify-between cursor-pointer list-none font-medium text-xs text-(--text-primary)">
+                      <span>Q: 为什么资产总值卡片有时候会显示「计算中」？该怎么解决？</span>
+                      <ChevronDown size={14} className="text-(--text-muted) transition-transform duration-200 group-open:rotate-180 shrink-0" />
+                    </summary>
+                    <div className="mt-2.5 pt-2.5 border-t border-(--hairline) text-xs text-(--text-secondary) leading-relaxed space-y-2.5 text-pretty">
+                      <p className="text-(--text-primary) font-medium">
+                        资产总值需根据各节点的购置价格与周期，通过<strong>实时外币汇率</strong>统一折算为人民币呈现：
+                      </p>
+                      <div className="space-y-2 text-[11px]">
+                        <div className="rounded-xl p-3 bg-[color-mix(in_srgb,var(--bg-card)_70%,transparent)] border border-(--hairline) space-y-1">
+                          <div className="font-semibold text-(--text-primary)">
+                            1. 为什么会出现「计算中」？
+                          </div>
+                          <p className="text-(--text-secondary) leading-relaxed">
+                            主题默认采用公用开源的 <code>api.frankfurter.dev</code> 汇率服务。当该海外源站偶发宕机维护、遭遇网络丢包或 Cloudflare 522 连接超时时，浏览器必须等待接口返回或超时，期间卡片便会持续呈现「计算中」。
+                          </p>
+                        </div>
+
+                        <div className="rounded-xl p-3 bg-[color-mix(in_srgb,var(--bg-card)_70%,transparent)] border border-(--hairline) space-y-1">
+                          <div className="font-semibold text-(--text-primary)">
+                            2. 该如何彻底解决？
+                          </div>
+                          <div className="text-(--text-secondary) leading-relaxed space-y-1">
+                            <div>• <strong>一键切换预设（推荐）</strong>：在主题设置的「费用」板块中，点击预设按钮一键切换到 <strong>ExchangeRate-API 新版</strong>，该源自带全球 CDN 加速且享有预设热缓存，可实现首页 0 延迟秒开。</div>
+                            <div>• <strong>填入自建反代</strong>：在汇率接口输入框中填入您使用 Cloudflare Worker 搭建的私有汇率反代链接。</div>
+                            <div>• <strong>等待源站自愈</strong>：若偏好 Frankfurter，待该海外开源团队源站网络波动恢复后便会自动恢复正常。</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </details>
+
+                  <details className="group rounded-2xl border border-(--hairline) bg-[color-mix(in_srgb,var(--bg-card)_55%,transparent)] p-4 transition-all shadow-xs open:ring-1 open:ring-(--accent-500)/30">
+                    <summary className="flex items-center justify-between cursor-pointer list-none font-medium text-xs text-(--text-primary)">
+                      <span>Q: 集群展台的「经典双曲线」与「方格矩阵」如何切换？</span>
+                      <ChevronDown size={14} className="text-(--text-muted) transition-transform duration-200 group-open:rotate-180 shrink-0" />
+                    </summary>
+                    <div className="mt-2.5 pt-2.5 border-t border-(--hairline) text-xs text-(--text-secondary) leading-relaxed">
+                      在设置分类中切换至「首页」，找到「集群展台模式」选项，即可一键在「经典双曲线（优雅平滑曲线）」与「方格矩阵（机架热力像素感）」之间无缝切换，两种模式均已全面适配所选配色方案。
+                    </div>
+                  </details>
+
+                  <details className="group rounded-2xl border border-(--hairline) bg-[color-mix(in_srgb,var(--bg-card)_55%,transparent)] p-4 transition-all shadow-xs open:ring-1 open:ring-(--accent-500)/30">
+                    <summary className="flex items-center justify-between cursor-pointer list-none font-medium text-xs text-(--text-primary)">
+                      <span>Q: 提交 Bug 时如何能让问题更快得到定位与修复？</span>
+                      <ChevronDown size={14} className="text-(--text-muted) transition-transform duration-200 group-open:rotate-180 shrink-0" />
+                    </summary>
+                    <div className="mt-2.5 pt-2.5 border-t border-(--hairline) text-xs text-(--text-secondary) leading-relaxed">
+                      在 GitHub Issue 中写明：1. 遇到的现象与期望效果；2. 使用的浏览器与操作系统（如 PC Chrome、手机 Safari 等）；3. 若有界面错位，附带一张清晰截图；若有控制台红字报错，复制控制台日志可大幅加快排错效率。
+                    </div>
+                  </details>
+
+                  <details className="group rounded-2xl border border-(--hairline) bg-[color-mix(in_srgb,var(--bg-card)_55%,transparent)] p-4 transition-all shadow-xs open:ring-1 open:ring-(--accent-500)/30">
+                    <summary className="flex items-center justify-between cursor-pointer list-none font-medium text-xs text-(--text-primary)">
+                      <span>Q: 可以 Fork 本主题进行二次开发并提交到主题市场吗？</span>
+                      <ChevronDown size={14} className="text-(--text-muted) transition-transform duration-200 group-open:rotate-180 shrink-0" />
+                    </summary>
+                    <div className="mt-2.5 pt-2.5 border-t border-(--hairline) text-xs text-(--text-secondary) leading-relaxed">
+                      欢迎 Fork SAO 实现您的个人需求定制开发。如果您的定制分支与 SAO 的外观设计依旧有着极高相似度时，为避免产生主题混淆困扰，建议不要提交相似度极高的 SAO 衍生主题至探针程序主题市场，当然，这只是建议不构成约束。
+                    </div>
+                  </details>
+                </div>
+              </InstancePanel>
+
+              {/* 面板 2：三大项目反馈与代码仓库 */}
+              <InstancePanel
+                kicker="反馈"
+                title="项目反馈与代码仓库"
+                aside={<MessageSquare size={16} />}
               >
                 <div className="space-y-4">
                   <p className="text-xs text-(--text-muted) leading-relaxed">
@@ -3903,7 +4017,7 @@ function draftToThemeSettings(targetDraft: ThemeDraft): ThemeSettings {
                 </div>
               </InstancePanel>
 
-              {/* 面板 2：反馈范围与提单指引 */}
+              {/* 面板 3：反馈范围与提单指引 */}
               <InstancePanel
                 kicker="指引"
                 title="反馈范围与提单指引"
@@ -3935,55 +4049,6 @@ function draftToThemeSettings(targetDraft: ThemeDraft): ThemeSettings {
                       <li>原系统基础权限管理与后端数据库存储错误</li>
                     </ul>
                   </div>
-                </div>
-              </InstancePanel>
-
-              {/* 面板 3：常见问题排查 (FAQ) */}
-              <InstancePanel
-                kicker="帮助"
-                title="常见问题速查 (FAQ)"
-                aside={<HelpCircle size={16} />}
-              >
-                <div className="space-y-2.5">
-                  <details className="group rounded-2xl border border-(--hairline) bg-[color-mix(in_srgb,var(--bg-card)_55%,transparent)] p-4 transition-all shadow-xs open:ring-1 open:ring-(--accent-500)/30">
-                    <summary className="flex items-center justify-between cursor-pointer list-none font-medium text-xs text-(--text-primary)">
-                      <span>Q: 为什么勾选了悬浮入口没有任何变化？</span>
-                      <ChevronDown size={14} className="text-(--text-muted) transition-transform duration-200 group-open:rotate-180 shrink-0" />
-                    </summary>
-                    <div className="mt-2.5 pt-2.5 border-t border-(--hairline) text-xs text-(--text-secondary) leading-relaxed">
-                      「悬浮入口」与「资产入口」存在互斥展示逻辑，旨在避免界面上重复出现操作入口。只有在未勾选「资产入口」或者未开启首页「总览区域」时，页面右下角的悬浮入口才会显示。
-                    </div>
-                  </details>
-
-                  <details className="group rounded-2xl border border-(--hairline) bg-[color-mix(in_srgb,var(--bg-card)_55%,transparent)] p-4 transition-all shadow-xs open:ring-1 open:ring-(--accent-500)/30">
-                    <summary className="flex items-center justify-between cursor-pointer list-none font-medium text-xs text-(--text-primary)">
-                      <span>Q: 集群展台的「经典双曲线」与「方格矩阵」如何切换？</span>
-                      <ChevronDown size={14} className="text-(--text-muted) transition-transform duration-200 group-open:rotate-180 shrink-0" />
-                    </summary>
-                    <div className="mt-2.5 pt-2.5 border-t border-(--hairline) text-xs text-(--text-secondary) leading-relaxed">
-                      在设置分类中切换至「首页」，找到「集群展台模式」选项，即可一键在「经典双曲线（优雅平滑曲线）」与「方格矩阵（机架热力像素感）」之间无缝切换，两种模式均已全面适配所选配色方案。
-                    </div>
-                  </details>
-
-                  <details className="group rounded-2xl border border-(--hairline) bg-[color-mix(in_srgb,var(--bg-card)_55%,transparent)] p-4 transition-all shadow-xs open:ring-1 open:ring-(--accent-500)/30">
-                    <summary className="flex items-center justify-between cursor-pointer list-none font-medium text-xs text-(--text-primary)">
-                      <span>Q: 提交 Bug 时如何能让问题更快得到定位与修复？</span>
-                      <ChevronDown size={14} className="text-(--text-muted) transition-transform duration-200 group-open:rotate-180 shrink-0" />
-                    </summary>
-                    <div className="mt-2.5 pt-2.5 border-t border-(--hairline) text-xs text-(--text-secondary) leading-relaxed">
-                      在 GitHub Issue 中写明：1. 遇到的现象与期望效果；2. 使用的浏览器与操作系统（如 PC Chrome、手机 Safari 等）；3. 若有界面错位，附带一张清晰截图；若有控制台红字报错，复制控制台日志可大幅加快排错效率。
-                    </div>
-                  </details>
-
-                  <details className="group rounded-2xl border border-(--hairline) bg-[color-mix(in_srgb,var(--bg-card)_55%,transparent)] p-4 transition-all shadow-xs open:ring-1 open:ring-(--accent-500)/30">
-                    <summary className="flex items-center justify-between cursor-pointer list-none font-medium text-xs text-(--text-primary)">
-                      <span>Q: 可以 Fork 本主题进行二次开发并提交到主题市场吗？</span>
-                      <ChevronDown size={14} className="text-(--text-muted) transition-transform duration-200 group-open:rotate-180 shrink-0" />
-                    </summary>
-                    <div className="mt-2.5 pt-2.5 border-t border-(--hairline) text-xs text-(--text-secondary) leading-relaxed">
-                      欢迎 Fork SAO 实现您的个人需求定制开发。如果您的定制分支与 SAO 的外观设计依旧有着极高相似度时，为避免产生主题混淆困扰，建议不要提交相似度极高的 SAO 衍生主题至探针程序主题市场，当然，这只是建议不构成约束。
-                    </div>
-                  </details>
                 </div>
               </InstancePanel>
 

@@ -23,7 +23,7 @@ function readCachedThemeSettings(): RawThemeSettings {
   return undefined;
 }
 
-function writeCachedThemeSettings(raw: RawThemeSettings) {
+export function writeCachedThemeSettings(raw: RawThemeSettings) {
   try {
     if (typeof window !== "undefined" && window.localStorage && raw) {
       window.localStorage.setItem(THEME_SETTINGS_CACHE_KEY, JSON.stringify(raw));

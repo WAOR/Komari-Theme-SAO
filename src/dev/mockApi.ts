@@ -628,12 +628,30 @@ export function installDevMockApi() {
     const request = new Request(input, init);
     const url = new URL(request.url, window.location.origin);
 
-    if (url.hostname === "api.frankfurter.dev") {
-      return json([
-        { base: "USD", quote: "CNY", rate: 7.18 },
-        { base: "USD", quote: "EUR", rate: 0.86 },
-        { base: "USD", quote: "JPY", rate: 146.4 },
-      ]);
+    if (
+      url.hostname === "api.frankfurter.dev" ||
+      url.hostname === "open.er-api.com" ||
+      url.hostname === "api.exchangerate-api.com"
+    ) {
+      if (url.hostname === "api.frankfurter.dev") {
+        return json([
+          { base: "USD", quote: "CNY", rate: 7.18 },
+          { base: "USD", quote: "EUR", rate: 0.86 },
+          { base: "USD", quote: "JPY", rate: 146.4 },
+        ]);
+      }
+      return json({
+        result: "success",
+        rates: {
+          USD: 1,
+          CNY: 7.18,
+          EUR: 0.86,
+          JPY: 146.4,
+          CAD: 1.38,
+          HKD: 7.82,
+          GBP: 0.76,
+        },
+      });
     }
 
     if (url.origin !== window.location.origin || !url.pathname.startsWith("/api/")) {

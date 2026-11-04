@@ -143,7 +143,7 @@ export const OverviewStatCard: React.FC<OverviewStatCardProps> = ({
 
   const renderAssetValue = () => {
     if (!isPriceVisible) return "保密";
-    if (!costSummary) return costLoading ? "计算中" : "¥470";
+    if (!costSummary) return costLoading ? "计算中" : "—";
     const totalOriginal = costSummary.totalOriginalPriceCny ?? 0;
     if (totalOriginal > 0 || costSummary.remainingCny > 0) {
       return (

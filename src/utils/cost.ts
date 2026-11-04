@@ -6,6 +6,30 @@ import { buildNodeIdentitySet, nodeMatchesIdentitySet, normalizeNodeIdentityList
 
 const COST_TARGET_CURRENCY = "CNY";
 export const DEFAULT_COST_RATE_API_URL = "https://api.frankfurter.dev/v2/rates?base=USD";
+
+export interface CostRatePreset {
+  id: string;
+  name: string;
+  url: string;
+}
+
+export const COST_RATE_PRESETS: CostRatePreset[] = [
+  {
+    id: "frankfurter",
+    name: "Frankfurter (默认)",
+    url: "https://api.frankfurter.dev/v2/rates?base=USD",
+  },
+  {
+    id: "exchangerate-api-v6",
+    name: "ExchangeRate-API 新版",
+    url: "https://open.er-api.com/v6/latest/USD",
+  },
+  {
+    id: "exchangerate-api-v4",
+    name: "ExchangeRate-API 旧版",
+    url: "https://api.exchangerate-api.com/v4/latest/USD",
+  },
+];
 const RATE_CACHE_TTL_MS = 60 * 60 * 1000;
 // Legacy key retained so existing users keep their cached exchange rates after the rename.
 const RATE_CACHE_KEY_PREFIX = "komaritheme:cost-rates:";
@@ -337,6 +361,28 @@ function readRateCache(cacheKey: string, allowExpired = false): ExchangeRateData
   } catch {
     return null;
   }
+}
+
+/**
+ * 优先同步读取本地缓存的汇率，用于 React Query 的 initialData 注入。
+ * 当用户在预设接口之间切换时，直接借用其他预设的已存汇率作为即时兜底（由于 USD/CNY 基础汇率高度一致），
+ * 实现无缝 0 延迟秒开，避免任何末尾加载跳变。
+ */
+export function readCachedExchangeRates(rateApiUrl: string, allowExpired = true): ExchangeRateData | null {
+  const cacheKey = `${RATE_CACHE_KEY_PREFIX}${rateApiUrl}`;
+  const direct = readRateCache(cacheKey, allowExpired);
+  if (direct) return direct;
+
+  const isPreset = COST_RATE_PRESETS.some((preset) => preset.url === rateApiUrl);
+  if (isPreset) {
+    for (const preset of COST_RATE_PRESETS) {
+      if (preset.url === rateApiUrl) continue;
+      const fallback = readRateCache(`${RATE_CACHE_KEY_PREFIX}${preset.url}`, true);
+      if (fallback) return fallback;
+    }
+  }
+
+  return null;
 }
 
 function writeRateCache(cacheKey: string, data: ExchangeRateData) {

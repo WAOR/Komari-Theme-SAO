@@ -15,6 +15,7 @@ import {
   formatCnyMoney,
   formatSignedCny,
   getExchangeRates,
+  readCachedExchangeRates,
 } from "@/utils/cost";
 import { formatBillingCycle } from "@/utils/billing";
 import { getExpireDaysRemaining, LONG_TERM_EXPIRE_DAYS } from "@/utils/format";
@@ -137,6 +138,7 @@ export function Assets() {
       forceRateRefresh.current = false;
       return getExchangeRates(themeSettings.costRateApiUrl, { signal, ignoreCache });
     },
+    initialData: () => readCachedExchangeRates(themeSettings.costRateApiUrl, true) ?? undefined,
     staleTime: 60 * 60 * 1000,
     enabled: themeSettings.isReady && nodes.length > 0,
     retry: 1,

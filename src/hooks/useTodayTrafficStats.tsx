@@ -28,11 +28,15 @@ import {
   MetricApiUnavailableError,
   warnDegradedOnce,
 } from "@/services/api";
+import type { LoadRecord } from "@/types/komari";
 import {
   buildTodayTrafficMetricSamples,
   buildTodayTrafficRecordSamples,
+  buildClusterHourlyTrafficBuckets,
+  buildClusterHourlyRecordBuckets,
   summarizeTodayTrafficMetrics,
   summarizeTodayTrafficRecords,
+  type HourlyTrafficBucket,
   type TodayTrafficSample,
   type TodayTrafficStat,
 } from "@/utils/trafficStats";
@@ -45,6 +49,7 @@ type TodayTrafficQueryMode = "full" | "summary";
 export interface TodayTrafficStatsResponse {
   rows: TodayTrafficStat[];
   samplesByUuid: Record<string, TodayTrafficSample[]>;
+  hourlyBuckets?: HourlyTrafficBucket[];
   rangeStartMs: number;
   rangeEndMs: number;
   intervalSeconds?: number;
@@ -286,15 +291,17 @@ function localDayStartMs(now: number) {
 
 async function loadRecordFallback(
   uuids: string[],
-  startMs: number,
+  todayStartMs: number,
+  queryStartMs: number,
   endMs: number,
   signal: AbortSignal,
   mode: TodayTrafficQueryMode,
-): Promise<Pick<TodayTrafficStatsResponse, "rows" | "samplesByUuid">> {
+): Promise<Pick<TodayTrafficStatsResponse, "rows" | "samplesByUuid" | "hourlyBuckets">> {
   throwIfSignalAborted(signal);
   const rows: TodayTrafficStat[] = [];
   const samplesByUuid: Record<string, TodayTrafficSample[]> = {};
-  const rangeHours = getTodayTrafficRecordRangeHours(startMs, endMs);
+  const allRecords: LoadRecord[][] = [];
+  const rangeHours = getTodayTrafficRecordRangeHours(queryStartMs, endMs);
   let failureCount = 0;
   let firstFailure: unknown = null;
   for (let index = 0; index < uuids.length; index += FALLBACK_CONCURRENCY) {
@@ -308,10 +315,11 @@ async function loadRecordFallback(
           skipMetricQuery: true,
         });
         return {
-          row: summarizeTodayTrafficRecords(uuid, data.records, startMs, endMs),
+          records: data.records,
+          row: summarizeTodayTrafficRecords(uuid, data.records, todayStartMs, endMs),
           samples:
             mode === "full"
-              ? buildTodayTrafficRecordSamples(data.records, startMs, endMs)
+              ? buildTodayTrafficRecordSamples(data.records, todayStartMs, endMs)
               : undefined,
         };
       }),
@@ -325,11 +333,12 @@ async function loadRecordFallback(
       if (response.status === "rejected") {
         failureCount += 1;
         firstFailure ??= response.reason;
-        rows.push(summarizeTodayTrafficRecords(uuid, [], startMs, endMs));
+        rows.push(summarizeTodayTrafficRecords(uuid, [], todayStartMs, endMs));
         if (mode === "full") samplesByUuid[uuid] = [];
         continue;
       }
       rows.push(response.value.row);
+      allRecords.push(response.value.records);
       if (response.value.samples) samplesByUuid[uuid] = response.value.samples;
     }
   }
@@ -338,7 +347,11 @@ async function loadRecordFallback(
       ? firstFailure
       : new Error("today traffic fallback failed for all nodes");
   }
-  return { rows, samplesByUuid };
+  return {
+    rows,
+    samplesByUuid,
+    hourlyBuckets: buildClusterHourlyRecordBuckets(allRecords, queryStartMs, endMs),
+  };
 }
 
 function getTodayTrafficQueryOptions(
@@ -347,29 +360,34 @@ function getTodayTrafficQueryOptions(
   mode: TodayTrafficQueryMode,
 ) {
   const stableUuids = [...new Set(uuids)].sort();
-  const startMs = localDayStartMs(now);
+  const todayStartMs = localDayStartMs(now);
+  const SEVEN_HOURS_MS = 7 * 60 * 60 * 1000;
   const uuidSignature = stableUuids.join(",");
 
   return queryOptions({
-    queryKey: ["traffic-stats", "today", startMs, mode, uuidSignature],
+    queryKey: ["traffic-stats", "today", todayStartMs, mode, uuidSignature],
     queryFn: async ({ signal }): Promise<TodayTrafficStatsResponse> => {
       const endMs = Date.now();
+      // 核心：查询范围至少跨越过去 7 小时，保证凌晨（00:00~06:00）也能跨天无缝拉取昨天夜间的吞吐柱；
+      // 同时 summarizeTodayTrafficMetrics 依然严格锁定在 todayStartMs，大字今日流量分毫不差。
+      const queryStartMs = Math.min(todayStartMs, endMs - SEVEN_HOURS_MS);
       try {
-        const data = await getTodayTrafficMetrics(stableUuids, startMs, endMs, {
+        const data = await getTodayTrafficMetrics(stableUuids, queryStartMs, endMs, {
           signal,
           timeout: OPTIONAL_METRIC_TIMEOUT_MS,
         });
         return {
-          rows: summarizeTodayTrafficMetrics(data.series, stableUuids),
+          rows: summarizeTodayTrafficMetrics(data.series, stableUuids, todayStartMs),
           samplesByUuid:
             mode === "full"
               ? Object.fromEntries(
                   stableUuids.map((uuid) => [
                     uuid,
-                    buildTodayTrafficMetricSamples(data.series, uuid),
+                    buildTodayTrafficMetricSamples(data.series, uuid, todayStartMs),
                   ]),
                 )
               : {},
+          hourlyBuckets: buildClusterHourlyTrafficBuckets(data.series, endMs),
           rangeStartMs: data.rangeStartMs,
           rangeEndMs: data.rangeEndMs,
           intervalSeconds: data.intervalSeconds,
@@ -385,14 +403,15 @@ function getTodayTrafficQueryOptions(
         );
         const fallback = await loadRecordFallback(
           stableUuids,
-          startMs,
+          todayStartMs,
+          queryStartMs,
           endMs,
           signal,
           mode,
         );
         return {
           ...fallback,
-          rangeStartMs: startMs,
+          rangeStartMs: todayStartMs,
           rangeEndMs: endMs,
           source: "records",
         };

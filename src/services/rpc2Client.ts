@@ -400,6 +400,17 @@ class RPC2Client {
       this.pending.delete(id);
     }
   }
+
+  /**
+   * 当移动端（如 iOS Safari）切回前台时，主动探测当前 WebSocket 是否已被系统静默挂死，
+   * 如有异常立即清理僵尸连接并重新发起握手。
+   */
+  checkAndReconnectOnWake() {
+    if (this.closed) return;
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      this.autoConnect();
+    }
+  }
 }
 
 let rpc2Client: RPC2Client | null = null;

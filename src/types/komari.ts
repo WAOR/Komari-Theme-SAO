@@ -171,18 +171,31 @@ export type OverviewCardId =
   | "cpu"
   | "ram"
   | "disk"
+  | "uptime"
   | "traffic"
   | "asset"
   | "nodes"
   | "bandwidth"
   | "swap"
   | "process"
-  | "cores";
+  | "cores"
+  | "loss"
+  | "yesterdayBest";
+
+export type YesterdayBestScope = "tri" | "ct" | "cu" | "cm" | "all";
+export type YesterdayBestDisplayMode = "best" | "average";
+
+export type OverviewCardVisualMode = "adaptive" | "visual" | "text";
+export type OverviewMicroVisualMode = "dynamic" | "static";
+
+export type ServerCardTemplate = "classic" | "layered";
 
 export interface ThemeSettings {
+  [key: string]: unknown;
   defaultAppearance?: "system" | "light" | "dark";
   desktopNodeViewMode?: "large" | "compact" | "mini" | "list";
   mobileNodeViewMode?: "large" | "compact" | "mini" | "list";
+  serverCardTemplate?: ServerCardTemplate;
   enableAdminButton?: boolean;
   showPingChart?: boolean;
   homepagePingBindings?: Record<string, string[]>;
@@ -197,6 +210,12 @@ export interface ThemeSettings {
   showHomeOverview?: boolean;
   /** 首页顶部总览左侧小卡片列表（固定 6 个槽位，不多不少） */
   overviewCards?: OverviewCardId[];
+  /** 首页指标小卡视觉展现模式：智能切换(adaptive)、图形卡片(visual)、文字卡片(text) */
+  overviewCardVisualMode?: OverviewCardVisualMode;
+  /** 首页易闲置指标卡（平均CPU/今日流量/活跃连接）微图呈现模式（已废弃全局单选，兼容旧配置）：动态真实数据(dynamic)、静态美化微图(static) */
+  overviewMicroVisualMode?: OverviewMicroVisualMode;
+  /** 单卡片独立静态微图呈现列表：包含在此数组中的卡片强制呈现静态美化微图，未包含的默认保持动态 */
+  overviewStaticCards?: OverviewCardId[];
   showGroupTabs?: boolean;
   showRegionBar?: boolean;
   showCardGroup?: boolean;
@@ -224,12 +243,8 @@ export interface ThemeSettings {
   showCostSummaryFloatingButton?: boolean;
   showPriceForGuests?: boolean;
   showOverviewRatings?: boolean;
-  showTrafficRating?: boolean;
   showBandwidthRating?: boolean;
-  showAssetRating?: boolean;
-  trafficRatingLabels?: string;
   bandwidthRatingLabels?: string;
-  assetRatingLabels?: string;
   compactShowTrafficTotal?: boolean;
   compactShowBilling?: boolean;
   compactShowUptime?: boolean;
@@ -237,12 +252,17 @@ export interface ThemeSettings {
   showTodayTrafficPopover?: boolean;
   hiddenNodes?: string[];
   costIgnoredNodes?: string[];
+  carrierLossIncludedNodes?: string[];
+  yesterdayBestIncludedNodes?: string[];
+  yesterdayBestScope?: YesterdayBestScope;
+  yesterdayBestDisplayMode?: YesterdayBestDisplayMode;
   // 值支持旧版纯数字(自动升格)或 { amount, paidCny?, acquiredAt? } 条目,见 normalizeCostPremiums。
   costPremiums?: Record<
     string,
     number | { amount?: number; paidCny?: number; acquiredAt?: string }
   >;
   costRateApiUrl?: string;
+  costCurrency?: "CNY" | "USD" | "EUR";
 }
 
 export const PublicConfigSchema = z

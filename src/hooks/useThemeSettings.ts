@@ -7,40 +7,27 @@ type RawThemeSettings = Parameters<typeof normalizeThemeSettings>[0];
 let cachedRawThemeSettings: RawThemeSettings = undefined;
 let cachedResolvedThemeSettings: ResolvedThemeSettings | null = null;
 
-const THEME_SETTINGS_CACHE_KEY = "komari_theme_settings_cache";
-
-function readCachedThemeSettings(): RawThemeSettings {
+// 在模块加载时静默清除历史残留的本地主题设置脏缓存，彻底避免新老版本数据冲突
+if (typeof window !== "undefined" && window.localStorage) {
   try {
-    if (typeof window !== "undefined" && window.localStorage) {
-      const stored =
-        window.localStorage.getItem(THEME_SETTINGS_CACHE_KEY) ||
-        window.localStorage.getItem("komari_mock_theme_settings");
-      if (stored) {
-        return JSON.parse(stored) as RawThemeSettings;
-      }
-    }
+    window.localStorage.removeItem("komari_theme_settings_cache");
   } catch {}
+}
+
+export function readCachedThemeSettings(): RawThemeSettings {
   return undefined;
 }
 
-export function writeCachedThemeSettings(raw: RawThemeSettings) {
-  try {
-    if (typeof window !== "undefined" && window.localStorage && raw) {
-      window.localStorage.setItem(THEME_SETTINGS_CACHE_KEY, JSON.stringify(raw));
-    }
-  } catch {}
+export function writeCachedThemeSettings(_raw: RawThemeSettings) {
+  // 保持空实现，不再写入 localStorage，避免跨版本持久化脏数据
 }
 
 function getCachedResolvedThemeSettings(raw: RawThemeSettings): ResolvedThemeSettings {
-  const effectiveRaw = raw ?? readCachedThemeSettings();
-  if (raw) {
-    writeCachedThemeSettings(raw);
-  }
-  if (cachedResolvedThemeSettings && effectiveRaw === cachedRawThemeSettings) {
+  if (cachedResolvedThemeSettings && raw === cachedRawThemeSettings) {
     return cachedResolvedThemeSettings;
   }
-  cachedRawThemeSettings = effectiveRaw;
-  cachedResolvedThemeSettings = normalizeThemeSettings(effectiveRaw);
+  cachedRawThemeSettings = raw;
+  cachedResolvedThemeSettings = normalizeThemeSettings(raw);
   return cachedResolvedThemeSettings;
 }
 
@@ -61,6 +48,9 @@ export function useThemeSettings(): ThemeSettingsState {
   return useMemo(() => {
     const base = getCachedResolvedThemeSettings(config?.theme_settings);
     let overrideClusterMode: "classic" | "nodes" | undefined;
+    let overridePalette: "default" | "eva" | "divergence" | undefined;
+    let overrideVisualMode: "adaptive" | "visual" | "text" | undefined;
+    let overrideMicroVisual: "dynamic" | "static" | undefined;
     if (typeof window !== "undefined") {
       const searchParams = new URLSearchParams(window.location.search);
       const clusterParam = searchParams.get("cluster");
@@ -70,10 +60,28 @@ export function useThemeSettings(): ThemeSettingsState {
       } else if (clusterParam === "classic") {
         overrideClusterMode = "classic";
       }
+
+      const paletteParam = searchParams.get("palette");
+      if (paletteParam === "divergence" || paletteParam === "eva" || paletteParam === "default") {
+        overridePalette = paletteParam;
+      }
+
+      const visualModeParam = searchParams.get("visualMode");
+      if (visualModeParam === "adaptive" || visualModeParam === "visual" || visualModeParam === "text") {
+        overrideVisualMode = visualModeParam;
+      }
+
+      const microVisualParam = searchParams.get("microVisual");
+      if (microVisualParam === "dynamic" || microVisualParam === "static") {
+        overrideMicroVisual = microVisualParam;
+      }
     }
     return {
       ...base,
       ...(overrideClusterMode ? { clusterOverviewMode: overrideClusterMode } : {}),
+      ...(overridePalette ? { matrixColorTheme: overridePalette } : {}),
+      ...(overrideVisualMode ? { overviewCardVisualMode: overrideVisualMode } : {}),
+      ...(overrideMicroVisual ? { overviewMicroVisualMode: overrideMicroVisual } : {}),
       isReady,
       isLoading: isLoading && !hasConfig,
       isError,

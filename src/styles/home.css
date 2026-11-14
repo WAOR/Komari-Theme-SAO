@@ -311,11 +311,208 @@
   width: 100%;
 }
 
+/* iPad Pro / 平板宽屏 (1024px ~ 1366px) 优化：
+   在横屏平板下，避免因为右侧折线图高度被强行等比拉高成近正方形的“大胖块”，
+   保持紧凑精致的卡片纵横比 */
+@media (min-width: 1024px) and (max-width: 1366px) {
+  .mao-stat-grid {
+    grid-template-rows: repeat(2, minmax(88px, 110px));
+    align-content: end;
+  }
+
+  .mao-stat-card {
+    min-height: 88px;
+    padding: 11px 13px;
+  }
+
+  .mao-stat-body {
+    margin-top: 4px;
+    gap: 8px;
+  }
+
+  .mao-stat-value {
+    font-size: 15.5px;
+  }
+
+  .mao-stat-visual {
+    width: 38px;
+    height: 38px;
+  }
+}
+
 @media (max-width: 768px) {
   .mao-stat-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     grid-template-rows: auto !important;
     gap: 8px;
+  }
+
+  .mao-stat-card {
+    padding: 11px 12px;
+    min-height: 88px;
+  }
+
+  .mao-stat-body {
+    gap: 6px;
+    margin-top: 3px;
+  }
+
+  .mao-stat-value {
+    font-size: 16px;
+    white-space: nowrap;
+  }
+
+  .mao-stat-visual {
+    width: 38px;
+    height: 38px;
+  }
+
+  .mao-stat-card[data-metric="uptime"] .mao-stat-visual,
+  .mao-stat-card[data-metric="nodes"] .mao-stat-visual,
+  .mao-stat-card[data-metric="traffic"] .mao-stat-visual,
+  .mao-stat-card[data-metric="bandwidth"] .mao-stat-visual {
+    width: 48px;
+    height: 32px;
+  }
+
+  .mao-stat-card[data-metric="yesterdayBest"] .mao-stat-visual {
+    width: 48px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+  }
+
+  .mao-word-rank {
+    font-size: 19px;
+  }
+
+  .mao-word-rank[data-chars="1"] {
+    font-size: 28px;
+    letter-spacing: -0.02em;
+  }
+
+  .mao-word-rank[data-chars="2"] {
+    font-size: 23px;
+    letter-spacing: -0.03em;
+  }
+
+  .mao-word-rank[data-chars="3"] {
+    font-size: 18.5px;
+    letter-spacing: -0.04em;
+  }
+
+  .mao-stat-caption {
+    font-size: 10px;
+    letter-spacing: -0.2px;
+  }
+}
+
+/* ==========================================================================
+   指标小卡 3 种视觉模式规则 (智能切换 / 图形卡片 / 文字卡片)
+   ========================================================================== */
+
+/* 1. 默认及「智能切换」(adaptive): 桌面宽屏并存，移动端自动隐藏长小字保微图 */
+.mao-stat-grid:not([data-visual-mode="text"]) .mao-stat-visual {
+  display: flex;
+}
+
+@media (max-width: 768px) {
+  .mao-stat-grid:not([data-visual-mode="text"]) .mao-stat-footer {
+    display: none !important;
+  }
+
+  .mao-stat-grid:not([data-visual-mode="text"]) .mao-stat-body {
+    align-items: center !important;
+    margin-top: 6px !important;
+  }
+
+  .mao-stat-grid:not([data-visual-mode="text"]) .mao-stat-value {
+    font-size: 18px !important;
+  }
+}
+
+/* 2.「微图 HUD」(visual): 全端专注大数值与微视觉动效，隐藏辅助小字 */
+.mao-stat-grid[data-visual-mode="visual"] .mao-stat-footer {
+  display: none !important;
+}
+
+.mao-stat-grid[data-visual-mode="visual"] .mao-stat-body {
+  align-items: center !important;
+  margin-top: 6px !important;
+}
+
+.mao-stat-grid[data-visual-mode="visual"] .mao-stat-value {
+  font-size: 18px !important;
+}
+
+/* 3.「详实明细」(text): 全端隐藏右侧微图，展示完整辅助小字 */
+.mao-stat-grid[data-visual-mode="text"] .mao-stat-visual {
+  display: none !important;
+}
+
+.mao-stat-grid[data-visual-mode="text"] .mao-stat-footer {
+  display: flex !important;
+}
+
+@media (max-width: 640px) {
+  .mao-stat-grid[data-visual-mode="text"] .mao-stat-card[data-metric="loss"] .mao-stat-caption {
+    letter-spacing: -0.4px;
+    font-size: 9.5px;
+  }
+}
+
+/* 4. 设置页管理卡池吸脂瘦身：针对移动端窄屏释放间距，彻底消除文字与微图重叠穿透 */
+.theme-manage-stat-slot .mao-stat-card {
+  min-height: 70px;
+}
+
+@media (max-width: 640px) {
+  .theme-manage-stat-slot .mao-stat-card {
+    padding: 7px 8px !important;
+    min-height: 64px !important;
+  }
+
+  .theme-manage-stat-slot .mao-stat-body {
+    gap: 4px !important;
+    margin-top: 2px !important;
+  }
+
+  .theme-manage-stat-slot .mao-stat-value {
+    font-size: 15px !important;
+  }
+
+  .theme-manage-stat-slot .mao-stat-visual {
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  .theme-manage-stat-slot .mao-stat-card[data-metric="uptime"] .mao-stat-visual,
+  .theme-manage-stat-slot .mao-stat-card[data-metric="nodes"] .mao-stat-visual,
+  .theme-manage-stat-slot .mao-stat-card[data-metric="traffic"] .mao-stat-visual,
+  .theme-manage-stat-slot .mao-stat-card[data-metric="bandwidth"] .mao-stat-visual {
+    width: 44px !important;
+    height: 30px !important;
+  }
+
+  .theme-manage-stat-slot .mao-stat-card[data-metric="yesterdayBest"] .mao-stat-visual {
+    width: 44px !important;
+    height: 30px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+  }
+
+  .theme-manage-stat-slot .mao-gauge-center-num {
+    font-size: 8px !important;
+  }
+
+  .theme-manage-stat-slot .mao-gauge-center-unit {
+    font-size: 5.5px !important;
+  }
+
+  .theme-manage-stat-slot .mao-asset-symbol {
+    font-size: 11px !important;
   }
 }
 
@@ -335,24 +532,29 @@
   flex-direction: column;
   justify-content: space-between;
   border-radius: 14px;
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  background: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  background: rgba(255, 255, 255, 0.48);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
   padding: 13px 15px;
   min-height: 96px;
   height: 100%;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.02);
+  box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.04);
   transition: all 180ms ease;
 }
 
 :root[data-appearance="dark"] .mao-stat-card {
   background: #1c1c1f;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   border-color: rgba(255, 255, 255, 0.08);
   box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.25);
 }
 
 .mao-stat-card:hover {
-  border-color: rgba(0, 0, 0, 0.12);
-  box-shadow: 0 4px 14px -3px rgba(0, 0, 0, 0.06);
+  background: rgba(255, 255, 255, 0.68);
+  border-color: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 6px 16px -3px rgba(0, 0, 0, 0.06);
   transform: translateY(-1px);
 }
 
@@ -380,6 +582,7 @@
   align-items: center;
   gap: 6px;
 }
+
 :root[data-appearance="dark"] .mao-stat-title-wrap {
   gap: 7px;
 }
@@ -399,59 +602,481 @@
   color: currentColor;
 }
 
-/* 7 种指标类型的色值绑定（标准化体系） */
-.mao-stat-icon-connections {
+/* 7 种指标类型的色值绑定（标准化体系，同时赋能卡片内微图表） */
+.mao-stat-icon-connections,
+.mao-stat-card[data-metric="connections"] {
   --current-metric-color: var(--metric-connections-color);
 }
-.mao-stat-icon-cpu {
+
+.mao-stat-icon-cpu,
+.mao-stat-card[data-metric="cpu"] {
   --current-metric-color: var(--metric-cpu-color);
 }
-.mao-stat-icon-ram {
+
+.mao-stat-icon-ram,
+.mao-stat-card[data-metric="ram"] {
   --current-metric-color: var(--metric-ram-color);
 }
-.mao-stat-icon-disk {
+
+.mao-stat-icon-disk,
+.mao-stat-card[data-metric="disk"] {
   --current-metric-color: var(--metric-disk-color);
 }
-.mao-stat-icon-traffic {
+
+.mao-stat-icon-traffic,
+.mao-stat-card[data-metric="traffic"] {
   --current-metric-color: var(--metric-traffic-color);
 }
-.mao-stat-icon-uptime {
+
+.mao-stat-icon-uptime,
+.mao-stat-card[data-metric="uptime"] {
   --current-metric-color: var(--metric-uptime-color);
 }
-.mao-stat-icon-asset {
+
+.mao-stat-icon-asset,
+.mao-stat-card[data-metric="asset"] {
   --current-metric-color: var(--metric-asset-color);
 }
-.mao-stat-icon-nodes {
+
+.mao-stat-icon-nodes,
+.mao-stat-card[data-metric="nodes"] {
   --current-metric-color: var(--metric-nodes-color, #10b981);
 }
-.mao-stat-icon-bandwidth {
+
+.mao-stat-icon-bandwidth,
+.mao-stat-card[data-metric="bandwidth"] {
   --current-metric-color: var(--metric-bandwidth-color, #06b6d4);
 }
-.mao-stat-icon-swap {
+
+.mao-stat-icon-swap,
+.mao-stat-card[data-metric="swap"] {
   --current-metric-color: var(--metric-swap-color, #a855f7);
 }
-.mao-stat-icon-load {
+
+.mao-stat-icon-load,
+.mao-stat-card[data-metric="load"] {
   --current-metric-color: var(--metric-load-color, #f97316);
 }
-.mao-stat-icon-process {
-  --current-metric-color: var(--metric-process-color, #6366f1);
+
+.mao-stat-icon-process,
+.mao-stat-card[data-metric="process"] {
+  --current-metric-color: var(--metric-process-color, #0ea5e9);
 }
-.mao-stat-icon-cores {
+
+.mao-stat-icon-cores,
+.mao-stat-card[data-metric="cores"] {
   --current-metric-color: var(--metric-cores-color, #f59e0b);
 }
-.mao-stat-icon-ping {
+
+.mao-stat-icon-ping,
+.mao-stat-card[data-metric="ping"] {
   --current-metric-color: var(--metric-ping-color, #38bdf8);
 }
 
-/* 浅色模式：保持无微底框状态 (纯矢量图标，颜色与深色模式保持 100% 同步对应) */
+.mao-stat-icon-loss,
+.mao-stat-card[data-metric="loss"] {
+  --current-metric-color: var(--metric-loss-color, var(--loss-color-good, #8b5cf6));
+}
+
+.mao-stat-card[data-metric="yesterdayBest"] {
+  --current-metric-color: #0271e3;
+}
+
+/* 6 档纯字母评级颜色绑定 (经典标准深色环境) - 汲取蓝色系渐变灵感
+   PURE: 巅峰顶级深邃电光宝蓝 (#0271e3)
+   GOOD: 明亮高饱和湛蓝 (#1993ec)
+   FINE: 清爽极光天青蓝 (#38bdf8)
+   FAIR: 沉稳低调冷钢灰 (#94a3b8) - 保持与 EVA 一致
+   WARN: 警戒纯正明黄 (#eab308) - 保持与 EVA 一致
+   CRIT: 严重故障赤红 (#ef4444) - 保持与 EVA 一致
+*/
+.mao-stat-card[data-metric="yesterdayBest"][data-score-tier="pure"] {
+  --current-metric-color: #0271e3;
+}
+
+.mao-stat-card[data-metric="yesterdayBest"][data-score-tier="good"] {
+  --current-metric-color: #1993ec;
+}
+
+.mao-stat-card[data-metric="yesterdayBest"][data-score-tier="fine"] {
+  --current-metric-color: var(--accent-500, #38bdf8);
+}
+
+.mao-stat-card[data-metric="yesterdayBest"][data-score-tier="fair"] {
+  --current-metric-color: var(--text-tertiary, #94a3b8);
+}
+
+.mao-stat-card[data-metric="yesterdayBest"][data-score-tier="warn"] {
+  --current-metric-color: #eab308;
+}
+
+.mao-stat-card[data-metric="yesterdayBest"][data-score-tier="crit"] {
+  --current-metric-color: var(--status-error, #ef4444);
+}
+
+/* 兼容历史可能命中的选择器 */
+.mao-stat-card[data-metric="yesterdayBest"][data-score-tier="excellent"] {
+  --current-metric-color: #0271e3;
+}
+
+.mao-stat-card[data-metric="yesterdayBest"][data-score-tier="warning"] {
+  --current-metric-color: #eab308;
+}
+
+.mao-stat-card[data-metric="yesterdayBest"][data-score-tier="error"] {
+  --current-metric-color: var(--status-error, #ef4444);
+}
+
+:root:not([data-appearance="dark"]) .mao-stat-card[data-metric="yesterdayBest"] {
+  --current-metric-color: #0271e3;
+}
+
+/* 6 档纯字母评级颜色绑定 (经典标准浅色环境) - 汲取蓝色系渐变灵感
+   PURE: 巅峰顶级深邃电光宝蓝 (#0271e3)
+   GOOD: 明亮高饱和湛蓝 (#0284c7)
+   FINE: 清爽天青蓝 (#0ea5e9)
+   FAIR: 沉稳低调冷钢灰 (#64748b) - 保持与 EVA 一致
+   WARN: 警戒纯正明黄 (#ca8a04) - 保持与 EVA 一致
+   CRIT: 严重故障赤红 (#dc2626) - 保持与 EVA 一致
+*/
+:root:not([data-appearance="dark"]) .mao-stat-card[data-metric="yesterdayBest"][data-score-tier="pure"] {
+  --current-metric-color: #0271e3;
+}
+
+:root:not([data-appearance="dark"]) .mao-stat-card[data-metric="yesterdayBest"][data-score-tier="good"] {
+  --current-metric-color: #0284c7;
+}
+
+:root:not([data-appearance="dark"]) .mao-stat-card[data-metric="yesterdayBest"][data-score-tier="fine"] {
+  --current-metric-color: #0ea5e9;
+}
+
+:root:not([data-appearance="dark"]) .mao-stat-card[data-metric="yesterdayBest"][data-score-tier="fair"] {
+  --current-metric-color: #64748b;
+}
+
+:root:not([data-appearance="dark"]) .mao-stat-card[data-metric="yesterdayBest"][data-score-tier="warn"] {
+  --current-metric-color: #ca8a04;
+}
+
+:root:not([data-appearance="dark"]) .mao-stat-card[data-metric="yesterdayBest"][data-score-tier="crit"] {
+  --current-metric-color: var(--status-error, #dc2626);
+}
+
+:root:not([data-appearance="dark"]) .mao-stat-card[data-metric="yesterdayBest"][data-score-tier="excellent"] {
+  --current-metric-color: #0271e3;
+}
+
+:root:not([data-appearance="dark"]) .mao-stat-card[data-metric="yesterdayBest"][data-score-tier="warning"] {
+  --current-metric-color: #ca8a04;
+}
+
+:root:not([data-appearance="dark"]) .mao-stat-card[data-metric="yesterdayBest"][data-score-tier="error"] {
+  --current-metric-color: var(--status-error, #dc2626);
+}
+
+/* EVA 初号机配色专属稳定评分色阶：使用暖橙体系 (#ff7700 / #fb923c)
+   PURE: 巅峰深暖橙 (#ff7700)
+   GOOD: 明亮珊瑚橙 (#fb923c)
+   FINE: 明亮珊瑚橙 (#fb923c)
+   FAIR: 沉稳低调冷钢灰 (#94a3b8) / 浅色 (#64748b)
+   WARN: 警戒纯正明黄 (#eab308) / 浅色 (#ca8a04)
+   CRIT: 严重故障赤红 (#ef4444) / 浅色 (#dc2626)
+*/
+[data-palette="eva"] .mao-stat-card[data-metric="yesterdayBest"] {
+  --current-metric-color: #ff7700;
+}
+
+[data-palette="eva"] .mao-stat-card[data-metric="yesterdayBest"][data-score-tier="pure"] {
+  --current-metric-color: #ff7700;
+}
+
+[data-palette="eva"] .mao-stat-card[data-metric="yesterdayBest"][data-score-tier="good"] {
+  --current-metric-color: #fb923c;
+}
+
+[data-palette="eva"] .mao-stat-card[data-metric="yesterdayBest"][data-score-tier="fine"] {
+  --current-metric-color: #fb923c;
+}
+
+[data-palette="eva"] .mao-stat-card[data-metric="yesterdayBest"][data-score-tier="fair"] {
+  --current-metric-color: var(--text-tertiary, #94a3b8);
+}
+
+[data-palette="eva"] .mao-stat-card[data-metric="yesterdayBest"][data-score-tier="warn"] {
+  --current-metric-color: #eab308;
+}
+
+[data-palette="eva"] .mao-stat-card[data-metric="yesterdayBest"][data-score-tier="crit"] {
+  --current-metric-color: var(--status-error, #ef4444);
+}
+
+:root:not([data-appearance="dark"]) [data-palette="eva"] .mao-stat-card[data-metric="yesterdayBest"] {
+  --current-metric-color: #ff7700;
+}
+
+:root:not([data-appearance="dark"]) [data-palette="eva"] .mao-stat-card[data-metric="yesterdayBest"][data-score-tier="pure"] {
+  --current-metric-color: #ff7700;
+}
+
+:root:not([data-appearance="dark"]) [data-palette="eva"] .mao-stat-card[data-metric="yesterdayBest"][data-score-tier="good"] {
+  --current-metric-color: #fb923c;
+}
+
+:root:not([data-appearance="dark"]) [data-palette="eva"] .mao-stat-card[data-metric="yesterdayBest"][data-score-tier="fine"] {
+  --current-metric-color: #fb923c;
+}
+
+:root:not([data-appearance="dark"]) [data-palette="eva"] .mao-stat-card[data-metric="yesterdayBest"][data-score-tier="fair"] {
+  --current-metric-color: #64748b;
+}
+
+:root:not([data-appearance="dark"]) [data-palette="eva"] .mao-stat-card[data-metric="yesterdayBest"][data-score-tier="warn"] {
+  --current-metric-color: #ca8a04;
+}
+
+:root:not([data-appearance="dark"]) [data-palette="eva"] .mao-stat-card[data-metric="yesterdayBest"][data-score-tier="crit"] {
+  --current-metric-color: var(--status-error, #dc2626);
+}
+
+/* 天梯榜榜单行数据在各配色下的解耦映射 */
+.yesterday-leaderboard-modal .yesterday-leaderboard-score-val[data-tier="unqualified"],
+.yesterday-leaderboard-modal .yesterday-leaderboard-score-unit[data-tier="unqualified"] {
+  color: var(--text-muted, #71717a) !important;
+}
+
+/* 经典标准配色：蓝色系渐变灵感体系
+   PURE: 巅峰顶级深邃电光宝蓝 (#0271e3)
+   GOOD: 明亮高饱和湛蓝 (#1993ec) / 浅色 (#0284c7)
+   FINE: 清爽极光天青蓝 (#38bdf8) / 浅色 (#0ea5e9)
+   FAIR: 沉稳低调冷钢灰 (#94a3b8) / 浅色 (#64748b)
+   WARN: 警戒纯正明黄 (#eab308) / 浅色 (#ca8a04)
+   CRIT: 严重故障赤红 (#ef4444) / 浅色 (#dc2626)
+*/
+.yesterday-leaderboard-modal[data-palette="default"] .yesterday-leaderboard-score-val[data-tier="pure"],
+.yesterday-leaderboard-modal[data-palette="default"] .yesterday-leaderboard-score-unit[data-tier="pure"],
+.yesterday-leaderboard-modal:not([data-palette]) .yesterday-leaderboard-score-val[data-tier="pure"],
+.yesterday-leaderboard-modal:not([data-palette]) .yesterday-leaderboard-score-unit[data-tier="pure"] {
+  color: #0271e3 !important;
+}
+
+:root:not([data-appearance="dark"]) .yesterday-leaderboard-modal[data-palette="default"] .yesterday-leaderboard-score-val[data-tier="pure"],
+:root:not([data-appearance="dark"]) .yesterday-leaderboard-modal[data-palette="default"] .yesterday-leaderboard-score-unit[data-tier="pure"],
+:root:not([data-appearance="dark"]) .yesterday-leaderboard-modal:not([data-palette]) .yesterday-leaderboard-score-val[data-tier="pure"],
+:root:not([data-appearance="dark"]) .yesterday-leaderboard-modal:not([data-palette]) .yesterday-leaderboard-score-unit[data-tier="pure"] {
+  color: #0271e3 !important;
+}
+
+.yesterday-leaderboard-modal[data-palette="default"] .yesterday-leaderboard-score-val[data-tier="good"],
+.yesterday-leaderboard-modal[data-palette="default"] .yesterday-leaderboard-score-unit[data-tier="good"],
+.yesterday-leaderboard-modal:not([data-palette]) .yesterday-leaderboard-score-val[data-tier="good"],
+.yesterday-leaderboard-modal:not([data-palette]) .yesterday-leaderboard-score-unit[data-tier="good"] {
+  color: #1993ec !important;
+}
+
+:root:not([data-appearance="dark"]) .yesterday-leaderboard-modal[data-palette="default"] .yesterday-leaderboard-score-val[data-tier="good"],
+:root:not([data-appearance="dark"]) .yesterday-leaderboard-modal[data-palette="default"] .yesterday-leaderboard-score-unit[data-tier="good"],
+:root:not([data-appearance="dark"]) .yesterday-leaderboard-modal:not([data-palette]) .yesterday-leaderboard-score-val[data-tier="good"],
+:root:not([data-appearance="dark"]) .yesterday-leaderboard-modal:not([data-palette]) .yesterday-leaderboard-score-unit[data-tier="good"] {
+  color: #0284c7 !important;
+}
+
+.yesterday-leaderboard-modal[data-palette="default"] .yesterday-leaderboard-score-val[data-tier="fine"],
+.yesterday-leaderboard-modal[data-palette="default"] .yesterday-leaderboard-score-unit[data-tier="fine"],
+.yesterday-leaderboard-modal:not([data-palette]) .yesterday-leaderboard-score-val[data-tier="fine"],
+.yesterday-leaderboard-modal:not([data-palette]) .yesterday-leaderboard-score-unit[data-tier="fine"] {
+  color: var(--accent-500, #38bdf8) !important;
+}
+
+:root:not([data-appearance="dark"]) .yesterday-leaderboard-modal[data-palette="default"] .yesterday-leaderboard-score-val[data-tier="fine"],
+:root:not([data-appearance="dark"]) .yesterday-leaderboard-modal[data-palette="default"] .yesterday-leaderboard-score-unit[data-tier="fine"],
+:root:not([data-appearance="dark"]) .yesterday-leaderboard-modal:not([data-palette]) .yesterday-leaderboard-score-val[data-tier="fine"],
+:root:not([data-appearance="dark"]) .yesterday-leaderboard-modal:not([data-palette]) .yesterday-leaderboard-score-unit[data-tier="fine"] {
+  color: #0ea5e9 !important;
+}
+
+.yesterday-leaderboard-modal[data-palette="default"] .yesterday-leaderboard-score-val[data-tier="fair"],
+.yesterday-leaderboard-modal[data-palette="default"] .yesterday-leaderboard-score-unit[data-tier="fair"],
+.yesterday-leaderboard-modal:not([data-palette]) .yesterday-leaderboard-score-val[data-tier="fair"],
+.yesterday-leaderboard-modal:not([data-palette]) .yesterday-leaderboard-score-unit[data-tier="fair"] {
+  color: var(--text-tertiary, #94a3b8) !important;
+}
+
+:root:not([data-appearance="dark"]) .yesterday-leaderboard-modal[data-palette="default"] .yesterday-leaderboard-score-val[data-tier="fair"],
+:root:not([data-appearance="dark"]) .yesterday-leaderboard-modal[data-palette="default"] .yesterday-leaderboard-score-unit[data-tier="fair"],
+:root:not([data-appearance="dark"]) .yesterday-leaderboard-modal:not([data-palette]) .yesterday-leaderboard-score-val[data-tier="fair"],
+:root:not([data-appearance="dark"]) .yesterday-leaderboard-modal:not([data-palette]) .yesterday-leaderboard-score-unit[data-tier="fair"] {
+  color: #64748b !important;
+}
+
+.yesterday-leaderboard-modal[data-palette="default"] .yesterday-leaderboard-score-val[data-tier="warn"],
+.yesterday-leaderboard-modal[data-palette="default"] .yesterday-leaderboard-score-unit[data-tier="warn"],
+.yesterday-leaderboard-modal:not([data-palette]) .yesterday-leaderboard-score-val[data-tier="warn"],
+.yesterday-leaderboard-modal:not([data-palette]) .yesterday-leaderboard-score-unit[data-tier="warn"] {
+  color: #eab308 !important;
+}
+
+:root:not([data-appearance="dark"]) .yesterday-leaderboard-modal[data-palette="default"] .yesterday-leaderboard-score-val[data-tier="warn"],
+:root:not([data-appearance="dark"]) .yesterday-leaderboard-modal[data-palette="default"] .yesterday-leaderboard-score-unit[data-tier="warn"],
+:root:not([data-appearance="dark"]) .yesterday-leaderboard-modal:not([data-palette]) .yesterday-leaderboard-score-val[data-tier="warn"],
+:root:not([data-appearance="dark"]) .yesterday-leaderboard-modal:not([data-palette]) .yesterday-leaderboard-score-unit[data-tier="warn"] {
+  color: #ca8a04 !important;
+}
+
+.yesterday-leaderboard-modal[data-palette="default"] .yesterday-leaderboard-score-val[data-tier="crit"],
+.yesterday-leaderboard-modal[data-palette="default"] .yesterday-leaderboard-score-unit[data-tier="crit"],
+.yesterday-leaderboard-modal:not([data-palette]) .yesterday-leaderboard-score-val[data-tier="crit"],
+.yesterday-leaderboard-modal:not([data-palette]) .yesterday-leaderboard-score-unit[data-tier="crit"] {
+  color: var(--status-error, #ef4444) !important;
+}
+
+:root:not([data-appearance="dark"]) .yesterday-leaderboard-modal[data-palette="default"] .yesterday-leaderboard-score-val[data-tier="crit"],
+:root:not([data-appearance="dark"]) .yesterday-leaderboard-modal[data-palette="default"] .yesterday-leaderboard-score-unit[data-tier="crit"],
+:root:not([data-appearance="dark"]) .yesterday-leaderboard-modal:not([data-palette]) .yesterday-leaderboard-score-val[data-tier="crit"],
+:root:not([data-appearance="dark"]) .yesterday-leaderboard-modal:not([data-palette]) .yesterday-leaderboard-score-unit[data-tier="crit"] {
+  color: var(--status-error, #dc2626) !important;
+}
+
+/* 天梯榜榜单行数据在 EVA 配色下的解耦映射 (使用经典暖橙体系)
+   PURE: 巅峰深暖橙 (#ff7700)
+   GOOD: 明亮珊瑚橙 (#fb923c)
+   FINE: 明亮珊瑚橙 (#fb923c)
+   FAIR: 沉稳低调冷钢灰 (#94a3b8) / 浅色 (#64748b)
+   WARN: 警戒纯正明黄 (#eab308) / 浅色 (#ca8a04)
+   CRIT: 严重故障赤红 (#ef4444) / 浅色 (#dc2626)
+*/
+.yesterday-leaderboard-modal[data-palette="eva"] .yesterday-leaderboard-score-val[data-tier="pure"],
+.yesterday-leaderboard-modal[data-palette="eva"] .yesterday-leaderboard-score-unit[data-tier="pure"] {
+  color: #ff7700 !important;
+}
+
+:root:not([data-appearance="dark"]) .yesterday-leaderboard-modal[data-palette="eva"] .yesterday-leaderboard-score-val[data-tier="pure"],
+:root:not([data-appearance="dark"]) .yesterday-leaderboard-modal[data-palette="eva"] .yesterday-leaderboard-score-unit[data-tier="pure"] {
+  color: #ff7700 !important;
+}
+
+.yesterday-leaderboard-modal[data-palette="eva"] .yesterday-leaderboard-score-val[data-tier="good"],
+.yesterday-leaderboard-modal[data-palette="eva"] .yesterday-leaderboard-score-unit[data-tier="good"] {
+  color: #fb923c !important;
+}
+
+:root:not([data-appearance="dark"]) .yesterday-leaderboard-modal[data-palette="eva"] .yesterday-leaderboard-score-val[data-tier="good"],
+:root:not([data-appearance="dark"]) .yesterday-leaderboard-modal[data-palette="eva"] .yesterday-leaderboard-score-unit[data-tier="good"] {
+  color: #fb923c !important;
+}
+
+.yesterday-leaderboard-modal[data-palette="eva"] .yesterday-leaderboard-score-val[data-tier="fine"],
+.yesterday-leaderboard-modal[data-palette="eva"] .yesterday-leaderboard-score-unit[data-tier="fine"] {
+  color: #fb923c !important;
+}
+
+:root:not([data-appearance="dark"]) .yesterday-leaderboard-modal[data-palette="eva"] .yesterday-leaderboard-score-val[data-tier="fine"],
+:root:not([data-appearance="dark"]) .yesterday-leaderboard-modal[data-palette="eva"] .yesterday-leaderboard-score-unit[data-tier="fine"] {
+  color: #fb923c !important;
+}
+
+.yesterday-leaderboard-modal[data-palette="eva"] .yesterday-leaderboard-score-val[data-tier="fair"],
+.yesterday-leaderboard-modal[data-palette="eva"] .yesterday-leaderboard-score-unit[data-tier="fair"] {
+  color: var(--text-tertiary, #94a3b8) !important;
+}
+
+:root:not([data-appearance="dark"]) .yesterday-leaderboard-modal[data-palette="eva"] .yesterday-leaderboard-score-val[data-tier="fair"],
+:root:not([data-appearance="dark"]) .yesterday-leaderboard-modal[data-palette="eva"] .yesterday-leaderboard-score-unit[data-tier="fair"] {
+  color: #64748b !important;
+}
+
+.yesterday-leaderboard-modal[data-palette="eva"] .yesterday-leaderboard-score-val[data-tier="warn"],
+.yesterday-leaderboard-modal[data-palette="eva"] .yesterday-leaderboard-score-unit[data-tier="warn"] {
+  color: #eab308 !important;
+}
+
+:root:not([data-appearance="dark"]) .yesterday-leaderboard-modal[data-palette="eva"] .yesterday-leaderboard-score-val[data-tier="warn"],
+:root:not([data-appearance="dark"]) .yesterday-leaderboard-modal[data-palette="eva"] .yesterday-leaderboard-score-unit[data-tier="warn"] {
+  color: #ca8a04 !important;
+}
+
+.yesterday-leaderboard-modal[data-palette="eva"] .yesterday-leaderboard-score-val[data-tier="crit"],
+.yesterday-leaderboard-modal[data-palette="eva"] .yesterday-leaderboard-score-unit[data-tier="crit"] {
+  color: var(--status-error, #ef4444) !important;
+}
+
+:root:not([data-appearance="dark"]) .yesterday-leaderboard-modal[data-palette="eva"] .yesterday-leaderboard-score-val[data-tier="crit"],
+:root:not([data-appearance="dark"]) .yesterday-leaderboard-modal[data-palette="eva"] .yesterday-leaderboard-score-unit[data-tier="crit"] {
+  color: var(--status-error, #dc2626) !important;
+}
+
+/* 天梯榜榜单行数据在 命运石之门 配色下的解耦映射 (全量统一为辉光管放电暖橙) */
+.yesterday-leaderboard-modal[data-palette="divergence"] .yesterday-leaderboard-score-val,
+.yesterday-leaderboard-modal[data-palette="divergence"] .yesterday-leaderboard-score-unit {
+  color: #ff7700 !important;
+}
+
+:root:not([data-appearance="dark"]) .yesterday-leaderboard-modal[data-palette="divergence"] .yesterday-leaderboard-score-val,
+:root:not([data-appearance="dark"]) .yesterday-leaderboard-modal[data-palette="divergence"] .yesterday-leaderboard-score-unit {
+  color: #ea580c !important;
+}
+
+/* 命运石之门下，稳定评分卡片强制锁死为纯暖橙，不随 tier 变色 */
+[data-palette="divergence"] .mao-stat-card[data-metric="yesterdayBest"],
+[data-palette="divergence"] .mao-stat-icon-yesterdayBest,
+.mao-stat-card[data-metric="yesterdayBest"][data-palette="divergence"],
+[data-palette="divergence"] [data-metric="yesterdayBest"] .mao-stat-visual,
+.mao-stat-card[data-metric="yesterdayBest"][data-palette="divergence"] .mao-stat-visual,
+[data-palette="divergence"] .mao-star-wrap {
+  --current-metric-color: #ff7700 !important;
+  color: #ff7700 !important;
+}
+
+:root:not([data-appearance="dark"]) [data-palette="divergence"] .mao-stat-card[data-metric="yesterdayBest"],
+:root:not([data-appearance="dark"]) [data-palette="divergence"] .mao-stat-icon-yesterdayBest,
+:root:not([data-appearance="dark"]) .mao-stat-card[data-metric="yesterdayBest"][data-palette="divergence"],
+:root:not([data-appearance="dark"]) [data-palette="divergence"] [data-metric="yesterdayBest"] .mao-stat-visual,
+:root:not([data-appearance="dark"]) .mao-stat-card[data-metric="yesterdayBest"][data-palette="divergence"] .mao-stat-visual,
+:root:not([data-appearance="dark"]) [data-palette="divergence"] .mao-star-wrap {
+  --current-metric-color: #ea580c !important;
+  color: #ea580c !important;
+}
+
+.mao-stat-card[data-metric="loss"][data-loss-tier="good"] {
+  --current-metric-color: var(--loss-color-good, #8b5cf6);
+}
+
+.mao-stat-card[data-metric="loss"][data-loss-tier="warning"] {
+  --current-metric-color: var(--loss-color-warning, #fbbf24);
+}
+
+.mao-stat-card[data-metric="loss"][data-loss-tier="error"] {
+  --current-metric-color: var(--loss-color-error, #ef4444);
+}
+
+/* 命运石之门下，强制锁死为纯暖橙，不随 tier 变色 */
+[data-palette="divergence"] .mao-stat-card[data-metric="loss"],
+.mao-stat-card[data-metric="loss"][data-palette="divergence"] {
+  --current-metric-color: #ff7700 !important;
+}
+
+:root:not([data-appearance="dark"]) [data-palette="divergence"] .mao-stat-card[data-metric="loss"],
+:root:not([data-appearance="dark"]) .mao-stat-card[data-metric="loss"][data-palette="divergence"] {
+  --current-metric-color: #ea580c !important;
+}
+
+/* 浅色模式：柔和通透的科技感微底框与轻盈边框 */
 :root:not([data-appearance="dark"]) .mao-stat-icon-hud {
-  background: transparent;
-  border: none;
-  box-shadow: none;
-  width: auto;
-  height: auto;
-  min-width: 0;
-  border-radius: 0;
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  border-radius: 6px;
+  box-sizing: border-box;
+  background: color-mix(in srgb, var(--current-metric-color, var(--text-primary)) 12%, rgba(255, 255, 255, 0.75));
+  border: 1px solid color-mix(in srgb, var(--current-metric-color, var(--text-primary)) 24%, transparent);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--current-metric-color, var(--text-primary)) 12%, transparent);
+}
+
+:root:not([data-appearance="dark"]) .mao-stat-card:hover .mao-stat-icon-hud {
+  background: color-mix(in srgb, var(--current-metric-color, var(--text-primary)) 18%, rgba(255, 255, 255, 0.9));
+  border-color: color-mix(in srgb, var(--current-metric-color, var(--text-primary)) 40%, transparent);
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--current-metric-color, var(--text-primary)) 20%, transparent);
+  transform: translateY(-0.5px) scale(1.04);
 }
 
 /* 深色模式：启用 HUD 科技感微底框与发光阴影 */
@@ -471,14 +1096,14 @@
   background: color-mix(in srgb, var(--current-metric-color, #7c3aed) 16%, rgba(12, 12, 16, 0.7));
   border: 1px solid color-mix(in srgb, var(--current-metric-color, #7c3aed) 36%, transparent);
   box-shadow: 0 0 9px color-mix(in srgb, var(--current-metric-color, #7c3aed) 32%, transparent),
-              inset 0 0 5px color-mix(in srgb, var(--current-metric-color, #7c3aed) 16%, transparent);
+    inset 0 0 5px color-mix(in srgb, var(--current-metric-color, #7c3aed) 16%, transparent);
 }
 
 :root[data-appearance="dark"] [data-palette="divergence"] .mao-stat-icon-hud {
   background: color-mix(in srgb, var(--current-metric-color, #ff7700) 18%, rgba(22, 19, 17, 0.75));
   border: 1px solid color-mix(in srgb, var(--current-metric-color, #ff7700) 38%, transparent);
   box-shadow: 0 0 10px color-mix(in srgb, var(--current-metric-color, #ff7700) 35%, transparent),
-              inset 0 0 5px color-mix(in srgb, var(--current-metric-color, #facc15) 18%, transparent);
+    inset 0 0 5px color-mix(in srgb, var(--current-metric-color, #facc15) 18%, transparent);
 }
 
 
@@ -513,7 +1138,871 @@
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
-  margin: 7px 0 3px;
+  margin: 0 0 3px;
+}
+
+.mao-stat-body {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+  margin-top: 6px;
+  flex: 1;
+}
+
+.mao-stat-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.mao-stat-visual {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  margin-bottom: 1px;
+  color: var(--current-metric-color, var(--text-primary));
+  opacity: 0.95;
+  transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1), opacity 180ms ease;
+  overflow: visible;
+}
+
+.mao-stat-card:hover .mao-stat-visual {
+  opacity: 1;
+  transform: scale(1.05);
+}
+
+/* 纯净视网膜级超采样矢量微图：彻底移除任何背景光晕、阴影滤镜与雾化效果，保持 100% 刀锋般纯粹锐利 */
+
+.mao-micro-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mao-gauge-center-badge {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+  color: currentColor;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: geometricPrecision;
+  filter: none !important;
+  line-height: 1;
+  z-index: 2;
+}
+
+.mao-gauge-center-num {
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text-primary, currentColor);
+}
+
+.mao-gauge-center-unit {
+  font-size: 8.5px;
+  font-weight: 700;
+  margin-left: 0.5px;
+  opacity: 0.8;
+  color: var(--text-secondary, currentColor);
+}
+
+.mao-asset-symbol {
+  font-size: 15px;
+  font-weight: 850;
+  font-family: inherit;
+  color: var(--text-primary, currentColor);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 所有矢量线条与图形静止时保持 100% 原生清晰抗锯齿 */
+.mao-conn-fill-tcp,
+.mao-conn-fill-udp,
+.mao-proc-task-bar,
+.mao-proc-window,
+.mao-gauge-fill,
+.mao-bar-fill,
+.mao-spark-line-rx,
+.mao-spark-line-tx,
+.mao-spark-dot,
+.mao-asset-fill,
+.mao-chip-die,
+.mao-ecg-trace,
+.mao-ecg-bg-track,
+.mao-disk-bay,
+.mao-gauge-track,
+.mao-bar-track,
+.mao-conn-track-outer,
+.mao-conn-track-inner,
+.mao-asset-track,
+.mao-spark-grid,
+.mao-spark-axis,
+.mao-traffic-bar-total,
+.mao-traffic-bar-in,
+.mao-traffic-bar-dot,
+.mao-chip-outline {
+  filter: none !important;
+  position: relative;
+  z-index: 1;
+}
+
+.mao-traffic-bar-total,
+.mao-traffic-bar-in {
+  transition: height 260ms ease, y 260ms ease;
+}
+
+.mao-traffic-bar-dot {
+  transition: cy 260ms ease, opacity 260ms ease;
+}
+
+.mao-micro-svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: none !important;
+}
+
+/* 15. 稳定评分 (Yesterday Best) - 纯粹品阶字母微图 (Pure Rank Glyphs) */
+.mao-stat-card[data-metric="yesterdayBest"] .mao-stat-visual {
+  width: 52px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.mao-word-rank {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", sans-serif;
+  font-weight: 900;
+  font-size: 21px;
+  letter-spacing: -0.03em;
+  font-style: italic;
+  transform: skewX(-7deg);
+  line-height: 1;
+  color: var(--current-metric-color, currentColor);
+  user-select: none;
+  white-space: nowrap;
+  text-align: right;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), color 0.2s ease;
+}
+
+/* 依据字符数量自适应缩放：保证单字 A/B/C、双字 SS、三字 SSS 视觉体量均与 52×36px 微图等大 */
+.mao-word-rank[data-chars="1"] {
+  font-size: 32px;
+  letter-spacing: -0.02em;
+}
+
+.mao-word-rank[data-chars="2"] {
+  font-size: 25px;
+  letter-spacing: -0.03em;
+}
+
+.mao-word-rank[data-chars="3"] {
+  font-size: 20px;
+  letter-spacing: -0.04em;
+}
+
+.mao-stat-card:hover .mao-word-rank {
+  transform: skewX(-7deg) scale(1.04);
+}
+
+.mao-word-rank.is-placeholder {
+  opacity: 0.3;
+  color: var(--text-tertiary);
+  font-size: 19px;
+  letter-spacing: 0.05em;
+}
+.mao-gauge-track {
+  opacity: 0.12;
+}
+
+:root[data-appearance="dark"] .mao-gauge-track {
+  opacity: 0.18;
+}
+
+.mao-gauge-fill {
+  transition: stroke-dashoffset 400ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.mao-gauge-value {
+  font-size: 10.5px;
+  font-weight: 760;
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+}
+
+.mao-gauge-pct {
+  font-size: 7px;
+  font-weight: 600;
+  opacity: 0.75;
+}
+
+/* 2. 声谱柱 (CPU) */
+.mao-bar-track {
+  opacity: 0.12;
+}
+
+:root[data-appearance="dark"] .mao-bar-track {
+  opacity: 0.18;
+}
+
+.mao-bar-fill {
+  opacity: 0.92;
+  transition: height 260ms ease, y 260ms ease;
+}
+
+/* 3. 双通道协议环 (Connections) */
+.mao-conn-track-outer,
+.mao-conn-track-inner {
+  opacity: 0.12;
+}
+
+:root[data-appearance="dark"] .mao-conn-track-outer,
+:root[data-appearance="dark"] .mao-conn-track-inner {
+  opacity: 0.18;
+}
+
+.mao-conn-fill-tcp,
+.mao-conn-fill-udp {
+  color: var(--status-success, #10b981);
+  stroke: var(--status-success, #10b981);
+  opacity: 1;
+}
+
+.mao-conn-hub {
+  fill: var(--status-success, #10b981);
+  opacity: 0.9;
+}
+
+/* 经典标准方案：双轨出入流采用清爽协调的青蓝科技流光，杜绝突兀紫红 */
+:root,
+[data-palette="default"] {
+  --traffic-spark-tx: #38bdf8;
+}
+
+:root[data-appearance="dark"],
+:root[data-appearance="dark"] [data-palette="default"] {
+  --traffic-spark-tx: #38bdf8;
+}
+
+[data-palette="default"] .mao-spark-line-tx {
+  color: #38bdf8;
+  stroke: #38bdf8;
+}
+
+[data-palette="default"] .mao-spark-area-tx {
+  color: #38bdf8;
+  stroke: none;
+}
+
+/* EVA 初号机方案：机能暴走紫绿双流 */
+[data-palette="eva"] {
+  --traffic-spark-tx: #c084fc;
+}
+
+:root[data-appearance="dark"] [data-palette="eva"] {
+  --traffic-spark-tx: #c084fc;
+}
+
+[data-palette="eva"] .mao-spark-line-tx {
+  color: #c084fc;
+  stroke: #c084fc;
+}
+
+[data-palette="eva"] .mao-spark-area-tx {
+  color: #c084fc;
+  stroke: none;
+}
+
+/* 命运石之门专属：活跃连接采用放电暖橙同色系双环，彻底避免颜色割裂 */
+[data-palette="divergence"] .mao-conn-fill-tcp,
+[data-palette="divergence"] .mao-conn-fill-udp,
+.mao-stat-card[data-metric="connections"][data-palette="divergence"] .mao-conn-fill-tcp,
+.mao-stat-card[data-metric="connections"][data-palette="divergence"] .mao-conn-fill-udp {
+  color: #ff7700 !important;
+  stroke: #ff7700 !important;
+  opacity: 1 !important;
+}
+
+[data-palette="divergence"] .mao-conn-hub,
+.mao-stat-card[data-metric="connections"][data-palette="divergence"] .mao-conn-hub {
+  fill: #ff7700 !important;
+  opacity: 0.9 !important;
+}
+
+:root:not([data-appearance="dark"]) [data-palette="divergence"] .mao-conn-fill-tcp,
+:root:not([data-appearance="dark"]) [data-palette="divergence"] .mao-conn-fill-udp,
+:root:not([data-appearance="dark"]) .mao-stat-card[data-metric="connections"][data-palette="divergence"] .mao-conn-fill-tcp,
+:root:not([data-appearance="dark"]) .mao-stat-card[data-metric="connections"][data-palette="divergence"] .mao-conn-fill-udp {
+  color: #ea580c !important;
+  stroke: #ea580c !important;
+  opacity: 1 !important;
+}
+
+:root:not([data-appearance="dark"]) [data-palette="divergence"] .mao-conn-hub,
+:root:not([data-appearance="dark"]) .mao-stat-card[data-metric="connections"][data-palette="divergence"] .mao-conn-hub {
+  fill: #ea580c !important;
+  opacity: 0.9 !important;
+}
+
+/* EVA 初号机专属：活跃连接采用初号机青柠机能绿（#a3e635），内圈外圈颜色完全相同 */
+[data-palette="eva"] .mao-conn-fill-tcp,
+[data-palette="eva"] .mao-conn-fill-udp,
+.mao-stat-card[data-metric="connections"][data-palette="eva"] .mao-conn-fill-tcp,
+.mao-stat-card[data-metric="connections"][data-palette="eva"] .mao-conn-fill-udp {
+  color: #a3e635 !important;
+  stroke: #a3e635 !important;
+  opacity: 1 !important;
+}
+
+[data-palette="eva"] .mao-conn-hub,
+.mao-stat-card[data-metric="connections"][data-palette="eva"] .mao-conn-hub {
+  fill: #a3e635 !important;
+  opacity: 0.9 !important;
+}
+
+:root:not([data-appearance="dark"]) [data-palette="eva"] .mao-conn-fill-tcp,
+:root:not([data-appearance="dark"]) [data-palette="eva"] .mao-conn-fill-udp,
+:root:not([data-appearance="dark"]) .mao-stat-card[data-metric="connections"][data-palette="eva"] .mao-conn-fill-tcp,
+:root:not([data-appearance="dark"]) .mao-stat-card[data-metric="connections"][data-palette="eva"] .mao-conn-fill-udp {
+  color: #10b981 !important;
+  stroke: #10b981 !important;
+  opacity: 1 !important;
+}
+
+:root:not([data-appearance="dark"]) [data-palette="eva"] .mao-conn-hub,
+:root:not([data-appearance="dark"]) .mao-stat-card[data-metric="connections"][data-palette="eva"] .mao-conn-hub {
+  fill: #10b981 !important;
+  opacity: 0.9 !important;
+}
+
+/* 4. 存储立式刀片阵列 (Disk Blade Bays: 上3下3) */
+.mao-disk-bay.is-filled .mao-disk-chassis {
+  fill: currentColor;
+  stroke: none;
+  opacity: 0.95;
+}
+
+/* 空闲未占用盘位：注入与 CPU 柱状图同源的暗轨背景虚影，辅以柔和微描边，彻底告别空心单薄感 */
+.mao-disk-bay.is-empty .mao-disk-chassis {
+  fill: currentColor;
+  opacity: 0.14;
+  stroke: currentColor;
+  stroke-width: 1.8px;
+  stroke-opacity: 0.28;
+}
+
+:root[data-appearance="dark"] .mao-disk-bay.is-empty .mao-disk-chassis {
+  opacity: 0.18;
+  stroke-opacity: 0.32;
+}
+
+.mao-disk-bay.is-latest {
+  animation: mao-disk-pulse 2.2s ease-in-out infinite;
+}
+
+/* 刀片机身内底部的 LED 状态灯 */
+.mao-disk-bay.is-filled .mao-disk-led {
+  fill: #ffffff;
+  opacity: 0.92;
+}
+
+:root[data-appearance="dark"] .mao-disk-bay.is-filled .mao-disk-led {
+  fill: #18191e;
+  opacity: 0.95;
+}
+
+.mao-disk-bay.is-empty .mao-disk-led {
+  fill: currentColor;
+  opacity: 0.32;
+}
+
+@keyframes mao-disk-pulse {
+
+  0%,
+  100% {
+    opacity: 0.95;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* 5. 最近重启与节点在线 - 心电与集群遥测微图 (Uptime ECG & Nodes Keepalive) */
+.mao-stat-card[data-metric="uptime"] .mao-stat-visual,
+.mao-stat-card[data-metric="nodes"] .mao-stat-visual {
+  width: 58px;
+  height: 38px;
+  overflow: visible;
+}
+
+.mao-stat-card[data-metric="yesterdayBest"] .mao-stat-visual {
+  width: 44px;
+  height: 44px;
+  overflow: visible;
+}
+
+.mao-micro-uptime-ecg {
+  overflow: hidden;
+}
+
+.mao-ecg-grid {
+  stroke: currentColor;
+  stroke-width: 0.8;
+  opacity: 0.14;
+}
+
+:root[data-appearance="dark"] .mao-ecg-grid {
+  opacity: 0.16;
+}
+
+.mao-ecg-grid-axis {
+  stroke: currentColor;
+  stroke-width: 1;
+  opacity: 0.22;
+}
+
+.mao-ecg-bg-track {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  opacity: 0.18;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* 拟真荧光深缓微呼吸：波形常态完整存在，以 5.5s 极缓节奏轻柔呼吸，不晃眼、不机械重复 */
+.mao-ecg-glow {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 4.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.22;
+  filter: blur(1.5px);
+  animation: sao-ecg-ambient-glow 5.5s ease-in-out infinite;
+  transition: opacity 0.3s ease, filter 0.3s ease;
+}
+
+.mao-ecg-trace {
+  fill: none;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke: currentColor;
+  opacity: 0.85;
+  animation: sao-ecg-ambient-line 5.5s ease-in-out infinite;
+  transition: opacity 0.3s ease, stroke-width 0.3s ease;
+}
+
+@keyframes sao-ecg-ambient-glow {
+  0%, 100% {
+    opacity: 0.16;
+    filter: blur(1px);
+  }
+  50% {
+    opacity: 0.42;
+    filter: blur(2.2px);
+  }
+}
+
+@keyframes sao-ecg-ambient-line {
+  0%, 100% {
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* 鼠标悬浮到卡片时：脉冲被主动激活，辉光增亮，灵动响应 */
+.mao-stat-card:hover .mao-ecg-glow {
+  opacity: 0.6;
+  filter: blur(2.5px);
+}
+
+.mao-stat-card:hover .mao-ecg-trace {
+  opacity: 1;
+  stroke-width: 2.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mao-ecg-glow,
+  .mao-ecg-trace {
+    animation: none !important;
+  }
+}
+
+/* 6. HUD 微型双轨折线面积图 (Traffic / Bandwidth) */
+.mao-stat-card[data-metric="traffic"] .mao-stat-visual,
+.mao-stat-card[data-metric="bandwidth"] .mao-stat-visual {
+  width: 52px;
+  height: 38px;
+}
+
+.mao-spark-area-rx,
+.mao-spark-area-tx {
+  stroke: none !important;
+}
+
+.mao-spark-grid {
+  opacity: 0.15;
+}
+
+.mao-spark-axis {
+  opacity: 0.25;
+}
+
+.mao-spark-pulse {
+  opacity: 0.35;
+  animation: mao-radar-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* 实时带宽微图：CSS GPU 级流体涌动与平滑潮起潮落 (零抖动、真实丝滑游动) */
+.mao-bandwidth-track-tx,
+.mao-bandwidth-track-rx,
+.mao-bandwidth-dot-wrap {
+  transition: transform 1.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+  will-change: transform;
+}
+
+/* 6. 节点在线 - 集群遥测微图已统一至上方 58x38 规范 (ECG) */
+
+[data-palette="eva"] .mao-stat-card[data-metric="connections"],
+[data-palette="eva"] .mao-stat-icon-connections,
+.mao-stat-card[data-metric="connections"][data-palette="eva"] {
+  --current-metric-color: #a3e635 !important;
+}
+
+[data-palette="eva"] .mao-stat-card[data-metric="nodes"],
+[data-palette="eva"] .mao-stat-icon-nodes,
+.mao-stat-card[data-metric="nodes"][data-palette="eva"] {
+  --current-metric-color: #84cc16 !important;
+}
+
+:root:not([data-appearance="dark"]) [data-palette="eva"] .mao-stat-card[data-metric="connections"],
+:root:not([data-appearance="dark"]) [data-palette="eva"] .mao-stat-icon-connections,
+:root:not([data-appearance="dark"]) .mao-stat-card[data-metric="connections"][data-palette="eva"] {
+  --current-metric-color: #10b981 !important;
+}
+
+:root:not([data-appearance="dark"]) [data-palette="eva"] .mao-stat-card[data-metric="nodes"],
+:root:not([data-appearance="dark"]) [data-palette="eva"] .mao-stat-icon-nodes,
+:root:not([data-appearance="dark"]) .mao-stat-card[data-metric="nodes"][data-palette="eva"] {
+  --current-metric-color: #65a30d !important;
+}
+
+/* 命运石之门专属：彻底消除活跃连接/节点在线的绿色，以及流量/带宽的蓝色，全端统一为辉光管暖橙与电离金 */
+[data-palette="divergence"] .mao-stat-card[data-metric="connections"],
+[data-palette="divergence"] .mao-stat-icon-connections,
+.mao-stat-card[data-metric="connections"][data-palette="divergence"],
+[data-palette="divergence"] [data-metric="connections"] .mao-stat-visual,
+.mao-stat-card[data-metric="connections"][data-palette="divergence"] .mao-stat-visual,
+[data-palette="divergence"] .mao-stat-card[data-metric="nodes"],
+[data-palette="divergence"] .mao-stat-icon-nodes,
+.mao-stat-card[data-metric="nodes"][data-palette="divergence"],
+[data-palette="divergence"] [data-metric="nodes"] .mao-stat-visual,
+.mao-stat-card[data-metric="nodes"][data-palette="divergence"] .mao-stat-visual {
+  --current-metric-color: #ff7700 !important;
+}
+
+[data-palette="divergence"] .mao-stat-card[data-metric="traffic"],
+[data-palette="divergence"] .mao-stat-icon-traffic,
+.mao-stat-card[data-metric="traffic"][data-palette="divergence"],
+[data-palette="divergence"] .mao-stat-card[data-metric="bandwidth"],
+[data-palette="divergence"] .mao-stat-icon-bandwidth,
+.mao-stat-card[data-metric="bandwidth"][data-palette="divergence"],
+[data-palette="divergence"] .mao-stat-card[data-metric="asset"],
+[data-palette="divergence"] .mao-stat-icon-asset,
+.mao-stat-card[data-metric="asset"][data-palette="divergence"],
+[data-palette="divergence"] [data-metric="asset"] .mao-stat-visual,
+.mao-stat-card[data-metric="asset"][data-palette="divergence"] .mao-stat-visual {
+  --current-metric-color: #ff7700 !important;
+}
+
+:root:not([data-appearance="dark"]) [data-palette="divergence"] .mao-stat-card[data-metric="connections"],
+:root:not([data-appearance="dark"]) [data-palette="divergence"] .mao-stat-icon-connections,
+:root:not([data-appearance="dark"]) .mao-stat-card[data-metric="connections"][data-palette="divergence"],
+:root:not([data-appearance="dark"]) [data-palette="divergence"] [data-metric="connections"] .mao-stat-visual,
+:root:not([data-appearance="dark"]) .mao-stat-card[data-metric="connections"][data-palette="divergence"] .mao-stat-visual,
+:root:not([data-appearance="dark"]) [data-palette="divergence"] .mao-stat-card[data-metric="nodes"],
+:root:not([data-appearance="dark"]) [data-palette="divergence"] .mao-stat-icon-nodes,
+:root:not([data-appearance="dark"]) .mao-stat-card[data-metric="nodes"][data-palette="divergence"],
+:root:not([data-appearance="dark"]) [data-palette="divergence"] [data-metric="nodes"] .mao-stat-visual,
+:root:not([data-appearance="dark"]) .mao-stat-card[data-metric="nodes"][data-palette="divergence"] .mao-stat-visual,
+:root:not([data-appearance="dark"]) [data-palette="divergence"] .mao-stat-card[data-metric="traffic"],
+:root:not([data-appearance="dark"]) [data-palette="divergence"] .mao-stat-icon-traffic,
+:root:not([data-appearance="dark"]) .mao-stat-card[data-metric="traffic"][data-palette="divergence"],
+:root:not([data-appearance="dark"]) [data-palette="divergence"] .mao-stat-card[data-metric="bandwidth"],
+:root:not([data-appearance="dark"]) [data-palette="divergence"] .mao-stat-icon-bandwidth,
+:root:not([data-appearance="dark"]) .mao-stat-card[data-metric="bandwidth"][data-palette="divergence"],
+:root:not([data-appearance="dark"]) [data-palette="divergence"] .mao-stat-card[data-metric="asset"],
+:root:not([data-appearance="dark"]) [data-palette="divergence"] .mao-stat-icon-asset,
+:root:not([data-appearance="dark"]) .mao-stat-card[data-metric="asset"][data-palette="divergence"],
+:root:not([data-appearance="dark"]) [data-palette="divergence"] [data-metric="asset"] .mao-stat-visual,
+:root:not([data-appearance="dark"]) .mao-stat-card[data-metric="asset"][data-palette="divergence"] .mao-stat-visual {
+  --current-metric-color: #ea580c !important;
+}
+
+/* 命运石之门专属：今日流量与实时带宽折线微图使用暖光橙与电离金双轨，彻底消除蓝色/紫色 */
+[data-palette="divergence"] {
+  --traffic-spark-tx: #facc15;
+}
+
+:root:not([data-appearance="dark"]) [data-palette="divergence"] {
+  --traffic-spark-tx: #d97706;
+}
+
+[data-palette="divergence"] .mao-spark-line-tx {
+  color: #facc15;
+  stroke: #facc15;
+}
+
+[data-palette="divergence"] .mao-spark-area-tx {
+  color: #facc15;
+  stroke: none;
+}
+
+[data-palette="divergence"] .mao-spark-line-rx {
+  color: #ff7700;
+  stroke: #ff7700;
+}
+
+[data-palette="divergence"] .mao-spark-area-rx {
+  color: #ff7700;
+  stroke: none;
+}
+
+[data-palette="divergence"] .mao-spark-dot,
+[data-palette="divergence"] .mao-spark-pulse {
+  fill: #facc15;
+}
+
+:root:not([data-appearance="dark"]) [data-palette="divergence"] .mao-spark-line-tx {
+  color: #d97706;
+  stroke: #d97706;
+}
+
+:root:not([data-appearance="dark"]) [data-palette="divergence"] .mao-spark-area-tx {
+  color: #d97706;
+  stroke: none;
+}
+
+:root:not([data-appearance="dark"]) [data-palette="divergence"] .mao-spark-line-rx {
+  color: #ea580c;
+  stroke: #ea580c;
+}
+
+:root:not([data-appearance="dark"]) [data-palette="divergence"] .mao-spark-area-rx {
+  color: #ea580c;
+  stroke: none;
+}
+
+:root:not([data-appearance="dark"]) [data-palette="divergence"] .mao-spark-dot,
+:root:not([data-appearance="dark"]) [data-palette="divergence"] .mao-spark-pulse {
+  fill: #d97706;
+}
+
+.mao-radar-pulse-ring {
+  opacity: 0.35;
+  animation: mao-radar-pulse 2.8s ease-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@keyframes mao-radar-pulse {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.5;
+  }
+
+  70% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+
+  100% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+}
+
+/* 7. 资产额度环 (Asset) */
+.mao-asset-track {
+  opacity: 0.14;
+}
+
+.mao-asset-fill {
+  color: var(--current-metric-color, var(--status-warning, #f59e0b));
+}
+
+/* 命运石之门专属：资产总值圆弧统一为辉光放电暖橙与电离暖金，彻底消除黄色割裂 */
+[data-palette="divergence"] .mao-asset-fill,
+.mao-stat-card[data-metric="asset"][data-palette="divergence"] .mao-asset-fill {
+  color: #ff7700 !important;
+  stroke: #ff7700 !important;
+}
+
+:root:not([data-appearance="dark"]) [data-palette="divergence"] .mao-asset-fill,
+:root:not([data-appearance="dark"]) .mao-stat-card[data-metric="asset"][data-palette="divergence"] .mao-asset-fill {
+  color: #ea580c !important;
+  stroke: #ea580c !important;
+}
+
+/* 8. 芯片多核 (Cores) */
+.mao-chip-outline {
+  opacity: 0.28;
+}
+
+.mao-chip-die {
+  opacity: 0.88;
+}
+
+/* 9. 活跃进程 - 终端级联任务堆栈 (Process Task Cascade) */
+.mao-stat-card[data-metric="process"] .mao-stat-visual {
+  width: 52px;
+  height: 36px;
+}
+
+.mao-proc-stack-1 {
+  opacity: 0.14;
+}
+
+:root:not([data-appearance="dark"]) .mao-proc-stack-1 {
+  opacity: 0.12;
+}
+
+.mao-proc-stack-2 {
+  opacity: 0.32;
+}
+
+:root:not([data-appearance="dark"]) .mao-proc-stack-2 {
+  opacity: 0.25;
+}
+
+.mao-proc-window {
+  opacity: 0.88;
+}
+
+.mao-proc-titlebar {
+  opacity: 0.28;
+}
+
+.mao-proc-prompt-arrow,
+.mao-proc-prompt-dash {
+  opacity: 0.95;
+}
+
+.mao-proc-task-bar {
+  opacity: 0.85;
+}
+
+.mao-stat-card:hover .mao-proc-prompt-dash {
+  animation: sao-cursor-blink 1s steps(2, start) infinite;
+}
+
+@keyframes sao-cursor-blink {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
+}
+
+.mao-proc-orbit {
+  opacity: 0.26;
+}
+
+.mao-proc-inner {
+  opacity: 0.5;
+}
+
+/* 10. 三网丢包 - Cellular Trigram Bar (三网专属脉冲立柱微图) */
+.mao-micro-trigram {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.mao-trigram-track {
+  opacity: 0.12;
+  transition: opacity 180ms ease;
+}
+
+:root[data-appearance="dark"] .mao-trigram-track {
+  opacity: 0.16;
+}
+
+.mao-trigram-fill {
+  fill: currentColor;
+  opacity: 0.88;
+  transition: height 320ms cubic-bezier(0.16, 1, 0.3, 1), y 320ms cubic-bezier(0.16, 1, 0.3, 1), fill 200ms ease;
+}
+
+/* 细分立柱多档独立着色 */
+.mao-trigram-pillar[data-tier="good"] .mao-trigram-fill {
+  fill: var(--loss-color-good, #8b5cf6);
+}
+
+.mao-trigram-pillar[data-tier="warning"] .mao-trigram-fill {
+  fill: var(--loss-color-warning, #fbbf24);
+  filter: drop-shadow(0 0 3px color-mix(in srgb, var(--loss-color-warning) 50%, transparent));
+}
+
+.mao-trigram-pillar[data-tier="error"] .mao-trigram-fill {
+  fill: var(--loss-color-error, #ef4444);
+  filter: drop-shadow(0 0 3px color-mix(in srgb, var(--loss-color-error) 50%, transparent));
+}
+
+.mao-trigram-label {
+  opacity: 0.65;
+  letter-spacing: 0.5px;
+  transition: opacity 180ms ease, fill 180ms ease;
+}
+
+.mao-trigram-pillar[data-tier="good"] .mao-trigram-label {
+  fill: var(--loss-color-good, #8b5cf6);
+  opacity: 0.75;
+}
+
+.mao-trigram-pillar[data-tier="warning"] .mao-trigram-label {
+  fill: var(--loss-color-warning, #fbbf24);
+  opacity: 0.95;
+  font-weight: 800;
+}
+
+.mao-trigram-pillar[data-tier="error"] .mao-trigram-label {
+  fill: var(--loss-color-error, #ef4444);
+  opacity: 1;
+  font-weight: 800;
+}
+
+/* 命运石之门下，柱体与字模强制跟随全站统一的暖橙，没有孤立杂色 */
+[data-palette="divergence"] .mao-trigram-pillar .mao-trigram-fill,
+[data-palette="divergence"] .mao-trigram-pillar .mao-trigram-label {
+  fill: currentColor !important;
+  filter: none !important;
+}
+
+.mao-stat-card:hover .mao-trigram-fill {
+  opacity: 1;
+}
+
+.mao-stat-card:hover .mao-trigram-label {
+  opacity: 1;
 }
 
 .mao-stat-slash-total {
@@ -554,10 +2043,50 @@
 
 .mao-stat-caption {
   font-size: 11px;
-  color: var(--text-tertiary);
+  color: var(--text-tertiary) !important;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* 三网丢包卡片专属高密度辅助栏排版 */
+.mao-stat-carrier-caption {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+}
+
+.mao-stat-carrier-item {
+  display: inline-block;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.2px;
+}
+
+.mao-stat-carrier-sep {
+  display: inline-block;
+  margin: 0 3px;
+  opacity: 0.55;
+  user-select: none;
+}
+
+/* 在平板竖屏及中等屏幕 (769px ~ 1100px) 空间紧凑时，微调间距与微图，保证三网文字完整显示不被截断 */
+@media (min-width: 769px) and (max-width: 1100px) {
+  .mao-stat-card[data-metric="loss"] .mao-stat-visual {
+    width: 36px;
+    height: 36px;
+  }
+
+  .mao-stat-card[data-metric="loss"] .mao-stat-carrier-caption {
+    font-size: 10px;
+  }
+
+  .mao-stat-carrier-sep {
+    margin: 0 1.5px;
+  }
+
+  .mao-stat-carrier-item {
+    letter-spacing: -0.35px;
+  }
 }
 
 /* 右侧进度与健康状态侧栏 */
@@ -568,22 +2097,32 @@
 }
 
 .mao-progress-container {
-  height: 100%;
   width: 100%;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: flex-start;
   border-radius: 16px;
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  background: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  background: rgba(255, 255, 255, 0.48);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
   padding: clamp(14px, 1.8vw, 18px);
   gap: 14px;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.02);
+  box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.04);
   transition: background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+@media (min-width: 1180px) {
+  .mao-progress-container {
+    height: 100%;
+    justify-content: space-between;
+  }
 }
 
 :root[data-appearance="dark"] .mao-progress-container {
   background: #1c1c1f;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   border-color: rgba(255, 255, 255, 0.08);
   box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.25);
 }
@@ -833,6 +2372,22 @@
   background: var(--status-offline);
 }
 
+/* 经典标准方案：集群状态经典模式在线指示条与活跃传输翠绿色 #22c55e 保持一致 */
+.mao-progress-container[data-palette="default"] .mao-node-block.is-online,
+.mao-progress-container[data-palette="default"] .mao-seamless-segment.is-online,
+.mao-progress-container:not([data-palette]) .mao-node-block.is-online,
+.mao-progress-container:not([data-palette]) .mao-seamless-segment.is-online {
+  background: #22c55e;
+}
+
+:root[data-appearance="dark"] .mao-progress-container[data-palette="default"] .mao-node-block.is-online,
+:root[data-appearance="dark"] .mao-progress-container[data-palette="default"] .mao-seamless-segment.is-online,
+:root[data-appearance="dark"] .mao-progress-container:not([data-palette]) .mao-node-block.is-online,
+:root[data-appearance="dark"] .mao-progress-container:not([data-palette]) .mao-seamless-segment.is-online {
+  background: #22c55e;
+  box-shadow: 0 0 5px rgba(34, 197, 94, 0.4);
+}
+
 /* EVA 初号机：集群状态经典模式在线指示条（浅色模式使用初号机经典紫，深色模式保持荧光绿高亮） */
 .mao-progress-container[data-palette="eva"] .mao-node-block.is-online,
 .mao-progress-container[data-palette="eva"] .mao-seamless-segment.is-online {
@@ -871,49 +2426,15 @@
   position: relative;
   gap: 12px;
   height: 100%;
-  min-height: 236px;
   justify-content: space-between;
 }
 
-.mao-matrix-status-tags {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  flex-wrap: wrap;
+@media (min-width: 1180px) {
+  .mao-matrix-section {
+    min-height: 236px;
+  }
 }
 
-.mao-matrix-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 3.5px;
-  font-size: 10.5px;
-  font-weight: 650;
-  padding: 1.5px 6px;
-  border-radius: 999px;
-  line-height: 1.2;
-}
-
-.mao-matrix-tag .dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 999px;
-  background: currentColor;
-}
-
-.mao-matrix-tag.is-online {
-  color: var(--status-success, #10b981);
-  background: color-mix(in srgb, var(--status-success, #10b981) 12%, transparent);
-}
-
-.mao-matrix-tag.is-high-load {
-  color: var(--status-warning, #f59e0b);
-  background: color-mix(in srgb, var(--status-warning, #f59e0b) 14%, transparent);
-}
-
-.mao-matrix-tag.is-offline {
-  color: var(--status-offline, #ef4444);
-  background: color-mix(in srgb, var(--status-offline, #ef4444) 14%, transparent);
-}
 
 .mao-heatmap-wrap {
   position: relative;
@@ -962,6 +2483,7 @@
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -971,19 +2493,18 @@
   width: 100%;
   aspect-ratio: 1 / 1;
   padding: 0;
-  border: 1px solid rgba(0, 0, 0, 0.05);
+  border: none;
   border-radius: 3px;
   cursor: pointer;
   outline: none !important;
   position: relative;
   appearance: none;
   -webkit-appearance: none;
-  background-clip: padding-box;
   transition: background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease, filter 120ms ease, opacity 120ms ease;
 }
 
 :root[data-appearance="dark"] .mao-heatmap-cell {
-  border-color: rgba(255, 255, 255, 0.08);
+  border: none;
 }
 
 /* 方案 A：外置独立外框 —— 悬空于方块外部（留有 1.3px 留白间隙），完全不侵入方块内部颜色，纯 opacity 渐变杜绝首帧纯色闪烁 */
@@ -1005,12 +2526,19 @@
   box-shadow: none;
 }
 
-.mao-heatmap-cell.is-low-load:not(.is-sao-pixel):not(.is-sao-beam):not(.is-sao-bg):not(.is-sao-unlit) {
-  background: #34d399;
+.mao-heatmap-cell.is-low-load:not(.is-sao-pixel):not(.is-sao-beam):not(.is-sao-bg):not(.is-sao-unlit),
+.mao-legend-box.is-low-load {
+  background: rgba(16, 185, 129, 0.28);
+}
+
+:root[data-appearance="dark"] .mao-heatmap-cell.is-low-load:not(.is-sao-pixel):not(.is-sao-beam):not(.is-sao-bg):not(.is-sao-unlit),
+:root[data-appearance="dark"] .mao-legend-box.is-low-load {
+  background: #064e3b;
 }
 
 .mao-heatmap-cell.is-medium-load:not(.is-sao-pixel):not(.is-sao-beam):not(.is-sao-bg):not(.is-sao-unlit) {
-  background: #10b981;
+  background: #22c55e;
+  box-shadow: 0 0 5px rgba(34, 197, 94, 0.45);
 }
 
 .mao-heatmap-cell.is-high-load:not(.is-sao-pixel):not(.is-sao-beam):not(.is-sao-bg):not(.is-sao-unlit) {
@@ -1141,25 +2669,25 @@
    彻底杜绝散落选择器造成的权重竞争、深浅模式覆盖与空槽串色。
    ========================================================================== */
 
-/* 1. 默认经典配色（SAO 暖金橙 + 6 维标准指标色）Tokens */
+/* 1. 默认经典配色（活跃传输翠绿 #22c55e + 6 维标准指标色）Tokens */
 :root,
 [data-palette="default"],
 .mao-matrix-section,
 .mao-pattern-canvas {
-  --matrix-boot-pixel-bg: #ff9600;
-  --matrix-boot-pixel-border: rgba(255, 220, 100, 0.9);
-  --matrix-boot-pixel-shadow: 0 0 9px rgba(255, 150, 0, 0.65), 0 0 2px rgba(255, 220, 100, 0.95);
-  --matrix-boot-beam-glow: #ff9600;
-  --matrix-boot-pulse-anim: sao-boot-pulse;
+  --matrix-boot-pixel-bg: #22c55e;
+  --matrix-boot-pixel-border: rgba(134, 239, 172, 0.9);
+  --matrix-boot-pixel-shadow: 0 0 9px rgba(34, 197, 94, 0.65), 0 0 2px rgba(134, 239, 172, 0.95);
+  --matrix-boot-beam-glow: #22c55e;
+  --matrix-boot-pulse-anim: sao-boot-pulse-emerald;
 
-  /* 动效专用典故色谱调度令牌 (默认经典 SAO：暖金橙 + 闪烁白炽金) */
-  --matrix-boot-fx-channel-a: #ff9600;
-  --matrix-boot-fx-channel-b: #ffd700;
-  --matrix-boot-fx-glow-a: rgba(255, 150, 0, 0.9);
-  --matrix-boot-fx-glow-b: rgba(255, 215, 0, 0.9);
-  --matrix-boot-fx-flux: #ff9600;
-  --matrix-boot-fx-flux-border: #ffd700;
-  --matrix-boot-fx-flux-glow: rgba(255, 150, 0, 0.95);
+  /* 动效专用典故色谱调度令牌 (默认经典：活跃翠绿 + 闪烁青亮浅绿) */
+  --matrix-boot-fx-channel-a: #22c55e;
+  --matrix-boot-fx-channel-b: #86efac;
+  --matrix-boot-fx-glow-a: rgba(34, 197, 94, 0.9);
+  --matrix-boot-fx-glow-b: rgba(134, 239, 172, 0.9);
+  --matrix-boot-fx-flux: #22c55e;
+  --matrix-boot-fx-flux-border: #86efac;
+  --matrix-boot-fx-flux-glow: rgba(34, 197, 94, 0.95);
 
   /* 指标卡片 11 维标准图标色（深浅模式保持同一套色值，避免撞色） */
   --metric-connections-color: #10b981;
@@ -1167,13 +2695,27 @@
   --metric-ram-color: #6366f1;
   --metric-disk-color: #f97316;
   --metric-traffic-color: #0284c7;
-  --metric-uptime-color: #06b6d4;
+  --metric-uptime-color: #ff2d55;
   --metric-asset-color: #eab308;
   --metric-nodes-color: #10b981;
   --metric-bandwidth-color: #06b6d4;
   --metric-swap-color: #a855f7;
-  --metric-process-color: #6366f1;
-  --metric-cores-color: #f59e0b;
+  --metric-process-color: #0ea5e9;
+  --metric-cores-color: var(--metric-disk-color, #f97316);
+  --loss-color-good: #8b5cf6;
+  --loss-color-warning: #fbbf24;
+  --loss-color-error: #ef4444;
+  --metric-loss-color: var(--loss-color-good);
+  --metric-yesterdayBest-color: #ff7700;
+}
+
+:root:not([data-appearance="dark"]) {
+  --metric-uptime-color: #e11d48;
+  --loss-color-good: #7c3aed;
+  --loss-color-warning: #d97706;
+  --loss-color-error: #dc2626;
+  --metric-loss-color: var(--loss-color-good);
+  --metric-yesterdayBest-color: #ea580c;
 }
 
 /* 2. EVA 初号机配色（初号机紫 + 荧光绿 + 警告橙）Tokens */
@@ -1196,30 +2738,41 @@
   --matrix-boot-fx-flux-glow: rgba(168, 85, 247, 0.95);
 
   /* 指标卡片 EVA 初号机专属机能色系（默认 / 深色模式：高亮霓虹光感） */
-  --metric-connections-color: #00ff66;
+  --metric-connections-color: #a3e635;
   --metric-cpu-color: #f97316;
   --metric-ram-color: #3b82f6;
-  --metric-disk-color: #f43f5e;
+  --metric-disk-color: #94a3b8;
   --metric-traffic-color: #06b6d4;
-  --metric-uptime-color: #00e5ff;
+  --metric-uptime-color: #ff6347;
   --metric-asset-color: #f59e0b;
-  --metric-nodes-color: #00ff66;
+  --metric-nodes-color: #84cc16;
   --metric-bandwidth-color: #00e5ff;
   --metric-swap-color: #a855f7;
-  --metric-process-color: #38bdf8;
-  --metric-cores-color: #f97316;
+  --metric-process-color: #c084fc;
+  --metric-cores-color: var(--metric-disk-color, #94a3b8);
+  --loss-color-good: #8b5cf6;
+  --loss-color-warning: #facc15;
+  --loss-color-error: #ff003c;
+  --metric-loss-color: var(--loss-color-good);
+  --metric-yesterdayBest-color: #ff7700;
 }
 
-/* EVA 浅色模式特化：活跃连接换为沉稳护眼的高对比机能绿，内存用量换为初号机深紫，舒适且不刺眼 */
+/* EVA 浅色模式特化：活跃连接采用高辨识度翡翠绿，节点在线采用质感青柠绿，硬盘采用机甲深钛灰 */
 :root:not([data-appearance="dark"]) [data-palette="eva"] {
-  --metric-connections-color: #16a34a;
+  --metric-connections-color: #10b981;
   --metric-ram-color: #2563eb;
-  --metric-uptime-color: #0891b2;
-  --metric-nodes-color: #16a34a;
+  --metric-disk-color: #64748b;
+  --metric-uptime-color: #c53030;
+  --metric-nodes-color: #65a30d;
   --metric-bandwidth-color: #0891b2;
   --metric-swap-color: #9333ea;
-  --metric-process-color: #0284c7;
-  --metric-cores-color: #ea580c;
+  --metric-process-color: #8b5cf6;
+  --metric-cores-color: var(--metric-disk-color, #64748b);
+  --loss-color-good: #7c3aed;
+  --loss-color-warning: #facc15;
+  --loss-color-error: #dc2626;
+  --metric-loss-color: var(--loss-color-good);
+  --metric-yesterdayBest-color: #ea580c;
 }
 
 /* 7. 命运石之门 · 辉光数码管配色（纯正真空管放电琥珀暖橙，彻底消灭孤立杂色）Tokens */
@@ -1253,6 +2806,11 @@
   --metric-swap-color: #ff7700;
   --metric-process-color: #ff7700;
   --metric-cores-color: #ff7700;
+  --loss-color-good: #ff7700;
+  --loss-color-warning: #ff7700;
+  --loss-color-error: #ff7700;
+  --metric-loss-color: #ff7700;
+  --metric-yesterdayBest-color: #ff7700;
 }
 
 :root:not([data-appearance="dark"]) [data-palette="divergence"] {
@@ -1268,6 +2826,11 @@
   --metric-swap-color: #ea580c;
   --metric-process-color: #ea580c;
   --metric-cores-color: #ea580c;
+  --loss-color-good: #ea580c;
+  --loss-color-warning: #ea580c;
+  --loss-color-error: #ea580c;
+  --metric-loss-color: #ea580c;
+  --metric-yesterdayBest-color: #ea580c;
 }
 
 
@@ -1278,8 +2841,6 @@
 .mao-matrix-section .mao-heatmap-cell.is-sao-beam,
 .mao-matrix-section .mao-heatmap-cell.is-cyber-glitch-channel-a,
 .mao-matrix-section .mao-heatmap-cell.is-cyber-glitch-channel-b,
-.mao-matrix-section .mao-heatmap-cell.is-cyber-glitch-cyan,
-.mao-matrix-section .mao-heatmap-cell.is-cyber-glitch-magenta,
 .mao-matrix-section .mao-heatmap-cell.is-flux-jumping,
 .mao-heatmap-cell.is-sao-pixel,
 .mao-heatmap-cell.is-sao-bg,
@@ -1287,8 +2848,6 @@
 .mao-heatmap-cell.is-sao-beam,
 .mao-heatmap-cell.is-cyber-glitch-channel-a,
 .mao-heatmap-cell.is-cyber-glitch-channel-b,
-.mao-heatmap-cell.is-cyber-glitch-cyan,
-.mao-heatmap-cell.is-cyber-glitch-magenta,
 .mao-heatmap-cell.is-flux-jumping {
   border-style: solid !important;
   border-width: 1px !important;
@@ -1302,8 +2861,6 @@
 .mao-heatmap-cell.is-sao-beam::after,
 .mao-heatmap-cell.is-cyber-glitch-channel-a::after,
 .mao-heatmap-cell.is-cyber-glitch-channel-b::after,
-.mao-heatmap-cell.is-cyber-glitch-cyan::after,
-.mao-heatmap-cell.is-cyber-glitch-magenta::after,
 .mao-heatmap-cell.is-flux-jumping::after {
   display: none !important;
 }
@@ -1312,6 +2869,7 @@
 .mao-heatmap-cell.is-cyber-glitch-shift-left {
   transform: translateX(-3.5px) !important;
 }
+
 .mao-heatmap-cell.is-cyber-glitch-shift-right {
   transform: translateX(3.5px) !important;
 }
@@ -1319,9 +2877,7 @@
 /* 动效专用色谱调度：神经故障爆闪色散（双通道：主通道 Channel A ✕ 辅助对比通道 Channel B）
    100% 由当前主题的典故色谱驱动，EVA下为紫绿，赛博朋克下为青粉，石头门下为橙金，SAO下为橙黄 */
 .mao-heatmap-cell.is-cyber-glitch-channel-a,
-.mao-pattern-cell.is-cyber-glitch-channel-a,
-.mao-heatmap-cell.is-cyber-glitch-cyan,
-.mao-pattern-cell.is-cyber-glitch-cyan {
+.mao-pattern-cell.is-cyber-glitch-channel-a {
   background: var(--matrix-boot-fx-channel-a, #00f0ff) !important;
   border-color: var(--matrix-boot-fx-channel-a, #38bdf8) !important;
   box-shadow: 0 0 12px var(--matrix-boot-fx-glow-a, rgba(0, 240, 255, 0.95)), 0 0 3px var(--matrix-boot-fx-channel-a, #0284c7) !important;
@@ -1330,9 +2886,7 @@
 }
 
 .mao-heatmap-cell.is-cyber-glitch-channel-b,
-.mao-pattern-cell.is-cyber-glitch-channel-b,
-.mao-heatmap-cell.is-cyber-glitch-magenta,
-.mao-pattern-cell.is-cyber-glitch-magenta {
+.mao-pattern-cell.is-cyber-glitch-channel-b {
   background: var(--matrix-boot-fx-channel-b, #ff007f) !important;
   border-color: var(--matrix-boot-fx-channel-b, #f43f5e) !important;
   box-shadow: 0 0 12px var(--matrix-boot-fx-glow-b, rgba(255, 0, 127, 0.95)), 0 0 3px var(--matrix-boot-fx-channel-b, #e11d48) !important;
@@ -1347,7 +2901,7 @@
   background: var(--_flux-color) !important;
   border-color: var(--matrix-boot-fx-flux-border, color-mix(in srgb, var(--_flux-color) 75%, #ffffff)) !important;
   box-shadow: 0 0 10px var(--matrix-boot-fx-flux-glow, color-mix(in srgb, var(--_flux-color) 75%, transparent)),
-              0 0 3px var(--matrix-boot-fx-flux-border, color-mix(in srgb, var(--_flux-color) 75%, #ffffff)) !important;
+    0 0 3px var(--matrix-boot-fx-flux-border, color-mix(in srgb, var(--_flux-color) 75%, #ffffff)) !important;
   opacity: 0.95 !important;
   z-index: 4;
 }
@@ -1358,7 +2912,7 @@
   background: var(--_flux-color) !important;
   border-color: var(--matrix-boot-fx-flux-border, color-mix(in srgb, var(--_flux-color) 85%, #ffffff)) !important;
   box-shadow: 0 0 12px var(--matrix-boot-fx-flux-glow, color-mix(in srgb, var(--_flux-color) 85%, transparent)),
-              0 0 4px var(--matrix-boot-fx-flux-border, color-mix(in srgb, var(--_flux-color) 85%, #ffffff)) !important;
+    0 0 4px var(--matrix-boot-fx-flux-border, color-mix(in srgb, var(--_flux-color) 85%, #ffffff)) !important;
   opacity: 1 !important;
   z-index: 4;
 }
@@ -1438,11 +2992,56 @@
   transition: all 350ms cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
+@keyframes sao-boot-pulse-mint-dark {
+
+  0%,
+  100% {
+    filter: brightness(1);
+    box-shadow: 0 0 6px rgba(6, 78, 59, 0.6);
+  }
+
+  50% {
+    filter: brightness(1.35);
+    box-shadow: 0 0 14px rgba(52, 211, 153, 0.65), 0 0 3px rgba(110, 231, 183, 0.8);
+  }
+}
+
+@keyframes sao-boot-pulse-mint {
+
+  0%,
+  100% {
+    filter: brightness(1);
+    box-shadow: 0 0 6px rgba(110, 231, 183, 0.5);
+  }
+
+  50% {
+    filter: brightness(1.28);
+    box-shadow: 0 0 15px rgba(110, 231, 183, 0.95), 0 0 3px rgba(209, 250, 229, 0.95);
+  }
+}
+
+@keyframes sao-boot-pulse-emerald {
+
+  0%,
+  100% {
+    filter: brightness(1);
+    box-shadow: 0 0 6px rgba(34, 197, 94, 0.5);
+  }
+
+  50% {
+    filter: brightness(1.28);
+    box-shadow: 0 0 15px rgba(34, 197, 94, 0.95), 0 0 3px rgba(187, 247, 208, 0.95);
+  }
+}
+
 @keyframes sao-boot-pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     filter: brightness(1);
     box-shadow: 0 0 6px rgba(255, 150, 0, 0.5);
   }
+
   50% {
     filter: brightness(1.28);
     box-shadow: 0 0 15px rgba(255, 165, 0, 0.95), 0 0 3px rgba(255, 240, 180, 0.95);
@@ -1450,10 +3049,13 @@
 }
 
 @keyframes sao-boot-pulse-eva {
-  0%, 100% {
+
+  0%,
+  100% {
     filter: brightness(1);
     box-shadow: 0 0 7px rgba(124, 58, 237, 0.65), 0 0 2px rgba(192, 132, 252, 0.7);
   }
+
   50% {
     filter: brightness(1.25);
     box-shadow: 0 0 16px rgba(168, 85, 247, 0.95), 0 0 4px #c084fc;
@@ -1461,10 +3063,13 @@
 }
 
 @keyframes sao-boot-pulse-divergence {
-  0%, 100% {
+
+  0%,
+  100% {
     filter: brightness(1);
     box-shadow: 0 0 7px rgba(255, 119, 0, 0.65), 0 0 2px rgba(254, 215, 170, 0.7);
   }
+
   50% {
     filter: brightness(1.3);
     box-shadow: 0 0 17px rgba(255, 119, 0, 0.95), 0 0 4px #facc15;
@@ -1770,11 +3375,15 @@
 }
 
 .mao-legend-box.is-low-load {
-  background: #34d399;
+  background: rgba(16, 185, 129, 0.28);
+}
+
+:root[data-appearance="dark"] .mao-legend-box.is-low-load {
+  background: #064e3b;
 }
 
 .mao-legend-box.is-medium-load {
-  background: #10b981;
+  background: #22c55e;
 }
 
 .mao-legend-box.is-high-load {
@@ -1813,9 +3422,41 @@
 }
 
 @media (max-width: 768px) {
+  .mao-dashboard-hero {
+    margin-bottom: 20px;
+    padding: 12px;
+    gap: 12px;
+  }
+
   .mao-realtime-charts-grid {
     grid-template-columns: 1fr;
     gap: 8px;
+  }
+
+  /* 移动端集群状态矩阵：消除桌面端强加的 236px 强行拉伸，紧凑包覆并微调内边距 */
+  .mao-cluster-pane {
+    min-height: 0;
+    height: auto;
+  }
+
+  .mao-matrix-section {
+    min-height: 0;
+    height: auto;
+    justify-content: flex-start;
+    gap: 10px;
+    padding: 10px 10px 8px;
+  }
+
+  .mao-progress-container {
+    height: auto;
+    justify-content: flex-start;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .mao-heatmap-grid {
+    padding: 4px 2px;
+    gap: 3px;
   }
 }
 
@@ -1860,9 +3501,14 @@
 .mao-cluster-pane {
   width: 100%;
   height: 100%;
-  min-height: 236px;
   display: flex;
   flex-direction: column;
+}
+
+@media (min-width: 1180px) {
+  .mao-cluster-pane {
+    min-height: 236px;
+  }
 }
 
 @keyframes mao-pane-fade {
@@ -2089,103 +3735,120 @@
   line-height: 1.4;
 }
 
-.overview-card {
-  --metric-accent: var(--text-tertiary);
-  position: relative;
-  display: flex;
-  min-width: 0;
-  min-height: 112px;
-  flex-direction: column;
-  gap: 10px;
-  border: 1px solid var(--hairline);
-  border-radius: 16px;
-  background:
-    radial-gradient(120% 100% at 0% 0%,
-      color-mix(in srgb, var(--metric-accent) 6%, transparent) 0%,
-      transparent 52%),
-    linear-gradient(180deg,
-      color-mix(in srgb, var(--surface-elev-a) 96%, white 4%) 0%,
-      var(--surface-a) 100%);
-  padding: 14px 16px;
-}
-
-.overview-card[data-metric="online"] {
-  --metric-accent: var(--status-success);
-}
-
-.overview-card[data-metric="traffic"] {
-  --metric-accent: var(--traffic-up);
-}
-
-.overview-card[data-metric="bandwidth"] {
-  --metric-accent: var(--speed-high);
-}
-
-.overview-card[data-metric="uptime"] {
-  --metric-accent: var(--status-success);
-}
-
-.overview-card[data-metric="asset"] {
-  --metric-accent: var(--accent-500);
-}
-
-/* 暗色依靠表面色阶建立层级，不叠白色顶光或指标色氛围。 */
-:root[data-appearance="dark"] .overview-card {
-  background: var(--surface-a);
-}
-
-.overview-card-head {
-  display: flex;
-  min-width: 0;
+/* 概览小卡右上角烙印交互图标 (流量图表入口与资产入口) */
+.overview-card-action,
+.mao-stat-action {
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.overview-card-label {
-  min-width: 0;
-  overflow: hidden;
-  color: var(--text-tertiary);
-  font-size: 11px;
-  font-weight: 650;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.overview-card-action {
-  display: grid;
-  width: 24px;
-  min-width: 24px;
-  height: 24px;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
   flex: 0 0 auto;
-  place-items: center;
-  border: 0;
+  padding: 0;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
   border-radius: 4px;
-  background: transparent;
-  color: var(--text-secondary);
-  box-shadow: none;
-  opacity: 0.82;
+  color: var(--text-muted);
+  text-decoration: none;
+  opacity: 0;
+  pointer-events: none;
   transition:
-    color 160ms ease,
-    opacity 160ms ease,
-    transform 160ms ease;
+    opacity 180ms ease,
+    color 150ms ease,
+    transform 150ms ease;
 }
 
-.overview-card-action:hover {
-  background: transparent;
+/* 仅在鼠标悬停或触控/键盘焦点在卡片上时显现 (烙印感) */
+.mao-stat-card .renewal-reminder {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 180ms ease;
+}
+
+/* 桌面精密鼠标环境 (@media (hover: hover) and (pointer: fine))：
+   移开鼠标即刻优雅消隐；即便卡片曾被鼠标点击聚焦，也不赖在右上角；
+   若通过键盘 Tab 键将焦点导航至入口按钮本身 (:focus-visible)，仍清晰高亮。
+   触控/移动端设备：点击卡片通过 focus-within 呼出，或打开弹层常驻。 */
+@media (hover: hover) and (pointer: fine) {
+  .mao-stat-card:hover .renewal-reminder,
+  .mao-stat-card .renewal-reminder:focus-within,
+  .mao-stat-card.is-popover-open .renewal-reminder {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .mao-stat-card:hover .overview-card-action,
+  .mao-stat-card:hover .mao-stat-action,
+  .mao-stat-card .overview-card-action:focus-visible,
+  .mao-stat-card .mao-stat-action:focus-visible,
+  .mao-stat-card.is-popover-open .overview-card-action,
+  .mao-stat-card.is-popover-open .mao-stat-action {
+    opacity: 0.6;
+    pointer-events: auto;
+  }
+}
+
+@media not all and (hover: hover) and (pointer: fine) {
+  .mao-stat-card.is-active .renewal-reminder,
+  .mao-stat-card.is-popover-open .renewal-reminder {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .mao-stat-card.is-active .overview-card-action,
+  .mao-stat-card.is-active .mao-stat-action,
+  .mao-stat-card.is-popover-open .overview-card-action,
+  .mao-stat-card.is-popover-open .mao-stat-action {
+    opacity: 0.6;
+    pointer-events: auto;
+  }
+
+  /* 移动触控端扩大热区至 40px，手指随手一按就能稳稳点中 */
+  .overview-card-action,
+  .mao-stat-action {
+    position: relative;
+  }
+
+  .overview-card-action::before,
+  .mao-stat-action::before {
+    content: "";
+    position: absolute;
+    inset: -10px;
+    z-index: 1;
+  }
+}
+
+/* 鼠标直接悬停在图标本身时加深烙印质感并微动效 */
+.overview-card-action:hover,
+.mao-stat-action:hover {
+  opacity: 1 !important;
   color: var(--text-primary);
-  opacity: 1;
+  transform: scale(1.08);
 }
 
-.overview-card-action:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--text-secondary) 54%, transparent);
+.overview-card-action:focus-visible,
+.mao-stat-action:focus-visible {
+  opacity: 1 !important;
+  color: var(--text-primary);
+  outline: 2px solid color-mix(in srgb, var(--accent-500) 65%, transparent);
   outline-offset: 2px;
 }
 
-.overview-card-action:active {
-  transform: scale(0.94);
+.overview-card-action:active,
+.mao-stat-action:active {
+  transform: scale(0.92);
+}
+
+.mao-stat-card:focus {
+  outline: none;
+}
+
+.mao-stat-card:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent-500) 65%, transparent);
+  outline-offset: 2px;
 }
 
 /* 续费提醒复用资产入口，不另占首页内容流。平时只露一个轻量角标，弹层覆盖展开，
@@ -2210,6 +3873,7 @@
   border-radius: 999px;
   background: color-mix(in srgb, var(--status-error) 72%, white 28%);
   box-sizing: content-box;
+  pointer-events: none;
   animation: renewal-reminder-breathe 2.4s ease-in-out infinite;
 }
 
@@ -2220,6 +3884,7 @@
   border: 1px solid color-mix(in srgb, var(--status-error) 56%, transparent);
   border-radius: inherit;
   opacity: 0;
+  pointer-events: none;
   transform: scale(0.72);
   animation: renewal-reminder-ring 2.4s ease-out infinite;
 }
@@ -2265,15 +3930,14 @@
   z-index: 120;
   width: min(360px, calc(100vw - 32px));
   overflow: hidden;
-  border: 1px solid rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.85);
   border-radius: 16px;
-  background: rgba(244, 245, 247, 0.96);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
   box-shadow:
-    0 16px 40px -12px rgba(15, 23, 42, 0.15),
-    0 4px 12px -4px rgba(15, 23, 42, 0.06),
-    0 0 0 1px rgba(0, 0, 0, 0.03);
+    0 16px 40px -8px rgba(0, 0, 0, 0.12),
+    0 4px 12px -2px rgba(0, 0, 0, 0.04);
   color: var(--text-primary);
   transform-origin: top right;
   animation: shadcn-hover-card-in 180ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
@@ -2293,13 +3957,11 @@
 
 :root[data-appearance="dark"] .renewal-reminder-panel,
 :root[data-appearance="dark"] .shadcn-hover-card {
-  background: rgba(20, 20, 23, 0.94);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border-color: rgba(255, 255, 255, 0.06);
-  box-shadow:
-    0 20px 48px -12px rgba(0, 0, 0, 0.7),
-    0 0 0 1px rgba(255, 255, 255, 0.04);
+  background: rgba(20, 20, 24, 0.82);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 20px 48px -8px rgba(0, 0, 0, 0.7);
 }
 
 @keyframes shadcn-hover-card-in {
@@ -2360,24 +4022,47 @@
 
 .renewal-reminder-close {
   display: grid;
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   flex: 0 0 auto;
   place-items: center;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--text-tertiary);
-  transition: background 160ms ease, color 160ms ease;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.75);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  color: var(--text-secondary);
+  cursor: pointer;
+  outline: none;
+  transition: all 160ms ease;
+}
+
+.renewal-reminder-close:focus,
+.renewal-reminder-close:focus-visible {
+  outline: none;
+}
+
+:root[data-appearance="dark"] .renewal-reminder-close {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  color: var(--text-secondary);
 }
 
 .renewal-reminder-close:hover {
-  background: rgba(0, 0, 0, 0.06);
+  background: rgba(255, 255, 255, 0.98);
+  border-color: rgba(0, 0, 0, 0.16);
   color: var(--text-primary);
+  transform: scale(1.05);
 }
 
 :root[data-appearance="dark"] .renewal-reminder-close:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.22);
+  color: var(--text-primary);
+}
+
+.renewal-reminder-close:active {
+  transform: scale(0.95);
 }
 
 .renewal-reminder-list {
@@ -2395,17 +4080,17 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 12px;
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.78);
   padding: 11px 13px;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.03);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
 }
 
 :root[data-appearance="dark"] .renewal-reminder-row {
-  background: #161618;
-  border-color: rgba(255, 255, 255, 0.06);
-  box-shadow: none;
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.09);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 .renewal-reminder-row-main {
@@ -2472,14 +4157,14 @@
   align-items: center;
   justify-content: flex-end;
   gap: 7px;
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
-  background: rgba(0, 0, 0, 0.02);
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  background: rgba(255, 255, 255, 0.45);
   padding: 10px 14px 12px;
 }
 
 :root[data-appearance="dark"] .renewal-reminder-actions {
-  border-top-color: rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.02);
+  border-top-color: rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.2);
 }
 
 .renewal-reminder-actions a,
@@ -2510,15 +4195,15 @@
   align-items: stretch;
   border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 9px;
-  background: #ffffff;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
   overflow: hidden;
 }
 
 :root[data-appearance="dark"] .renewal-reminder-btn-group {
-  background: #1c1c1f;
-  border-color: rgba(255, 255, 255, 0.1);
-  box-shadow: none;
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 .renewal-reminder-later,
@@ -2577,18 +4262,14 @@
   color: var(--text-primary);
 }
 
-@media (max-width: 520px) {
+/* 移动端/触控屏幕（<=768px 或非精细鼠标）：禁用大浮层弹出，点击直达 /assets 资产详情页 */
+@media (max-width: 768px), not all and (hover: hover) and (pointer: fine) {
   .renewal-reminder-panel {
-    position: fixed;
-    top: auto;
-    right: 12px;
-    bottom: 12px;
-    left: 12px;
-    width: auto;
-    max-height: min(72vh, 620px);
-    border-radius: 18px;
+    display: none !important;
   }
+}
 
+@media (max-width: 520px) {
   .renewal-reminder-actions {
     flex-wrap: wrap;
   }
@@ -2616,84 +4297,6 @@
     opacity: 1;
     transform: none;
   }
-}
-
-.overview-card-main {
-  display: flex;
-  flex: 1;
-  min-width: 0;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.overview-card-value {
-  display: flex;
-  min-width: 0;
-  align-items: baseline;
-  gap: 4px;
-  color: var(--text-primary);
-  font-size: 28px;
-  font-weight: 760;
-  line-height: 1;
-  letter-spacing: -0.01em;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.overview-card-unit {
-  color: var(--text-tertiary);
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0;
-}
-
-/* 在线数量是首卡的辅助状态，略小于流量、带宽等核心指标。 */
-.overview-card[data-metric="online"] .overview-card-value {
-  font-size: 24px;
-}
-
-.overview-card[data-metric="online"] .overview-card-unit {
-  font-size: 12px;
-}
-
-.overview-card-sub {
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  color: var(--text-secondary);
-  font-size: 12px;
-  font-weight: 560;
-  line-height: 1.2;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  font-variant-numeric: tabular-nums;
-}
-
-.overview-card-sub-compact {
-  display: none;
-}
-
-.overview-card-footer {
-  display: flex;
-  min-width: 0;
-  margin-top: auto;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-/* 底部小字说明(如资产卡的「实时汇率计算」)。 */
-.overview-card-caption {
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  color: var(--text-tertiary);
-  font-size: 11px;
-  font-weight: 500;
-  line-height: 1.2;
-  white-space: nowrap;
-  text-overflow: ellipsis;
 }
 
 /* 带宽评级徽章变体：格式与集群状态 .mao-status-pill 保持一致 */
@@ -3008,41 +4611,116 @@
 
 /* EVA 初号机：带宽指示灯专属同步脉冲 */
 @keyframes bandwidth-pulse-eva-0 {
-  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 var(--badge-glow, rgba(124, 58, 237, 0.45)); }
-  50% { opacity: 0.35; box-shadow: 0 0 5px 1.5px var(--badge-glow, rgba(124, 58, 237, 0.45)); }
+
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 var(--badge-glow, rgba(124, 58, 237, 0.45));
+  }
+
+  50% {
+    opacity: 0.35;
+    box-shadow: 0 0 5px 1.5px var(--badge-glow, rgba(124, 58, 237, 0.45));
+  }
 }
 
 @keyframes bandwidth-pulse-eva-1 {
-  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 var(--badge-glow, rgba(5, 150, 105, 0.45)); }
-  50% { opacity: 0.35; box-shadow: 0 0 5px 1.5px var(--badge-glow, rgba(5, 150, 105, 0.45)); }
+
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 var(--badge-glow, rgba(5, 150, 105, 0.45));
+  }
+
+  50% {
+    opacity: 0.35;
+    box-shadow: 0 0 5px 1.5px var(--badge-glow, rgba(5, 150, 105, 0.45));
+  }
 }
 
 @keyframes bandwidth-pulse-eva-2 {
-  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 var(--badge-glow, rgba(234, 88, 12, 0.45)); }
-  50% { opacity: 0.35; box-shadow: 0 0 5px 1.5px var(--badge-glow, rgba(234, 88, 12, 0.45)); }
+
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 var(--badge-glow, rgba(234, 88, 12, 0.45));
+  }
+
+  50% {
+    opacity: 0.35;
+    box-shadow: 0 0 5px 1.5px var(--badge-glow, rgba(234, 88, 12, 0.45));
+  }
 }
 
 @keyframes bandwidth-pulse-eva-3 {
-  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 var(--badge-glow, rgba(220, 38, 38, 0.45)); }
-  50% { opacity: 0.35; box-shadow: 0 0 6px 2px var(--badge-glow, rgba(220, 38, 38, 0.45)); }
+
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 var(--badge-glow, rgba(220, 38, 38, 0.45));
+  }
+
+  50% {
+    opacity: 0.35;
+    box-shadow: 0 0 6px 2px var(--badge-glow, rgba(220, 38, 38, 0.45));
+  }
 }
 
 /* 命运石之门：带宽指示灯专属同步脉冲 */
 @keyframes bandwidth-pulse-div-0 {
-  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 var(--badge-glow, rgba(168, 162, 158, 0.45)); }
-  50% { opacity: 0.35; box-shadow: 0 0 5px 1.5px var(--badge-glow, rgba(168, 162, 158, 0.45)); }
+
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 var(--badge-glow, rgba(168, 162, 158, 0.45));
+  }
+
+  50% {
+    opacity: 0.35;
+    box-shadow: 0 0 5px 1.5px var(--badge-glow, rgba(168, 162, 158, 0.45));
+  }
 }
+
 @keyframes bandwidth-pulse-div-1 {
-  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 var(--badge-glow, rgba(255, 119, 0, 0.5)); }
-  50% { opacity: 0.35; box-shadow: 0 0 5px 1.5px var(--badge-glow, rgba(255, 119, 0, 0.5)); }
+
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 var(--badge-glow, rgba(255, 119, 0, 0.5));
+  }
+
+  50% {
+    opacity: 0.35;
+    box-shadow: 0 0 5px 1.5px var(--badge-glow, rgba(255, 119, 0, 0.5));
+  }
 }
+
 @keyframes bandwidth-pulse-div-2 {
-  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 var(--badge-glow, rgba(250, 204, 21, 0.5)); }
-  50% { opacity: 0.35; box-shadow: 0 0 5px 1.5px var(--badge-glow, rgba(250, 204, 21, 0.5)); }
+
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 var(--badge-glow, rgba(250, 204, 21, 0.5));
+  }
+
+  50% {
+    opacity: 0.35;
+    box-shadow: 0 0 5px 1.5px var(--badge-glow, rgba(250, 204, 21, 0.5));
+  }
 }
+
 @keyframes bandwidth-pulse-div-3 {
-  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 var(--badge-glow, rgba(244, 63, 94, 0.6)); }
-  50% { opacity: 0.35; box-shadow: 0 0 6px 2px var(--badge-glow, rgba(244, 63, 94, 0.6)); }
+
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 var(--badge-glow, rgba(244, 63, 94, 0.6));
+  }
+
+  50% {
+    opacity: 0.35;
+    box-shadow: 0 0 6px 2px var(--badge-glow, rgba(244, 63, 94, 0.6));
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -3051,60 +4729,6 @@
   }
 }
 
-/* 在线条:左绿=在线、右红=离线,中间中性轨道=未知。初始用中性而非红色,避免指标
-   到达前首帧闪红;随后绿/红从两端同时长入。准确的「12 / 14」就在其上方,所以这条
-   只作快速一瞥用。 */
-.overview-bar {
-  display: flex;
-  justify-content: space-between;
-  height: 6px;
-  width: 100%;
-  overflow: hidden;
-  border-radius: 999px;
-  background: var(--progress-bg);
-}
-
-.overview-bar-online,
-.overview-bar-offline {
-  height: 100%;
-  transition: width 320ms ease;
-}
-
-.overview-bar-online {
-  background: var(--overview-online);
-}
-
-.overview-bar-offline {
-  background: var(--overview-offline);
-}
-
-/* 块状版(节点数 5–10):每台一格,规格与主题分段格(MetricBar 的 canvas 分段)
-   一致——10px 高、2px 间隙、2px 圆角、内阴影,读作有厚度的格子而非切条。颜色与
-   .overview-bar-online/offline 同源,保持同步;默认格为中性底色,只有真离线才变红,避免条状那种「首帧闪红」。 */
-.overview-blocks {
-  display: flex;
-  gap: 2px;
-  height: 10px;
-  width: 100%;
-}
-
-.overview-block {
-  flex: 1 1 0;
-  min-width: 0;
-  height: 100%;
-  border-radius: 2px;
-  background: var(--progress-bg);
-  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.18);
-  transition: background 320ms ease;
-}
-
-.overview-block.is-online {
-  background: var(--overview-online);
-}
-
-.overview-block.is-offline {
-  background: var(--overview-offline);
-}
 
 .home-group-tabs {
   display: inline-flex;
@@ -3169,47 +4793,6 @@
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 
-@media (max-width: 680px) {
-  .overview-card {
-    min-height: 100px;
-    border-radius: 14px;
-    padding: 12px 13px;
-    gap: 8px;
-  }
-
-  .overview-card-value {
-    font-size: 24px;
-  }
-
-  .overview-card[data-metric="online"] .overview-card-value {
-    font-size: 21px;
-  }
-
-  .overview-card[data-metric="online"] .overview-card-unit {
-    font-size: 11px;
-  }
-
-  .overview-card-footer {
-    gap: 6px;
-  }
-
-  .overview-card-sub {
-    font-size: 11px;
-    font-weight: 620;
-  }
-
-  .overview-card-sub-full {
-    display: none;
-  }
-
-  .overview-card-sub-compact {
-    display: inline;
-  }
-
-  .overview-card-caption {
-    font-size: 10px;
-  }
-}
 
 @media (max-width: 560px) {
   .home-group-tabs {
@@ -3276,6 +4859,7 @@
   0% {
     transform: translate3d(0, 0, 0);
   }
+
   100% {
     transform: translate3d(-33.333333%, 0, 0);
   }
@@ -3420,7 +5004,7 @@
   align-items: center;
 }
 
-.home-controls-bar + .home-region-bar {
+.home-controls-bar+.home-region-bar {
   margin-top: -4px;
 }
 
@@ -3563,40 +5147,6 @@
 .home-overview.is-dense {
   gap: 10px;
   margin-bottom: 14px;
-}
-
-.home-overview.is-dense .overview-card {
-  min-height: 0;
-  gap: 6px;
-  border-radius: 12px;
-  padding: 10px 13px;
-}
-
-.home-overview.is-dense .overview-card-label {
-  font-size: 10px;
-  letter-spacing: 0.1em;
-}
-
-.home-overview.is-dense .overview-card-value {
-  font-size: 21px;
-}
-
-.home-overview.is-dense .overview-card-unit {
-  font-size: 11px;
-}
-
-.home-overview.is-dense .overview-card[data-metric="online"] .overview-card-value {
-  font-size: 19px;
-}
-
-.home-overview.is-dense .overview-card[data-metric="online"] .overview-card-unit {
-  font-size: 10px;
-}
-
-.home-overview.is-dense .overview-card-action {
-  width: 22px;
-  min-width: 22px;
-  height: 22px;
 }
 
 @media (max-width: 480px) {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { LoadRecord } from "@/types/komari";
 import {
+  buildClusterHourlyTrafficBuckets,
   buildTodayTrafficMetricSamples,
   buildTodayTrafficRecordSamples,
   RATE_DOWN_METRIC,
@@ -81,6 +82,34 @@ describe("today traffic stats", () => {
       hasSamples: true,
     });
     expect(stats[1]).toMatchObject({ uuid: "node-b", hasSamples: false, sampleCount: 0 });
+  });
+
+  it("builds 7 cluster hourly traffic buckets correctly with latest hour on the right", () => {
+    const now = Date.parse("2026-10-31T15:30:00Z");
+    const currentHour = new Date(now - 10 * 60 * 1000).toISOString(); // 15:20 (current hour bucket: index 6)
+    const h2Ago = new Date(now - 2 * 3600 * 1000).toISOString(); // 13:30 (bucket: index 4)
+
+    const series: TrafficMetricSeries[] = [
+      metricSeries(TRAFFIC_UP_METRIC, [
+        [currentHour, 1000],
+        [h2Ago, 500],
+      ]),
+      metricSeries(TRAFFIC_DOWN_METRIC, [
+        [currentHour, 2000],
+        [h2Ago, 1500],
+      ]),
+    ];
+
+    const buckets = buildClusterHourlyTrafficBuckets(series, now, 7);
+
+    expect(buckets).toHaveLength(7);
+    // Index 6 is the latest hour (currentHour: up 1000, down 2000, total 3000)
+    expect(buckets[6]).toEqual({ up: 1000, down: 2000, total: 3000 });
+    // Index 4 is 2 hours ago (h2Ago: up 500, down 1500, total 2000)
+    expect(buckets[4]).toEqual({ up: 500, down: 1500, total: 2000 });
+    // Other buckets should be 0
+    expect(buckets[0]).toEqual({ up: 0, down: 0, total: 0 });
+    expect(buckets[5]).toEqual({ up: 0, down: 0, total: 0 });
   });
 
   it("derives counter deltas across resets for the compatibility path", () => {

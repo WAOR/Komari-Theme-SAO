@@ -510,6 +510,7 @@
   }
 }
 
+
 /* 设置项卡片式选择网格（2个选项平分整行，撑满面板版面） */
 .setting-mode-cards {
   display: grid;
@@ -972,6 +973,15 @@
   font-size: 13px;
 }
 
+.theme-manage-search-input,
+.theme-manage-search-input:focus,
+.theme-manage-search-input:focus-visible {
+  outline: none !important;
+  outline-offset: 0 !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
 .control-group {
   display: inline-flex;
   align-items: center;
@@ -1045,6 +1055,7 @@
   font-weight: 700;
   letter-spacing: 0.16em;
 }
+
 
 /* 带 kicker 的面板(主题管理各分区)标题区加一道发丝下线,读作报告的分节。 */
 .instance-panel.has-kicker .instance-panel-header {
@@ -2024,9 +2035,6 @@
   overflow: visible;
 }
 
-.setting-control {
-  width: 100%;
-}
 
 .setting-select {
   position: relative;
@@ -2042,6 +2050,16 @@
   appearance: none;
   cursor: pointer;
   text-overflow: ellipsis;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.setting-select > select:focus,
+.setting-select > select:focus-visible {
+  outline: none !important;
+  outline-offset: 0 !important;
+  box-shadow: none !important;
+  border-color: var(--border-strong);
 }
 
 .setting-select-icon {
@@ -2130,6 +2148,50 @@
   text-align: left;
   cursor: pointer;
   transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease;
+}
+
+.theme-tab-label {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* 发现新版本更新时，帮助 Tab 标签旁展示精致红点角标 */
+.theme-tab-badge-dot {
+  position: absolute;
+  top: -2px;
+  right: -7px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--status-error, #ef4444);
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.7);
+  pointer-events: none;
+}
+
+.theme-tab-badge-dot::after {
+  content: "";
+  position: absolute;
+  inset: -1.5px;
+  border-radius: 50%;
+  background-color: var(--status-error, #ef4444);
+  opacity: 0.6;
+  animation: sao-pulse-ring-badge 2s cubic-bezier(0.24, 0, 0.38, 1) infinite;
+}
+
+@keyframes sao-pulse-ring-badge {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.7;
+  }
+  60% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
 }
 
 .theme-tab:hover {

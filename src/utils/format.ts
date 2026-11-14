@@ -35,6 +35,36 @@ export function joinDisplayParts(parts: Array<string | null | undefined>) {
     .join(" · ");
 }
 
+/**
+ * 仪表盘数值智能紧凑格式化（防小屏卡片数字与微图重叠）：
+ * 1. 默认 threshold = 10,000（活跃连接、活跃进程等带单位小卡）：
+ *    - < 10,000 (1~4 位数)：完整显示千分位（如 520, 1,250, 9,999）；
+ *    - 10,000 ~ 999,999 (5~6 位数)：转为 K 缩写（如 10K, 12.2K, 125K）；
+ *    - >= 1,000,000 (百万级及以上)：转为 M 缩写（如 1.2M）。
+ * 2. 支持自定义 threshold：
+ *    - 资产总值主数字（无单位后缀，空间充裕）：threshold = 1,000,000（6位数内完整千分位，7位数百万级才缩写）；
+ *    - 剩余价值（需直观感知每日折旧减少）：threshold = 10,000,000（千万以内均完整千分位，千万级及以上才缩写）。
+ */
+export function formatCompactNumber(
+  n: number | undefined | null,
+  threshold: number = 10_000,
+): string {
+  if (n == null || !Number.isFinite(n) || n <= 0) return "0";
+  if (n < threshold) {
+    return Math.round(n).toLocaleString();
+  }
+  if (n < 1_000_000) {
+    const k = n / 1000;
+    return k >= 100 ? `${Math.round(k)}K` : `${trimFixed(k, 1)}K`;
+  }
+  if (n < 1_000_000_000) {
+    const m = n / 1_000_000;
+    return m >= 100 ? `${Math.round(m)}M` : `${trimFixed(m, 1)}M`;
+  }
+  const b = n / 1_000_000_000;
+  return b >= 100 ? `${Math.round(b)}B` : `${trimFixed(b, 1)}B`;
+}
+
 export function formatBytes(n: number | undefined | null): string {
   if (!n || n < 0 || !Number.isFinite(n)) return "0 B";
   let idx = 0;

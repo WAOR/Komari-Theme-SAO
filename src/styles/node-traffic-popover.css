@@ -37,22 +37,21 @@
   border-radius: 7px;
 }
 
-/* shadcn HoverCard 纯净卡片质感容器 */
+/* shadcn HoverCard 透白磨砂质感容器 */
 .node-traffic-popover {
   position: fixed;
   z-index: 90;
   width: 268px;
   padding: 14px 16px;
-  border-radius: 14px;
-  /* 纯净高遮盖力底色，配合磨砂，绝不透底 */
-  background: rgba(255, 255, 255, 0.98);
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 16px;
+  /* 82% 纯净透白 + 强高斯模糊 + 均匀发丝微边框与立体柔和阴影 */
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.85);
   box-shadow:
-    0 10px 30px -4px rgba(0, 0, 0, 0.1),
-    0 4px 12px -2px rgba(0, 0, 0, 0.05),
-    0 0 0 1px rgba(0, 0, 0, 0.03);
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
+    0 16px 36px -6px rgba(0, 0, 0, 0.12),
+    0 4px 12px -2px rgba(0, 0, 0, 0.04);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
   color: var(--text-primary);
   font-size: 12px;
   line-height: 1.5;
@@ -61,12 +60,13 @@
 }
 
 :root[data-appearance="dark"] .node-traffic-popover {
-  background: rgba(24, 24, 27, 0.96);
+  background: rgba(20, 20, 24, 0.82);
   border-color: rgba(255, 255, 255, 0.12);
   box-shadow:
-    0 16px 40px -6px rgba(0, 0, 0, 0.6),
-    0 4px 16px -2px rgba(0, 0, 0, 0.4),
-    0 0 0 1px rgba(255, 255, 255, 0.06);
+    0 20px 48px -8px rgba(0, 0, 0, 0.7),
+    0 4px 16px -2px rgba(0, 0, 0, 0.4);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
 }
 
 @keyframes node-traffic-hovercard-in {

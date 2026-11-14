@@ -11,10 +11,6 @@ const DEFAULT_LABELS: Record<OverviewRatingKind, readonly string[]> = {
   bandwidth: ["IDLE", "LIGHT", "ACTIVE", "SURGE"],
 };
 
-export function getDefaultOverviewRatingLabelText(kind: OverviewRatingKind = "bandwidth") {
-  return DEFAULT_LABELS[kind].join(",");
-}
-
 export function normalizeOverviewRatingLabels(
   kind: OverviewRatingKind = "bandwidth",
   customLabels: string | null | undefined,
@@ -29,7 +25,7 @@ export function normalizeOverviewRatingLabels(
 }
 
 function levelFromThresholds(value: number, thresholds: readonly [number, number, number]): 0 | 1 | 2 | 3 {
-  if (value <= thresholds[0]) return 0;
+  if (!Number.isFinite(value) || value <= thresholds[0]) return 0;
   if (value <= thresholds[1]) return 1;
   if (value <= thresholds[2]) return 2;
   return 3;

@@ -107,6 +107,99 @@ export const NodeCard = memo(function NodeCard({
     osName,
   } = model;
   const showConnections = themeSettings.isReady && themeSettings.showConnections;
+  const isLayered = themeSettings.serverCardTemplate === "layered";
+
+  if (isLayered) {
+    return (
+      <article
+        id={`node-card-${uuid}`}
+        className={clsx("server-card is-layered", isOffline && "is-offline")}
+      >
+        <div className="server-card-layered-top">
+          <div className="server-card-content">
+            <NodeCardHeader
+              node={node}
+              subtitle={subtitle}
+              osName={osName}
+              showTodayTraffic={showTodayTraffic}
+            />
+
+            <div className="server-card-stack">
+              <NodeMetricSection
+                node={node}
+                loadFraction={loadFraction}
+                redrawKey={redrawKey}
+              />
+
+              <NodeTrafficSection
+                node={node}
+                upRate={upRate}
+                downRate={downRate}
+                trafficTrend={trafficTrend}
+                isOnline={isOnline}
+                redrawKey={redrawKey}
+              />
+
+              <NodeTrafficQuota
+                litCount={trafficQuotaLitCount(traffic.fraction)}
+                remainingLabel={traffic.remainingLabel}
+                detail={traffic.detail}
+                typeLabel={traffic.typeLabel}
+                segmentColors={trafficSegmentColors}
+              />
+
+              {showConnections && (
+                <div className="card-metric-section server-card-meta-grid">
+                  <FooterStat
+                    icon={<Network size={13} strokeWidth={2} />}
+                    label="TCP 连接"
+                    value={node.connectionsTcp.toLocaleString()}
+                    color="var(--progress-network)"
+                  />
+                  <FooterStat
+                    icon={<Network size={13} strokeWidth={2} />}
+                    label="UDP 连接"
+                    value={node.connectionsUdp.toLocaleString()}
+                    color="var(--progress-network)"
+                  />
+                </div>
+              )}
+            </div>
+
+            <NodeCardFooter
+              expire={expire}
+              expireColor={expireColor}
+              uptime={uptime}
+              footerTags={footerTags}
+              renewalPrice={renewalPrice}
+            />
+          </div>
+        </div>
+
+        <div className="server-card-layered-bottom">
+          {homepagePingLines.length >= HOMEPAGE_MULTI_PING_MIN_COUNT ? (
+            <MultiPingStatus
+              lines={homepagePingLines}
+              density="large"
+              className="card-metric-section layered-multi-ping"
+            />
+          ) : (
+            <NodeHealthSection
+              ping={ping}
+              pingBuckets={pingBuckets}
+              redrawKey={redrawKey}
+              hasRealHomepagePingBinding={hasRealHomepagePingBinding}
+              shouldRenderPingBars={shouldRenderPingBars}
+              pingLoading={pingLoading}
+              pingError={pingError}
+              latencyColor={latencyColor}
+              lossColor={lossColor}
+            />
+          )}
+        </div>
+      </article>
+    );
+  }
 
   return (
     <article

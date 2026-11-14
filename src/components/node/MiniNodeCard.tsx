@@ -18,6 +18,7 @@ import { IpStackBadges } from "./IpStackBadges";
 import { NodeTodayTrafficPopover } from "./NodeTodayTrafficPopover";
 import { HealthBucketTooltip } from "./HealthBucketTooltip";
 import { useNodeCardModel } from "@/hooks/useNodeCardModel";
+import { useThemeSettings } from "@/hooks/useThemeSettings";
 import { speedRateColor } from "@/utils/metricTone";
 import { supportsFineHover } from "@/utils/mediaQuery";
 import {
@@ -403,6 +404,7 @@ export const MiniNodeCard = memo(function MiniNodeCard({
   const model = useNodeCardModel(uuid, {
     pingBucketCount: HEALTH_BAR_COUNT,
   });
+  const themeSettings = useThemeSettings();
 
   if (!model.node) {
     return <article className="mini-node-card animate-pulse" aria-busy />;
@@ -425,6 +427,38 @@ export const MiniNodeCard = memo(function MiniNodeCard({
     isOffline,
     osName,
   } = model;
+  const isLayered = themeSettings.serverCardTemplate === "layered";
+
+  if (isLayered) {
+    return (
+      <article
+        id={`node-card-${uuid}`}
+        className={clsx("mini-node-card is-layered", isOffline && "is-offline")}
+      >
+        <div className="server-card-layered-top">
+          <MiniHeader
+            node={node}
+            osName={osName}
+            showTodayTraffic={showTodayTraffic}
+          />
+          <MiniChips tags={footerTags} renewalPrice={renewalPrice} ipv4={node.ipv4} ipv6={node.ipv6} />
+          <MiniVitals node={node} loadFraction={loadFraction} />
+          <MiniFlow node={node} upRate={upRate} downRate={downRate} />
+        </div>
+        <div className="server-card-layered-bottom">
+          <MiniHealth
+            ping={ping}
+            pingBuckets={pingBuckets}
+            latencyColor={latencyColor}
+            lossColor={lossColor}
+            hasRealHomepagePingBinding={hasRealHomepagePingBinding}
+            pingLoading={pingLoading}
+            pingError={pingError}
+          />
+        </div>
+      </article>
+    );
+  }
 
   return (
     <article

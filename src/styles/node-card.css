@@ -689,3 +689,266 @@
     gap: 12px;
   }
 }
+
+/* ==========================================================================
+   双层底座卡片模板 (Layered Chassis Template)
+   ========================================================================== */
+
+.server-card.is-layered,
+.compact-node-card.is-layered,
+.mini-node-card.is-layered {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: rgba(235, 239, 244, 0.55);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  border-radius: 18px;
+  box-shadow:
+    0 2px 12px -2px rgba(0, 0, 0, 0.03),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  padding: 6px 6px 7px 6px;
+  gap: 6px;
+  overflow: visible;
+  transition:
+    border-color 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+:root[data-appearance="dark"] .server-card.is-layered,
+:root[data-appearance="dark"] .compact-node-card.is-layered,
+:root[data-appearance="dark"] .mini-node-card.is-layered {
+  background: linear-gradient(180deg, rgba(24, 24, 28, 0.85) 0%, rgba(17, 17, 20, 0.85) 100%);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 4px 20px -2px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.server-card.is-layered:hover,
+.compact-node-card.is-layered:hover,
+.mini-node-card.is-layered:hover {
+  background: rgba(230, 235, 242, 0.7);
+  border-color: rgba(0, 0, 0, 0.09);
+  box-shadow:
+    0 12px 28px -4px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  transform: translateY(-2px);
+}
+
+:root[data-appearance="dark"] .server-card.is-layered:hover,
+:root[data-appearance="dark"] .compact-node-card.is-layered:hover,
+:root[data-appearance="dark"] .mini-node-card.is-layered:hover {
+  background: linear-gradient(180deg, rgba(27, 27, 32, 0.9) 0%, rgba(19, 19, 23, 0.9) 100%);
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow:
+    0 14px 34px -4px rgba(0, 0, 0, 0.65),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  transform: translateY(-2px);
+}
+
+/* 顶层悬浮卡片：透明磨砂质感，承载服务器常规指标 */
+.server-card.is-layered .server-card-layered-top,
+.compact-node-card.is-layered .server-card-layered-top,
+.mini-node-card.is-layered .server-card-layered-top {
+  position: relative;
+  background: rgba(255, 255, 255, 0.48);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  border-radius: 13px;
+  box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.03);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  overflow: hidden;
+  transition:
+    background 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+:root[data-appearance="dark"] .server-card.is-layered .server-card-layered-top,
+:root[data-appearance="dark"] .compact-node-card.is-layered .server-card-layered-top,
+:root[data-appearance="dark"] .mini-node-card.is-layered .server-card-layered-top {
+  background: rgba(33, 33, 37, 0.78);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 4px 16px -2px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07);
+}
+
+.server-card.is-layered:hover .server-card-layered-top,
+.compact-node-card.is-layered:hover .server-card-layered-top,
+.mini-node-card.is-layered:hover .server-card-layered-top {
+  background: rgba(255, 255, 255, 0.65);
+  border-color: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 4px 14px -2px rgba(0, 0, 0, 0.05);
+}
+
+:root[data-appearance="dark"] .server-card.is-layered:hover .server-card-layered-top,
+:root[data-appearance="dark"] .compact-node-card.is-layered:hover .server-card-layered-top,
+:root[data-appearance="dark"] .mini-node-card.is-layered:hover .server-card-layered-top {
+  background: rgba(38, 38, 43, 0.85);
+  border-color: rgba(255, 255, 255, 0.13);
+  box-shadow:
+    0 6px 20px -2px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* 底层底座框架：展示网络延迟 */
+.server-card.is-layered .server-card-layered-bottom,
+.compact-node-card.is-layered .server-card-layered-bottom,
+.mini-node-card.is-layered .server-card-layered-bottom {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin-top: auto;
+}
+
+/* 大卡尺寸专用微调 */
+.server-card.is-layered {
+  padding: 6px 6px 7px 6px;
+  gap: 6px;
+}
+
+.server-card.is-layered .server-card-content {
+  padding: 16px 16px 14px;
+  gap: 12px;
+}
+
+.server-card.is-layered .server-card-layered-bottom {
+  padding: 0 3px 2px 3px;
+}
+
+.server-card.is-layered .server-health-grid {
+  border-top: none;
+  padding-top: 0;
+  gap: 6px;
+}
+
+.server-card.is-layered .server-health-block {
+  background: rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  border-radius: 9px;
+  padding: 6px 10px 7px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+:root[data-appearance="dark"] .server-card.is-layered .server-health-block {
+  background: rgba(255, 255, 255, 0.035);
+  border-color: rgba(255, 255, 255, 0.05);
+  box-shadow: none;
+}
+
+/* 紧凑卡尺寸专用微调 */
+.compact-node-card.is-layered {
+  padding: 5px 5px 6px 5px;
+  gap: 5px;
+}
+
+.compact-node-card.is-layered .server-card-layered-top {
+  padding: 12px 12px 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.compact-node-card.is-layered .server-card-layered-bottom {
+  padding: 0 2px 1px 2px;
+}
+
+
+.compact-node-card.is-layered .compact-node-health-item {
+  background: rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  border-radius: 8px;
+  padding: 5px 8px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.compact-node-card.is-layered .compact-node-info-strip {
+  background: rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.compact-node-card.is-layered .compact-node-info-tile + .compact-node-info-tile {
+  border-left-color: rgba(255, 255, 255, 0.5);
+}
+
+:root[data-appearance="dark"] .compact-node-card.is-layered .compact-node-info-strip {
+  background: rgba(255, 255, 255, 0.035);
+  border-color: rgba(255, 255, 255, 0.06);
+  box-shadow: none;
+}
+
+:root[data-appearance="dark"] .compact-node-card.is-layered .compact-node-info-tile + .compact-node-info-tile {
+  border-left-color: rgba(255, 255, 255, 0.06);
+}
+
+:root[data-appearance="dark"] .compact-node-card.is-layered .compact-node-health-item {
+  background: rgba(255, 255, 255, 0.035);
+  border-color: rgba(255, 255, 255, 0.05);
+  box-shadow: none;
+}
+
+.compact-node-card.is-layered .layered-multi-ping,
+.server-card.is-layered .layered-multi-ping {
+  border-top: none;
+  padding: 4px 6px;
+  background: transparent;
+  border: none;
+}
+
+:root[data-appearance="dark"] .compact-node-card.is-layered .layered-multi-ping,
+:root[data-appearance="dark"] .server-card.is-layered .layered-multi-ping {
+  background: transparent;
+  border: none;
+}
+
+/* 迷你卡尺寸专用微调 */
+.mini-node-card.is-layered {
+  padding: 4px 4px 5px 4px;
+  gap: 4px;
+}
+
+.mini-node-card.is-layered .server-card-layered-top {
+  padding: 10px 10px 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mini-node-card.is-layered .server-card-layered-bottom {
+  padding: 0 2px 1px 2px;
+}
+
+.mini-node-card.is-layered .mini-node-health {
+  border-top: none;
+  padding-top: 0;
+  gap: 6px;
+}
+
+.mini-node-card.is-layered .mini-node-health-item {
+  background: rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  border-radius: 7px;
+  padding: 4px 7px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+:root[data-appearance="dark"] .mini-node-card.is-layered .mini-node-health-item {
+  background: rgba(255, 255, 255, 0.035);
+  border-color: rgba(255, 255, 255, 0.05);
+  box-shadow: none;
+}

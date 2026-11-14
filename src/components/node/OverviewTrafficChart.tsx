@@ -135,7 +135,7 @@ export function getTrafficChartThemeStyles(
 
     case "default":
     default:
-      // 经典标准：保持现状，常规监控蓝 (Up) / 绿 (Down)
+      // 经典标准：保持现状，常规监控蓝 (Up) / 活跃传输纯正翠绿 (Down)
       return {
         up: {
           color: "#3b82f6",
@@ -144,10 +144,10 @@ export function getTrafficChartThemeStyles(
           haloRgba: "rgba(59, 130, 246, 0.25)",
         },
         down: {
-          color: "#2f9e65",
-          gradientTop: "rgba(47, 158, 101, 0.22)",
-          gradientBottom: "rgba(47, 158, 101, 0.01)",
-          haloRgba: "rgba(47, 158, 101, 0.25)",
+          color: "#22c55e",
+          gradientTop: "rgba(34, 197, 94, 0.22)",
+          gradientBottom: "rgba(34, 197, 94, 0.01)",
+          haloRgba: "rgba(34, 197, 94, 0.25)",
         },
       };
   }

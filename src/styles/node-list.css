@@ -1,8 +1,44 @@
 /* 列表档(桌面专属)。所有节点收进一个连续数据面板，减少重复卡片轮廓，强化横向比较。 */
+.node-list-container {
+  width: 100%;
+}
+
+.node-list-container.is-layered {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: rgba(235, 239, 244, 0.55);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  border-radius: 18px;
+  box-shadow:
+    0 2px 12px -2px rgba(0, 0, 0, 0.03),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  padding: 6px;
+  overflow: visible;
+  transition:
+    border-color 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease;
+}
+
+:root[data-appearance="dark"] .node-list-container.is-layered {
+  background: linear-gradient(180deg, rgba(24, 24, 28, 0.85) 0%, rgba(17, 17, 20, 0.85) 100%);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 4px 20px -2px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
 .node-list-scroll {
   width: 100%;
   overflow-x: auto;
   border-radius: 14px;
+}
+
+.node-list-scroll.is-layered {
+  border-radius: 13px;
 }
 
 .node-list {
@@ -14,6 +50,63 @@
   border: 1px solid var(--border);
   border-radius: 14px;
   background: var(--surface-a);
+}
+
+.node-list.is-layered {
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.48);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  box-shadow:
+    0 2px 8px -2px rgba(0, 0, 0, 0.03),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  transition:
+    background 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+:root[data-appearance="dark"] .node-list.is-layered {
+  background: rgba(33, 33, 37, 0.78);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 4px 16px -2px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07);
+}
+
+.node-list.is-layered .node-list-head {
+  background: rgba(255, 255, 255, 0.35);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+:root[data-appearance="dark"] .node-list.is-layered .node-list-head {
+  background: rgba(255, 255, 255, 0.035);
+  border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+
+.node-list.is-layered .node-list-row {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+:root[data-appearance="dark"] .node-list.is-layered .node-list-row {
+  border-bottom-color: rgba(255, 255, 255, 0.04);
+}
+
+.node-list.is-layered .node-list-row:not(.node-list-head):hover {
+  background: rgba(255, 255, 255, 0.45);
+}
+
+:root[data-appearance="dark"] .node-list.is-layered .node-list-row:not(.node-list-head):hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.node-list.is-layered .node-list-row.is-offline {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+:root[data-appearance="dark"] .node-list.is-layered .node-list-row.is-offline {
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .node-list-row {

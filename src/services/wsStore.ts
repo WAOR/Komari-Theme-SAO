@@ -1,5 +1,6 @@
 import type { NodeInfo, NodeMetrics, NodeRealtime, TrafficTrendSample } from "@/types/komari";
 import { getNodes, getNodesLatestStatus } from "@/services/api";
+import { getRpc2Client } from "@/services/rpc2Client";
 
 type Listener = () => void;
 type RealtimePayload = Record<string, unknown>;
@@ -974,12 +975,36 @@ let retainCount = 0;
 let stopTimer: number | null = null;
 let liveStatusTimer: number | null = null;
 let nodeInfoTimer: number | null = null;
+let visibilityTrackingStarted = false;
+
+function handleVisibilityChange() {
+  if (typeof document === "undefined") return;
+  if (!document.hidden && started && retainCount > 0) {
+    // 移动端（如 iOS Safari）切回前台：立即自愈检查 WebSocket 连接并重新拉取最新状态
+    try {
+      getRpc2Client().checkAndReconnectOnWake();
+    } catch {}
+    if (!hydrated) {
+      bootstrapBackoffTicks = 0;
+      bootstrapSkipTicks = 0;
+      void bootstrap();
+    } else {
+      void refreshLatestStatus();
+      void syncNodeInfo().catch(() => {});
+    }
+  }
+}
 
 function ensureStarted() {
   if (started) return;
   started = true;
 
   ensureScrollTrackingStarted();
+  if (!visibilityTrackingStarted && typeof document !== "undefined") {
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("pageshow", handleVisibilityChange);
+    visibilityTrackingStarted = true;
+  }
   void bootstrap();
   // 实时指标与节点信息使用独立轮询节奏。
   liveStatusTimer = window.setInterval(() => {
@@ -1043,6 +1068,11 @@ function stopStore() {
   if (scrollTrackingStarted) {
     window.removeEventListener("scroll", markScrollActivity);
     scrollTrackingStarted = false;
+  }
+  if (visibilityTrackingStarted && typeof document !== "undefined") {
+    document.removeEventListener("visibilitychange", handleVisibilityChange);
+    window.removeEventListener("pageshow", handleVisibilityChange);
+    visibilityTrackingStarted = false;
   }
   scrollActive = false;
   refreshDeferredWhileScrolling = false;

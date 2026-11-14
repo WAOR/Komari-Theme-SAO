@@ -129,7 +129,6 @@ const MAX_RPC_RECORDS = 20_000;
 const OVERVIEW_PING_MAX_COUNT = 4_000;
 const OVERVIEW_METRIC_MAX_POINTS = 24;
 const DETAIL_METRIC_MAX_POINTS = 500;
-const TODAY_TRAFFIC_TOTAL_MAX_POINTS = 12;
 const BACKEND_CAPABILITY_TIMEOUT_MS = 5_000;
 // 普通 HTTP GET(/api/nodes、/api/public、load/ping 兜底)自身没有传输超时,
 // 在这里统一兜底,half-open socket 能快速失败而不是无限挂住调用方。
@@ -637,6 +636,41 @@ async function queryPingMetricStatsPayload(
   options?: ApiCallOptions,
 ): Promise<z.output<typeof PingMetricStatsResponseSchema> | null> {
   const deadline = requestDeadline(options?.timeout);
+
+  if (typeof window !== "undefined" && !options?.signal?.aborted) {
+    const earlyObj = (
+      window as unknown as {
+        __EARLY_DATA__?: {
+          yesterday_ping?: Promise<unknown> | null;
+        };
+      }
+    ).__EARLY_DATA__;
+
+    if (earlyObj?.yesterday_ping) {
+      const earlyPromise = earlyObj.yesterday_ping;
+      earlyObj.yesterday_ping = null;
+      try {
+        const json = await waitForSharedRequest(
+          earlyPromise,
+          options?.signal,
+          remainingRequestTimeout(deadline),
+        );
+        if (options?.signal?.aborted) {
+          throw new DOMException("The operation was aborted.", "AbortError");
+        }
+        if (json && typeof json === "object" && "result" in json) {
+          const parsed = PingMetricStatsResponseSchema.safeParse((json as { result: unknown }).result);
+          if (parsed.success) {
+            pingMetricStatsApiAvailable = true;
+            return parsed.data;
+          }
+        }
+      } catch (err) {
+        if (options?.signal?.aborted) throw err;
+      }
+    }
+  }
+
   const metricQueryAvailable = await waitForMetricQueryCapability({
     signal: options?.signal,
     timeout: remainingRequestTimeout(deadline),
@@ -688,7 +722,7 @@ async function queryMetricPayload(
 
     const isStartMatch =
       typeof params.start === "string" &&
-      (earlyStartMs == null || Date.parse(params.start) === earlyStartMs);
+      (earlyStartMs == null || Math.abs(Date.parse(params.start) - earlyStartMs) <= 60_000);
 
     if (earlyObj && earlyPromise && isStartMatch) {
       earlyObj.today_traffic = null;
@@ -1208,7 +1242,6 @@ export async function getTodayTrafficMetrics(
   const fiveMinutesMs = 5 * 60 * 1000;
   const deadline = requestDeadline(options?.timeout);
   const maxPoints = Math.max(1, Math.ceil((endMs - startMs) / fiveMinutesMs));
-  const totalMaxPoints = Math.min(TODAY_TRAFFIC_TOTAL_MAX_POINTS, maxPoints);
   const requestRange = { rangeStartMs: startMs, rangeEndMs: endMs };
   const metricPayload = await queryMetricPayload(
     {
@@ -1218,8 +1251,6 @@ export async function getTodayTrafficMetrics(
       metric_keys: TODAY_TRAFFIC_METRIC_KEYS,
       max_points: maxPoints,
       max_points_by_metric: {
-        [TRAFFIC_UP_METRIC]: totalMaxPoints,
-        [TRAFFIC_DOWN_METRIC]: totalMaxPoints,
         [RATE_UP_METRIC]: maxPoints,
         [RATE_DOWN_METRIC]: maxPoints,
       },
@@ -1410,6 +1441,34 @@ export async function getPingOverviewStats(
     { signal: options?.signal, timeout: options?.timeout },
   );
   return payload ? normalizePingMetricStats(payload) : [];
+}
+
+export async function queryPingMetricSeries(
+  hours: number,
+  taskIds: number[],
+  options?: ApiCallOptions & { entityIds?: string[] },
+): Promise<z.output<typeof MetricQueryResponseSchema>["series"]> {
+  const normalizedTaskIds = Array.from(
+    new Set(taskIds.filter((taskId) => Number.isInteger(taskId) && taskId > 0)),
+  ).sort((left, right) => left - right);
+  if (normalizedTaskIds.length === 0) return [];
+
+  try {
+    const payload = await queryMetricPayload(
+      {
+        hours,
+        task_ids: normalizedTaskIds,
+        ...(options?.entityIds?.length ? { entity_ids: options.entityIds } : {}),
+        metric_keys: [PING_LATENCY_METRIC, PING_LOSS_METRIC],
+      },
+      options?.signal,
+      options?.timeout,
+    );
+    return payload.series;
+  } catch (err) {
+    if (options?.signal?.aborted) throw err;
+    return [];
+  }
 }
 
 export function getPingOverview(

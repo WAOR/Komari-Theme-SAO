@@ -7,5 +7,6 @@ export function usePublicConfig() {
     queryKey: ["public"],
     queryFn: ({ signal }) => getPublic({ signal }),
     staleTime: 60_000,
+    gcTime: Number.POSITIVE_INFINITY,
   });
 }

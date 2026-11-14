@@ -19,6 +19,12 @@ describe("normalizeThemeSettings", () => {
     );
   });
 
+  it("normalizes overviewMicroVisualMode defaulting to dynamic and accepting static", () => {
+    expect(normalizeThemeSettings({}).overviewMicroVisualMode).toBe("dynamic");
+    expect(normalizeThemeSettings({ overviewMicroVisualMode: "static" }).overviewMicroVisualMode).toBe("static");
+    expect(normalizeThemeSettings({ overviewMicroVisualMode: "unknown" as never }).overviewMicroVisualMode).toBe("dynamic");
+  });
+
   it("defaults overview ratings on unless explicitly disabled", () => {
     const defaults = normalizeThemeSettings({});
     expect(defaults.showOverviewRatings).toBe(true);
@@ -93,6 +99,13 @@ describe("normalizeThemeSettings", () => {
     expect(normalizeThemeSettings({ clusterOverviewMode: "traffic" as never }).clusterOverviewMode).toBe("classic");
     expect(normalizeThemeSettings({ clusterOverviewMode: "carousel" as never }).clusterOverviewMode).toBe("nodes");
     expect(normalizeThemeSettings({ clusterOverviewMode: "invalid" as never }).clusterOverviewMode).toBe("classic");
+  });
+
+  it("normalizes serverCardTemplate correctly across classic and layered options", () => {
+    expect(normalizeThemeSettings({ serverCardTemplate: "classic" }).serverCardTemplate).toBe("classic");
+    expect(normalizeThemeSettings({ serverCardTemplate: "layered" }).serverCardTemplate).toBe("layered");
+    expect(normalizeThemeSettings({ serverCardTemplate: "invalid" as never }).serverCardTemplate).toBe("layered");
+    expect(normalizeThemeSettings({}).serverCardTemplate).toBe("layered");
   });
 
   it("normalizes matrixColorTheme correctly", () => {
@@ -264,12 +277,12 @@ describe("normalizeThemeSettings", () => {
   it("normalizes overviewCards with exact 6 slots, fallback fill, and deduplication", () => {
     const defaults = normalizeThemeSettings({});
     expect(defaults.overviewCards).toEqual([
-      "connections",
-      "cpu",
-      "ram",
-      "disk",
-      "traffic",
       "asset",
+      "loss",
+      "cpu",
+      "bandwidth",
+      "traffic",
+      "yesterdayBest",
     ]);
     expect(defaults.overviewCards.length).toBe(6);
 

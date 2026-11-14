@@ -6,11 +6,11 @@ describe("OverviewTrafficChart theme styles", () => {
   it("keeps classic standard colors unchanged (blue up, green down)", () => {
     const darkStyles = getTrafficChartThemeStyles("default", true);
     expect(darkStyles.up.color).toBe("#3b82f6");
-    expect(darkStyles.down.color).toBe("#2f9e65");
+    expect(darkStyles.down.color).toBe("#22c55e");
 
     const lightStyles = getTrafficChartThemeStyles("default", false);
     expect(lightStyles.up.color).toBe("#3b82f6");
-    expect(lightStyles.down.color).toBe("#2f9e65");
+    expect(lightStyles.down.color).toBe("#22c55e");
   });
 
   it("adapts to EVA Unit-01 palette (purple up, neon energy green down)", () => {

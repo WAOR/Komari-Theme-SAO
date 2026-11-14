@@ -223,40 +223,40 @@ export const ClusterHeatmap = memo(function ClusterHeatmap({
     };
   }, [nodes.length]);
 
-  // 随机生成单个模拟机位槽位数据（支持空闲、活跃与偶发高吞吐三种真实网络负载态）
+  // 随机生成单个模拟机位槽位数据（支持空闲 50%、活跃 25%、高吞吐 25%）
   const generateMockSlot = useCallback((slotNumber: number, forceStatus?: "idle" | "active" | "high"): MockSlot => {
     const rand = Math.random();
-    // 典型机房分布：约 65% 空闲待机，31% 活跃传输，4% 偶发高吞吐洪峰
+    // 黄金比例：50% 空闲待机，25% 活跃传输，25% 高吞吐
     const status: "idle" | "active" | "high" =
-      forceStatus ?? (rand < 0.65 ? "idle" : rand < 0.96 ? "active" : "high");
+      forceStatus ?? (rand < 0.50 ? "idle" : rand < 0.75 ? "active" : "high");
 
     if (status === "high") {
       return {
         slotNumber,
         status: "high",
-        netUp: Math.round(5_200_000 + Math.random() * 4_800_000), // 5.2 ~ 10 MB/s
-        netDown: Math.round(6_500_000 + Math.random() * 8_500_000), // 6.5 ~ 15 MB/s
-        cpuPct: Math.round(45 + Math.random() * 45),
-        ramPct: Math.round(60 + Math.random() * 30),
+        netUp: Math.round(15_000_000 + Math.random() * 45_000_000), // 15 ~ 60 MB/s 强吞吐
+        netDown: Math.round(25_000_000 + Math.random() * 75_000_000), // 25 ~ 100 MB/s 高速流
+        cpuPct: Math.round(55 + Math.random() * 38),
+        ramPct: Math.round(65 + Math.random() * 25),
       };
     }
     if (status === "active") {
       return {
         slotNumber,
         status: "active",
-        netUp: Math.round(600_000 + Math.random() * 2_200_000), // 600 KB/s ~ 2.8 MB/s
-        netDown: Math.round(800_000 + Math.random() * 3_500_000), // 800 KB/s ~ 4.3 MB/s
-        cpuPct: Math.round(15 + Math.random() * 40),
-        ramPct: Math.round(30 + Math.random() * 45),
+        netUp: Math.round(1_200_000 + Math.random() * 3_500_000), // 1.2 MB/s ~ 4.7 MB/s
+        netDown: Math.round(1_800_000 + Math.random() * 5_200_000), // 1.8 MB/s ~ 7.0 MB/s
+        cpuPct: Math.round(20 + Math.random() * 35),
+        ramPct: Math.round(35 + Math.random() * 40),
       };
     }
     return {
       slotNumber,
       status: "idle",
-      netUp: Math.round(5_000 + Math.random() * 180_000), // 5 ~ 185 KB/s
-      netDown: Math.round(15_000 + Math.random() * 350_000), // 15 ~ 365 KB/s
+      netUp: Math.round(8_000 + Math.random() * 120_000), // 8 ~ 128 KB/s
+      netDown: Math.round(18_000 + Math.random() * 260_000), // 18 ~ 278 KB/s
       cpuPct: Math.round(1 + Math.random() * 12),
-      ramPct: Math.round(15 + Math.random() * 35),
+      ramPct: Math.round(15 + Math.random() * 30),
     };
   }, []);
 
@@ -286,7 +286,7 @@ export const ClusterHeatmap = memo(function ClusterHeatmap({
   const hoverInfoRef = useRef<HoverState | null>(null);
   hoverInfoRef.current = hoverInfo;
 
-  // 灵动呼吸时钟：在页面未刷新状态下，每隔 2.8s 随机挑选 2~4 个机位平滑变幻待机/传输状态
+  // 灵动呼吸时钟：页面载入后每隔 1.6s 随机挑选 8~16 个机位灵动流转，生动展现机房脉搏
   useEffect(() => {
     if (!mockFill || emptySlotsCount <= 0 || bootPhase !== "idle") {
       return;
@@ -301,41 +301,51 @@ export const ClusterHeatmap = memo(function ClusterHeatmap({
       setMockSlots((currentSlots) => {
         if (!currentSlots || currentSlots.length === 0) return currentSlots;
 
-        // 每次随机变动 2 ~ 4 个机位
-        const changeCount = Math.min(
-          currentSlots.length,
-          Math.max(2, Math.floor(Math.random() * 3) + 2)
-        );
+        // 每次变动约 10% ~ 18% 机位（8 ~ 16 个），保证全盘每个区域都有高频流转
+        const minChange = Math.min(currentSlots.length, 8);
+        const maxChange = Math.min(currentSlots.length, 16);
+        const changeCount = Math.floor(Math.random() * (maxChange - minChange + 1)) + minChange;
 
         const chosenIndices = new Set<number>();
         let attempts = 0;
-        while (chosenIndices.size < changeCount && attempts < 20) {
+        while (chosenIndices.size < changeCount && attempts < 50) {
           attempts++;
           const idx = Math.floor(Math.random() * currentSlots.length);
-          const slot = currentSlots[idx];
-          // 若当前该槽位正处于鼠标悬浮查看状态，跳过保护，保证用户阅读体验稳定
-          if (
-            hoverInfoRef.current?.isMock &&
-            hoverInfoRef.current.mockSlot?.slotNumber === slot.slotNumber
-          ) {
-            continue;
-          }
           chosenIndices.add(idx);
         }
 
         if (chosenIndices.size === 0) return currentSlots;
 
-        return currentSlots.map((slot, idx) => {
+        const nextSlots = currentSlots.map((slot, idx) => {
           if (!chosenIndices.has(idx)) return slot;
-          // idle 大概率转 active，少量偶发 high；active 大概率转 idle
-          const nextTarget =
-            slot.status === "idle"
-              ? Math.random() < 0.9 ? ("active" as const) : ("high" as const)
-              : Math.random() < 0.85 ? ("idle" as const) : ("active" as const);
+          // 状态转移收敛概率 (平衡态稳定在: 空闲 50%, 活跃 25%, 高吞吐 25%):
+          // idle -> 50% 活跃，50% 高吞吐 (离开 idle)
+          // active -> 50% 回到 idle，30% 转为 high，20% 刷新活跃
+          // high -> 50% 回到 idle，30% 转为 active，20% 刷新高吞吐
+          let nextTarget: "idle" | "active" | "high";
+          const roll = Math.random();
+          if (slot.status === "idle") {
+            nextTarget = roll < 0.5 ? "active" : "high";
+          } else if (slot.status === "active") {
+            nextTarget = roll < 0.5 ? "idle" : roll < 0.8 ? "high" : "active";
+          } else {
+            nextTarget = roll < 0.5 ? "idle" : roll < 0.8 ? "active" : "high";
+          }
           return generateMockSlot(slot.slotNumber, nextTarget);
         });
+
+        // 若用户当前正打开/悬停某个模拟机位浮层，同步更新浮层内的数据，保证弹窗与方格数据一致且不死锁
+        if (hoverInfoRef.current?.isMock && hoverInfoRef.current.mockSlot) {
+          const hoveredSlotNum = hoverInfoRef.current.mockSlot.slotNumber;
+          const updated = nextSlots.find((s) => s.slotNumber === hoveredSlotNum);
+          if (updated && updated !== hoverInfoRef.current.mockSlot) {
+            setHoverInfo((prev) => (prev ? { ...prev, mockSlot: updated } : null));
+          }
+        }
+
+        return nextSlots;
       });
-    }, 2800);
+    }, 1600);
 
     return () => clearInterval(intervalTimer);
   }, [mockFill, emptySlotsCount, bootPhase, generateMockSlot]);

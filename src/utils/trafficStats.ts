@@ -67,6 +67,7 @@ function validPoint(point: TrafficMetricSeries["points"][number]) {
 export function summarizeTodayTrafficMetrics(
   series: TrafficMetricSeries[],
   uuids: string[],
+  todayStartMs?: number,
 ): TodayTrafficStat[] {
   const stats = new Map(uuids.map((uuid) => [uuid, emptyStat(uuid)] as const));
   const sampleTimes = new Map(uuids.map((uuid) => [uuid, new Set<number>()] as const));
@@ -78,6 +79,7 @@ export function summarizeTodayTrafficMetrics(
       if (!validPoint(point)) continue;
       const timeMs = Date.parse(point.time);
       if (!Number.isFinite(timeMs)) continue;
+      if (todayStartMs != null && timeMs < todayStartMs) continue;
       const value = Math.max(0, point.value ?? 0);
       sampleTimes.get(item.client)?.add(timeMs);
       stat.hasSamples = true;
@@ -114,6 +116,7 @@ export function summarizeTodayTrafficMetrics(
 export function buildTodayTrafficMetricSamples(
   series: TrafficMetricSeries[],
   uuid: string,
+  todayStartMs?: number,
 ): TodayTrafficSample[] {
   const samples = new Map<number, TodayTrafficSample>();
   for (const item of series) {
@@ -127,6 +130,7 @@ export function buildTodayTrafficMetricSamples(
       if (!validPoint(point)) continue;
       const timeMs = Date.parse(point.time);
       if (!Number.isFinite(timeMs)) continue;
+      if (todayStartMs != null && timeMs < todayStartMs) continue;
       const sample = samples.get(timeMs) ?? { timeMs, up: 0, down: 0 };
       if (item.metricKey === RATE_UP_METRIC) sample.up = Math.max(0, point.value ?? 0);
       else sample.down = Math.max(0, point.value ?? 0);
@@ -207,4 +211,109 @@ export function buildTodayTrafficRecordSamples(
       down: Math.max(0, Number.isFinite(record.net_in) ? record.net_in : 0),
     }))
     .sort((left, right) => right.timeMs - left.timeMs);
+}
+
+export interface HourlyTrafficBucket {
+  up: number;
+  down: number;
+  total: number;
+}
+
+export function buildClusterHourlyTrafficBuckets(
+  series: TrafficMetricSeries[],
+  nowMs: number = Date.now(),
+  bucketCount = 7,
+  _spanMs = 3_600_000,
+): HourlyTrafficBucket[] {
+  const buckets: HourlyTrafficBucket[] = Array.from({ length: bucketCount }, () => ({
+    up: 0,
+    down: 0,
+    total: 0,
+  }));
+
+  // 对齐自然整点：最右侧柱为当前所在自然小时（例如 09:00~10:00 进行时）
+  const currentHourDate = new Date(nowMs);
+  currentHourDate.setMinutes(0, 0, 0);
+  const currentHourStartMs = currentHourDate.getTime();
+
+  for (const item of series) {
+    if (item.metricKey !== TRAFFIC_UP_METRIC && item.metricKey !== TRAFFIC_DOWN_METRIC) {
+      continue;
+    }
+    const isUp = item.metricKey === TRAFFIC_UP_METRIC;
+    for (const point of item.points) {
+      if (!validPoint(point)) continue;
+      const timeMs = Date.parse(point.time);
+      if (!Number.isFinite(timeMs) || timeMs > nowMs) continue;
+
+      const pointHourDate = new Date(timeMs);
+      pointHourDate.setMinutes(0, 0, 0);
+      const pointHourStartMs = pointHourDate.getTime();
+
+      const diffHours = Math.round((currentHourStartMs - pointHourStartMs) / 3_600_000);
+      const bucketIndex = bucketCount - 1 - diffHours;
+      if (bucketIndex >= 0 && bucketIndex < bucketCount) {
+        const val = Math.max(0, point.value ?? 0);
+        if (isUp) buckets[bucketIndex].up += val;
+        else buckets[bucketIndex].down += val;
+        buckets[bucketIndex].total += val;
+      }
+    }
+  }
+
+  return buckets;
+}
+
+export function buildClusterHourlyRecordBuckets(
+  allRecords: LoadRecord[][],
+  startMs: number,
+  nowMs: number = Date.now(),
+  bucketCount = 7,
+  _spanMs = 3_600_000,
+): HourlyTrafficBucket[] {
+  const buckets: HourlyTrafficBucket[] = Array.from({ length: bucketCount }, () => ({
+    up: 0,
+    down: 0,
+    total: 0,
+  }));
+
+  // 对齐自然整点：最右侧柱为当前所在自然小时（例如 09:00~10:00 进行时）
+  const currentHourDate = new Date(nowMs);
+  currentHourDate.setMinutes(0, 0, 0);
+  const currentHourStartMs = currentHourDate.getTime();
+
+  for (const records of allRecords) {
+    const sorted = records
+      .map((record) => ({ record, timeMs: recordTimeMs(record) }))
+      .filter(({ timeMs }) => Number.isFinite(timeMs) && timeMs <= nowMs)
+      .sort((a, b) => a.timeMs - b.timeMs);
+
+    let previous: LoadRecord | null = null;
+    for (const item of sorted) {
+      const { record, timeMs } = item;
+      if (timeMs < startMs) {
+        previous = record;
+        continue;
+      }
+      if (previous) {
+        const up = counterDelta(record.net_total_up, previous.net_total_up);
+        const down = counterDelta(record.net_total_down, previous.net_total_down);
+
+        const pointHourDate = new Date(timeMs);
+        pointHourDate.setMinutes(0, 0, 0);
+        const pointHourStartMs = pointHourDate.getTime();
+
+        const diffHours = Math.round((currentHourStartMs - pointHourStartMs) / 3_600_000);
+        const bucketIndex = bucketCount - 1 - diffHours;
+        if (bucketIndex >= 0 && bucketIndex < bucketCount) {
+          buckets[bucketIndex].up += up;
+          buckets[bucketIndex].down += down;
+          buckets[bucketIndex].total += up + down;
+        }
+      }
+      previous = record;
+    }
+  }
+
+  return buckets;
 }

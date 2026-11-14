@@ -15,7 +15,23 @@ import {
   useNodeOnlineSummaries,
   useNodeStoreStatus,
 } from "@/hooks/useNode";
-import { useHomepagePingOverview } from "@/hooks/usePingOverview";
+import { useHomepagePingOverview, useAllPingOverview } from "@/hooks/usePingOverview";
+import { calculateCarrierLoss, type CarrierLossSummary } from "@/utils/carrierLoss";
+import {
+  calculateYesterdayBestLeaderboard,
+  getMemoryYesterdayBestNode,
+  getMemoryYesterdayLeaderboard,
+  calculateYesterdayAverageScore,
+  getYesterdayBestDisplayCache,
+  setYesterdayBestDisplayCache,
+  clearYesterdayBestDisplayCache,
+  getYesterdayLeaderboardCache,
+  type YesterdayBestNodeResult,
+  type YesterdayLeaderboardItem,
+} from "@/utils/yesterdayBestNode";
+import { sortNodesByWeight } from "@/pages/ThemeManage/components/CarrierLossConfigModal";
+import { YesterdayBestLeaderboardModal } from "./YesterdayBestLeaderboardModal";
+import { isHomepageMultiPingConfigured } from "@/utils/pingTasks";
 import { usePublicConfig } from "@/hooks/usePublicConfig";
 import { useThemeSettings } from "@/hooks/useThemeSettings";
 import { useViewMode } from "@/hooks/useViewMode";
@@ -41,6 +57,7 @@ import {
   TodayTrafficStatsProvider,
   useTodayTrafficStats,
 } from "@/hooks/useTodayTrafficStats";
+import type { HourlyTrafficBucket } from "@/utils/trafficStats";
 import { HomeSortControl } from "./HomeSortControl";
 import {
   getOverviewRating,
@@ -58,8 +75,8 @@ import {
   type MatrixColorTheme,
   type MatrixBootEffect,
 } from "@/utils/themeSettings";
-import type { OverviewCardId } from "@/types/komari";
-import type { HomeNodeSummary } from "@/services/wsStore";
+import type { OverviewCardId, OverviewCardVisualMode, OverviewMicroVisualMode } from "@/types/komari";
+import { getNodeMetricsSnapshot, type HomeNodeSummary } from "@/services/wsStore";
 import { getRenewalReminders, type RenewalReminderSource } from "@/utils/renewalReminder";
 import { DiaTextReveal } from "@/components/ui/DiaTextReveal";
 
@@ -107,8 +124,17 @@ interface HomeOverview {
   avgLoad15: number;
   totalProcesses: number;
   totalCores: number;
+  recentRebootNode: { name: string; seconds: number } | null;
   avgPing: number | null;
   avgLoss: number | null;
+  carrierLoss?: CarrierLossSummary | null;
+  yesterdayBest?: {
+    nodeIndexText: string;
+    nodeName: string;
+    score: number;
+    avgLatency: number;
+    avgLoss: number;
+  } | null;
 }
 
 function HomeBrand({ siteName }: { siteName: string }) {
@@ -212,6 +238,7 @@ const HomeOverviewCards = memo(function HomeOverviewCards({
   username,
   todayTrafficTotal,
   todayTrafficLoading,
+  todayTrafficHourly,
   visibleNodes,
   nameByUuid,
   clusterOverviewMode = "classic",
@@ -222,6 +249,12 @@ const HomeOverviewCards = memo(function HomeOverviewCards({
   matrixCustomPattern = null,
   overviewCards,
   overviewCardOrder,
+  overviewCardVisualMode = "visual",
+  overviewMicroVisualMode = "dynamic",
+  overviewStaticCards = [],
+  costCurrency = "CNY",
+  exchangeRates,
+  onOpenLeaderboard,
 }: {
   overview: HomeOverview;
   costSummary: { remainingCny: number; totalOriginalPriceCny?: number } | null;
@@ -235,9 +268,11 @@ const HomeOverviewCards = memo(function HomeOverviewCards({
   showAssetCard: boolean;
   renewalNodes: RenewalReminderSource[];
   onWarmTraffic: () => void;
+  onOpenLeaderboard?: () => void;
   username: string;
   todayTrafficTotal: number | null;
   todayTrafficLoading: boolean;
+  todayTrafficHourly?: HourlyTrafficBucket[] | null;
   visibleNodes: HomeNodeSummary[];
   nameByUuid: Map<string, string>;
   clusterOverviewMode?: ClusterOverviewMode;
@@ -248,6 +283,11 @@ const HomeOverviewCards = memo(function HomeOverviewCards({
   matrixCustomPattern?: number[] | null;
   overviewCards?: OverviewCardId[];
   overviewCardOrder?: OverviewCardId[];
+  overviewCardVisualMode?: OverviewCardVisualMode;
+  overviewMicroVisualMode?: OverviewMicroVisualMode;
+  overviewStaticCards?: OverviewCardId[];
+  costCurrency?: import("@/utils/cost").CostTargetCurrency;
+  exchangeRates?: Record<string, number>;
 }) {
   const { isPriceVisible } = usePriceVisibility();
   const onlinePct =
@@ -274,6 +314,8 @@ const HomeOverviewCards = memo(function HomeOverviewCards({
     renewalCount,
   );
 
+  const [touchActiveCardId, setTouchActiveCardId] = useState<OverviewCardId | null>(null);
+
   const activeCardIds = useMemo(() => {
     return normalizeOverviewCards(overviewCards ?? overviewCardOrder);
   }, [overviewCards, overviewCardOrder]);
@@ -286,14 +328,27 @@ const HomeOverviewCards = memo(function HomeOverviewCards({
         overview={overview}
         todayTrafficTotal={todayTrafficTotal}
         todayTrafficLoading={todayTrafficLoading}
+        todayTrafficHourly={todayTrafficHourly}
         showAssetCard={showAssetCard}
         isPriceVisible={isPriceVisible}
         costSummary={costSummary}
         costLoading={costLoading}
+        costCurrency={costCurrency}
+        exchangeRates={exchangeRates}
         showTrafficDetailButton={showTrafficDetailButton}
         showDetailButton={showDetailButton}
         renewalNodes={renewalNodes}
         onWarmTraffic={onWarmTraffic}
+        onOpenLeaderboard={onOpenLeaderboard}
+        isActive={touchActiveCardId === cardId}
+        onClick={() => {
+          setTouchActiveCardId(cardId);
+        }}
+        microVisualMode={
+          overviewStaticCards?.includes(cardId)
+            ? "static"
+            : overviewMicroVisualMode
+        }
       />
     );
   };
@@ -321,7 +376,11 @@ const HomeOverviewCards = memo(function HomeOverviewCards({
         </div>
 
         {/* 指标卡片网格（固定 6 槽位 3x2 布局） */}
-        <div className="mao-stat-grid">
+        <div
+          className="mao-stat-grid"
+          data-visual-mode={overviewCardVisualMode || "adaptive"}
+          data-palette={matrixColorTheme || "default"}
+        >
           {activeCardIds.map((cardId) => renderCard(cardId))}
         </div>
       </div>
@@ -879,12 +938,175 @@ export function NodeGrid() {
     lastTrafficTotalRef.current = latestTrafficTotal;
   }
   const todayTrafficTotal = latestTrafficTotal ?? lastTrafficTotalRef.current;
+
+  const lastHourlyRef = useRef<HourlyTrafficBucket[] | null>(null);
+  if (todayTrafficQuery.data?.hourlyBuckets) {
+    lastHourlyRef.current = todayTrafficQuery.data.hourlyBuckets;
+  }
+  const todayTrafficHourly = todayTrafficQuery.data?.hourlyBuckets ?? lastHourlyRef.current;
+  const allPing = useAllPingOverview();
+  const isMultiPingMode = Boolean(
+    themeSettings.enableHomepageMultiPing &&
+    isHomepageMultiPingConfigured(themeSettings.homepageMultiPingTaskIds)
+  );
+
+  const carrierLoss = useMemo(() => {
+    let visibleUuids = visibleMeta.map((m) => m.uuid);
+    const included = themeSettings.carrierLossIncludedNodes;
+    if (included && included.length > 0) {
+      const includedSet = new Set(included);
+      visibleUuids = visibleUuids.filter((uuid) => {
+        const meta = visibleMeta.find((m) => m.uuid === uuid);
+        const name = meta?.name?.trim() || "";
+        return includedSet.has(uuid) || (name && includedSet.has(name));
+      });
+    }
+    return calculateCarrierLoss(
+      allPing.multiLines,
+      allPing.singleItems,
+      visibleUuids,
+      isMultiPingMode,
+    );
+  }, [
+    allPing.multiLines,
+    allPing.singleItems,
+    visibleMeta,
+    themeSettings.carrierLossIncludedNodes,
+    isMultiPingMode,
+  ]);
   // 「名称」排序需要展示名(摘要无 name),从 meta 注入。
   const nameByUuid = useMemo(() => {
     const map = new Map<string, string>();
     for (const node of visibleMeta) map.set(node.uuid, node.name?.trim() || node.uuid);
     return map;
   }, [visibleMeta]);
+
+  // 严格按后台 weight 权重升序排列可见节点，确保卡片序号与设置弹窗及天梯榜严格一致
+  const sortedVisibleMeta = useMemo(() => sortNodesByWeight(visibleMeta), [visibleMeta]);
+
+  // 计算当前有效候选节点
+  const yesterdayCandidateUuids = useMemo(() => {
+    let candidateUuids = sortedVisibleMeta.map((m) => m.uuid);
+    const included = themeSettings.yesterdayBestIncludedNodes;
+    if (included && included.length > 0) {
+      const includedSet = new Set(included);
+      candidateUuids = candidateUuids.filter((uuid) => {
+        const meta = sortedVisibleMeta.find((m) => m.uuid === uuid);
+        const name = meta?.name?.trim() || "";
+        return includedSet.has(uuid) || (name && includedSet.has(name));
+      });
+    }
+    return candidateUuids;
+  }, [sortedVisibleMeta, themeSettings.yesterdayBestIncludedNodes]);
+
+  // 昨日最佳服务器：从后台批量轻量拉取昨天自然日测速数据并计算
+  const yesterdayScope = themeSettings.yesterdayBestScope ?? "tri";
+
+  const [yesterdayBestResult, setYesterdayBestResult] = useState<YesterdayBestNodeResult | null>(() => {
+    const memory = getMemoryYesterdayBestNode(yesterdayCandidateUuids, yesterdayScope);
+    return memory !== undefined ? memory : null;
+  });
+
+  const [yesterdayLeaderboard, setYesterdayLeaderboard] = useState<YesterdayLeaderboardItem[]>(() => {
+    return getMemoryYesterdayLeaderboard(yesterdayCandidateUuids, yesterdayScope) ?? getYesterdayLeaderboardCache(yesterdayScope) ?? [];
+  });
+  const [isLeaderboardModalOpen, setIsLeaderboardModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (!themeSettings.isReady) return;
+    const isYesterdayCardEnabled = (themeSettings.overviewCards ?? []).includes("yesterdayBest");
+    if (!isYesterdayCardEnabled) return;
+
+    if (yesterdayCandidateUuids.length === 0) {
+      setYesterdayBestResult(null);
+      setYesterdayLeaderboard([]);
+      clearYesterdayBestDisplayCache(yesterdayScope);
+      return;
+    }
+
+    // 若内存已有当前候选集结果，直接复用避免闪烁
+    const cachedBest = getMemoryYesterdayBestNode(yesterdayCandidateUuids, yesterdayScope);
+    const cachedBoard = getMemoryYesterdayLeaderboard(yesterdayCandidateUuids, yesterdayScope);
+    if (cachedBest !== undefined && cachedBoard !== undefined) {
+      setYesterdayBestResult(cachedBest);
+      setYesterdayLeaderboard(cachedBoard);
+      return;
+    }
+
+    let active = true;
+    calculateYesterdayBestLeaderboard(yesterdayCandidateUuids, { scope: yesterdayScope }).then((res) => {
+      if (active) {
+        setYesterdayBestResult(res.best);
+        setYesterdayLeaderboard(res.leaderboard);
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [
+    themeSettings.isReady,
+    themeSettings.overviewCards,
+    yesterdayCandidateUuids,
+    yesterdayScope,
+  ]);
+
+  // 将最佳或平均分映射为卡片展示数据
+  const yesterdayDisplayMode = themeSettings.yesterdayBestDisplayMode ?? "best";
+
+  const yesterdayBestDisplay = useMemo(() => {
+    // 1. 集群平均分模式：计算所有合格/参评节点的综合平均分数
+    if (yesterdayDisplayMode === "average") {
+      const avgResult = calculateYesterdayAverageScore(yesterdayLeaderboard);
+      if (avgResult) {
+        const displayInfo = {
+          nodeIndexText: "集群均分",
+          nodeName: `${avgResult.nodeCount} 台参评`,
+          score: avgResult.score,
+          avgLatency: avgResult.avgLatency,
+          avgLoss: avgResult.avgLoss,
+          scope: yesterdayScope,
+          mode: yesterdayDisplayMode,
+          sampleCount: avgResult.nodeCount,
+        };
+        setYesterdayBestDisplayCache(displayInfo, yesterdayCandidateUuids, yesterdayScope);
+        return displayInfo;
+      }
+    }
+
+    // 2. 标杆最佳节点模式（默认）：展示第 1 名冠军机器
+    if (!yesterdayBestResult) {
+      // 首帧直接读取本地持久化展示缓存，校验候选集一致性，彻底消除开屏 200ms 的空白/占位符闪烁
+      const cached = getYesterdayBestDisplayCache(yesterdayCandidateUuids, yesterdayScope);
+      if (cached) return cached;
+      return null;
+    }
+    const targetUuid = yesterdayBestResult.uuid;
+    const targetIndex = sortedVisibleMeta.findIndex((n) => n.uuid === targetUuid);
+    const nodeIndexText = targetIndex >= 0 ? `#${targetIndex + 1}` : "#--";
+    const nodeName = nameByUuid.get(targetUuid) || yesterdayBestResult.name || targetUuid;
+
+    const displayInfo = {
+      nodeIndexText,
+      nodeName,
+      score: yesterdayBestResult.score,
+      avgLatency: yesterdayBestResult.avgLatency,
+      avgLoss: yesterdayBestResult.avgLoss,
+      scope: yesterdayScope,
+      mode: yesterdayDisplayMode,
+    };
+    setYesterdayBestDisplayCache(displayInfo, yesterdayCandidateUuids, yesterdayScope);
+    return displayInfo;
+  }, [
+    yesterdayBestResult,
+    yesterdayLeaderboard,
+    yesterdayDisplayMode,
+    sortedVisibleMeta,
+    nameByUuid,
+    yesterdayCandidateUuids,
+    yesterdayScope,
+  ]);
+
   const overview = useMemo<HomeOverview>(() => {
     let onlineNodes = 0;
     let offlineNodes = 0;
@@ -932,8 +1154,21 @@ export function NodeGrid() {
       netDown += node.netDown;
     }
 
+    let minUptimeSeconds = Number.POSITIVE_INFINITY;
+    let recentRebootNode: { name: string; seconds: number } | null = null;
+
     for (const meta of visibleMeta) {
       totalCores += meta.cpu_cores || 0;
+      const metrics = getNodeMetricsSnapshot(meta.uuid);
+      if (metrics && metrics.online === true && Number.isFinite(metrics.uptime) && metrics.uptime > 0) {
+        if (metrics.uptime < minUptimeSeconds) {
+          minUptimeSeconds = metrics.uptime;
+          recentRebootNode = {
+            name: meta.name?.trim() || meta.uuid,
+            seconds: metrics.uptime,
+          };
+        }
+      }
     }
 
     const avgCpu = onlineNodes > 0 ? totalCpu / onlineNodes : 0;
@@ -969,10 +1204,14 @@ export function NodeGrid() {
       avgLoad15,
       totalProcesses,
       totalCores,
+      recentRebootNode,
       avgPing: null,
-      avgLoss: null,
+      avgLoss: carrierLoss.peakLoss,
+      carrierLoss,
+      yesterdayBestScope: yesterdayScope,
+      yesterdayBest: yesterdayBestDisplay,
     };
-  }, [visibleNodes, visibleMeta]);
+  }, [visibleNodes, visibleMeta, carrierLoss, yesterdayScope, yesterdayBestDisplay]);
   const showHomeOverview = themeSettings.isReady && themeSettings.showHomeOverview;
   const showTrafficPopover = themeSettings.isReady && themeSettings.showTodayTrafficPopover;
   const loggedIn = Boolean(me?.logged_in);
@@ -1209,6 +1448,7 @@ export function NodeGrid() {
           username={me?.username || (me?.logged_in ? "Admin" : "Guest")}
           todayTrafficTotal={todayTrafficTotal}
           todayTrafficLoading={todayTrafficTotal === null && todayTrafficQuery.isPending}
+          todayTrafficHourly={todayTrafficHourly}
           visibleNodes={visibleNodes}
           nameByUuid={nameByUuid}
           clusterOverviewMode={themeSettings.clusterOverviewMode}
@@ -1218,6 +1458,12 @@ export function NodeGrid() {
           matrixBootEffect={themeSettings.matrixBootEffect}
           matrixCustomPattern={themeSettings.matrixCustomPattern}
           overviewCards={themeSettings.overviewCards}
+          overviewCardVisualMode={themeSettings.overviewCardVisualMode}
+          overviewMicroVisualMode={themeSettings.overviewMicroVisualMode}
+          overviewStaticCards={themeSettings.overviewStaticCards}
+          costCurrency={themeSettings.costCurrency}
+          exchangeRates={rateQuery.data?.rates}
+          onOpenLeaderboard={() => setIsLeaderboardModalOpen(true)}
         />
       )}
     </>
@@ -1227,6 +1473,16 @@ export function NodeGrid() {
     return (
       <>
         {homeHeader}
+        <YesterdayBestLeaderboardModal
+          isOpen={isLeaderboardModalOpen}
+          onClose={() => setIsLeaderboardModalOpen(false)}
+          leaderboard={yesterdayLeaderboard}
+          allNodes={visibleMeta}
+          candidateUuids={yesterdayCandidateUuids}
+          scope={yesterdayScope}
+          isMultiPingMode={isMultiPingMode}
+          palette={themeSettings.matrixColorTheme || "default"}
+        />
         <div className="flex h-[40vh] flex-col items-center justify-center gap-2 text-(--text-tertiary)">
           <span className="text-[15px]">尚未连接到任何节点</span>
           <span className="text-[12px]">等待后端推送或前往管理后台添加</span>
@@ -1238,6 +1494,16 @@ export function NodeGrid() {
   return (
     <>
       {homeHeader}
+      <YesterdayBestLeaderboardModal
+        isOpen={isLeaderboardModalOpen}
+        onClose={() => setIsLeaderboardModalOpen(false)}
+        leaderboard={yesterdayLeaderboard}
+        allNodes={visibleMeta}
+        candidateUuids={yesterdayCandidateUuids}
+        scope={yesterdayScope}
+        isMultiPingMode={isMultiPingMode}
+        palette={themeSettings.matrixColorTheme || "default"}
+      />
       <section
         className="mao-cluster-card"
         aria-label="服务器集群与监控列表"

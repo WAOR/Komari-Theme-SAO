@@ -7,6 +7,7 @@ import { OsLogo } from "@/components/ui/OsLogo";
 import { useNodeCardModel } from "@/hooks/useNodeCardModel";
 import { usePreferences } from "@/hooks/usePreferences";
 import { useMetricColorsVersion } from "@/hooks/useMetricColors";
+import { useThemeSettings } from "@/hooks/useThemeSettings";
 import { formatBytes } from "@/utils/format";
 import { speedRateColor } from "@/utils/metricTone";
 import { CanvasStrip, fillRoundedRect, safeCanvasColor } from "./CanvasStrip";
@@ -394,24 +395,29 @@ const NodeRow = memo(function NodeRow({ uuid }: { uuid: string }) {
 });
 
 export function NodeListView({ uuids }: { uuids: string[] }) {
+  const { serverCardTemplate } = useThemeSettings();
+  const isLayered = serverCardTemplate === "layered";
+
   return (
-    <div className="node-list-scroll">
-      <div className="node-list">
-        <div className="node-list-row node-list-head" aria-hidden>
-          <div className="node-list-cell node-list-node">服务器</div>
-          <div className="node-list-cell col-os">系统</div>
-          <div className="node-list-cell col-metric">CPU</div>
-          <div className="node-list-cell col-metric">内存</div>
-          <div className="node-list-cell col-metric">磁盘</div>
-          <div className="node-list-cell col-load">负载</div>
-          <div className="node-list-cell col-live">实时</div>
-          <div className="node-list-cell col-traffic">流量</div>
-          <div className="node-list-cell col-net">网络</div>
-          <div className="node-list-cell col-life">在线 / 到期</div>
+    <div className={clsx("node-list-container", isLayered && "is-layered")}>
+      <div className={clsx("node-list-scroll", isLayered && "is-layered")}>
+        <div className={clsx("node-list", isLayered && "is-layered")}>
+          <div className="node-list-row node-list-head" aria-hidden>
+            <div className="node-list-cell node-list-node">服务器</div>
+            <div className="node-list-cell col-os">系统</div>
+            <div className="node-list-cell col-metric">CPU</div>
+            <div className="node-list-cell col-metric">内存</div>
+            <div className="node-list-cell col-metric">磁盘</div>
+            <div className="node-list-cell col-load">负载</div>
+            <div className="node-list-cell col-live">实时</div>
+            <div className="node-list-cell col-traffic">流量</div>
+            <div className="node-list-cell col-net">网络</div>
+            <div className="node-list-cell col-life">在线 / 到期</div>
+          </div>
+          {uuids.map((uuid) => (
+            <NodeRow key={uuid} uuid={uuid} />
+          ))}
         </div>
-        {uuids.map((uuid) => (
-          <NodeRow key={uuid} uuid={uuid} />
-        ))}
       </div>
     </div>
   );

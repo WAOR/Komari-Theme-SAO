@@ -209,21 +209,32 @@ function getMockNodes(): NodeInfo[] {
     return BASE_NODES;
   }
 
-  // 如果用户指定了像 ?mock=1&nodes=60 或 100，自动扩充复制
-  const DIVERSE_REGIONS = [
-    "NL", "GB", "FR", "KR", "CA", "TW", "SE", "CH", "IN", "BR", "RU", "ZA", "IT", "ES",
+  // 如果用户指定了像 ?mock=1&nodes=60 或 100，自动扩充丰富节点（城市名称与国家地区国旗严格对齐）
+  const DIVERSE_LOCATIONS: { city: string; region: string; role: string }[] = [
+    { city: "London", region: "GB", role: "Gateway" },
+    { city: "Paris", region: "FR", role: "Proxy" },
+    { city: "Amsterdam", region: "NL", role: "CDN" },
+    { city: "Seoul", region: "KR", role: "Edge" },
+    { city: "Toronto", region: "CA", role: "Worker" },
+    { city: "Taipei", region: "TW", role: "Cache" },
+    { city: "Stockholm", region: "SE", role: "Storage" },
+    { city: "Zurich", region: "CH", role: "Core" },
+    { city: "Mumbai", region: "IN", role: "API" },
+    { city: "São Paulo", region: "BR", role: "Cluster" },
+    { city: "Milan", region: "IT", role: "Host" },
+    { city: "Madrid", region: "ES", role: "Relay" },
   ];
   const result: NodeInfo[] = [...BASE_NODES];
   let i = BASE_NODES.length;
   while (result.length < targetCount) {
     const template = BASE_NODES[i % BASE_NODES.length]!;
-    const copyIndex = Math.floor(i / BASE_NODES.length) + 1;
-    const extraRegion = DIVERSE_REGIONS[(i - BASE_NODES.length) % DIVERSE_REGIONS.length];
+    const loc = DIVERSE_LOCATIONS[(i - BASE_NODES.length) % DIVERSE_LOCATIONS.length]!;
+    const cycle = Math.floor((i - BASE_NODES.length) / DIVERSE_LOCATIONS.length) + 1;
     result.push({
       ...template,
-      region: extraRegion,
-      uuid: `${template.uuid}-sub-${copyIndex}`,
-      name: `${template.name} #${copyIndex}`,
+      region: loc.region,
+      uuid: `${loc.city.toLowerCase().replace(/[^a-z0-9]/g, "-")}-sub-${cycle.toString().padStart(2, "0")}`,
+      name: `${loc.city} ${loc.role} #${cycle}`,
       weight: template.weight + i * 5,
       ipv4: `203.0.113.${(10 + i) % 250}`,
       ipv6: `2001:db8::${(10 + i).toString(16)}`,
@@ -406,16 +417,24 @@ function trafficMetricPayload(params: {
       entity_id: uuid,
       interval_seconds: intervalMs / 1000,
       points: Array.from({ length: pointCount }, (_, pointIndex) => {
-        const phase = pointIndex / 9 + index * 0.8;
-        const time = new Date(start + pointIndex * intervalMs).toISOString();
+        const timeMs = start + pointIndex * intervalMs;
+        const time = new Date(timeMs).toISOString();
+        const hoursAgo = Math.max(0, (end - timeMs) / 3_600_000);
+        const slot = Math.min(6, Math.max(0, Math.floor(hoursAgo)));
+        // 过去 7 小时动态流量波动曲线（第 0 槽为当前小时，第 6 槽为 6 小时前，真实起伏）
+        const hourlyModifiers = [0.86, 0.68, 0.44, 0.94, 0.58, 0.38, 0.22];
+        const hourBase = hourlyModifiers[slot] ?? 0.5;
+        const microPhase = (pointIndex % 12) / 6 + index * 0.5;
+        const microMod = 0.88 + Math.sin(microPhase) * 0.18;
+        const wave = hourBase * microMod;
         const value =
           metricKey === "traffic.up"
-            ? (12 + (index % 6) * 3) * MIB * (0.72 + Math.sin(phase) * 0.24)
+            ? (12 + (index % 6) * 3) * MIB * wave * 0.9
             : metricKey === "traffic.down"
-              ? (28 + (index % 6) * 5) * MIB * (0.74 + Math.cos(phase) * 0.22)
+              ? (28 + (index % 6) * 5) * MIB * wave * 1.1
               : metricKey === "net.out.rate"
-                ? profile[5] * (0.62 + Math.sin(phase) * 0.34)
-                : profile[6] * (0.66 + Math.cos(phase) * 0.3);
+                ? profile[5] * wave
+                : profile[6] * wave;
         return { time, value: Math.max(0, value), count: 1 };
       }),
     }));
@@ -452,15 +471,31 @@ function pingMetricPayload(params: {
     const index = nodes.findIndex((node) => node.uuid === uuid);
     if (index < 0) return [];
     const profile = getNodeStatusProfile(index, nodes[index]);
-    return tasks.flatMap((task) =>
-      metricKeys.map((metricKey) => ({
+    return tasks.flatMap((task) => {
+      // 模拟探针后台：若此测速任务未分配给该节点，则不产生监控指标序列，触发前台「—」占位
+      if (task.clients && !task.clients.includes(uuid)) {
+        return [];
+      }
+      return metricKeys.map((metricKey) => ({
         metric_key: metricKey,
         entity_id: uuid,
         tags: { task_id: String(task.id) },
         interval_seconds: intervalMs / 1000,
         points: Array.from({ length: pointCount }, (_, pointIndex) => {
           const time = new Date(start + (pointIndex + 1) * intervalMs).toISOString();
-          const lost = !profile[9] || (index % 11 === 0 && pointIndex % 17 === 0);
+          // 差异化模拟三网丢包：
+          // task.id === 1 (中国电信 CT): 极佳健康 (约 0.5% 丢包，低柱 良好)
+          // task.id === 2 (中国联通 CU): 轻度波动 (约 6.7% 丢包，中柱 警告黄)
+          // task.id === 3 (中国移动 CM): 严重拥塞 (约 25.0% 丢包，高柱 报警红)
+          const lost =
+            !profile[9] ||
+            (task.id === 1
+              ? index === 0 && pointIndex % 180 === 0
+              : task.id === 2
+                ? pointIndex % 15 === 0
+                : task.id === 3
+                  ? pointIndex % 4 === 0
+                  : index % 11 === 0 && pointIndex % 17 === 0);
           if (metricKey === "ping.loss") {
             return { time, value: lost ? 1 : 0, count: 1 };
           }
@@ -473,8 +508,8 @@ function pingMetricPayload(params: {
             count: 1,
           };
         }),
-      })),
-    );
+      }));
+    });
   });
   return {
     start: new Date(start).toISOString(),
@@ -528,35 +563,103 @@ function loadMetricPayload(params: { metric_keys?: string[]; entity_ids?: string
 }
 
 function pingRecords(uuid?: string, taskId = 1) {
-  const clients = uuid ? [uuid] : nodes.map((node) => node.uuid);
+  const task = pingTasks.find((t) => t.id === taskId);
+  const rawClients = uuid ? [uuid] : nodes.map((node) => node.uuid);
+  const clients = task?.clients ? rawClients.filter((c) => task.clients.includes(c)) : rawClients;
   const now = Date.now();
   return clients.flatMap((client) => {
     const index = Math.max(0, nodes.findIndex((node) => node.uuid === client));
     const profile = getNodeStatusProfile(index, nodes[index] ?? nodes[0]);
     const baseline = profile[4] + (taskId - 1) * 18;
-    return Array.from({ length: 60 }, (_, sample) => ({
-      task_id: taskId,
-      time: now - (59 - sample) * 60_000,
-      value:
-        !profile[9] || (index % 11 === 0 && sample % 17 === 0)
-          ? -1
-          : Math.max(1, baseline + Math.round(Math.sin(sample / 5 + index) * 9)),
-      client,
-    }));
+    return Array.from({ length: 60 }, (_, sample) => {
+      // 差异化模拟三网丢包：
+      // taskId 1 (中国电信 CT): 几乎无丢包 (约 0.3% 极佳健康)
+      // taskId 2 (中国联通 CU): 轻度抖动 (约 6.7% 轻度波动 Warning)
+      // taskId 3 (中国移动 CM): 较明显丢包 (约 25.0% 严重拥塞 Error)
+      const isDropped =
+        taskId === 1
+          ? index === 0 && sample === 17
+          : taskId === 2
+            ? sample % 15 === 0
+            : taskId === 3
+              ? sample % 4 === 0
+              : index % 11 === 0 && sample % 17 === 0;
+      return {
+        task_id: taskId,
+        time: now - (59 - sample) * 60_000,
+        value:
+          !profile[9] || isDropped
+            ? -1
+            : Math.max(1, baseline + Math.round(Math.sin(sample / 5 + index) * 9)),
+        client,
+      };
+    });
   });
 }
 
 const pingTasks = [
-  { id: 1, name: "中国电信", target: "电信探针" },
-  { id: 2, name: "中国联通", target: "联通探针" },
-  { id: 3, name: "中国移动", target: "移动探针" },
+  {
+    id: 1,
+    name: "中国电信",
+    target: "电信探针",
+    clients: nodes.map((node) => node.uuid),
+  },
+  {
+    id: 2,
+    name: "中国联通",
+    target: "联通探针",
+    clients: nodes.map((node) => node.uuid),
+  },
+  {
+    id: 3,
+    name: "中国移动",
+    target: "移动探针",
+    clients: nodes.map((node) => node.uuid),
+  },
+  {
+    id: 4,
+    name: "香港 PCCW",
+    target: "香港探针",
+    // 模拟部分绑定：仅绑定亚太节点，法兰克福、纽约、悉尼未分配
+    clients: ["hong-kong-cache-01", "tokyo-edge-01", "singapore-api-01"],
+  },
+  {
+    id: 5,
+    name: "美西 HE",
+    target: "洛杉矶探针",
+    // 模拟部分绑定：仅绑定北美与东京节点，其它节点未分配
+    clients: ["new-york-worker-01", "tokyo-edge-01"],
+  },
+  {
+    id: 6,
+    name: "欧洲 TELIA",
+    target: "法兰克福探针",
+    clients: nodes.map((node) => node.uuid),
+  },
+  {
+    id: 7,
+    name: "日本 NTT",
+    target: "东京探针",
+    clients: nodes.map((node) => node.uuid),
+  },
+  {
+    id: 8,
+    name: "新加坡 Singtel",
+    target: "新加坡探针",
+    clients: nodes.map((node) => node.uuid),
+  },
+  {
+    id: 9,
+    name: "国际 Cloudflare",
+    target: "Anycast 探针",
+    clients: nodes.map((node) => node.uuid),
+  },
 ].map((task, index) => ({
-  ...task,
   interval: 60,
   loss: 0,
-  clients: nodes.map((node) => node.uuid),
   type: "icmp",
   weight: index + 1,
+  ...task,
 }));
 
 function json(data: unknown, init?: ResponseInit) {
@@ -578,7 +681,10 @@ export function installDevMockApi() {
     desktopNodeViewMode: "compact",
     mobileNodeViewMode: "compact",
     clusterOverviewMode: "classic",
+    serverCardTemplate: "layered",
     showHomeOverview: true,
+    overviewCardVisualMode: "visual",
+    overviewMicroVisualMode: "dynamic",
     showGroupTabs: true,
     showRegionBar: true,
     showCardGroup: true,
@@ -591,10 +697,18 @@ export function installDevMockApi() {
     showOverviewRatings: true,
     showBandwidthRating: true,
     showPingChart: true,
+    overviewCards: [
+      "connections",
+      "cpu",
+      "ram",
+      "loss",
+      "traffic",
+      "asset",
+    ],
     // 单任务刻意和三网首项不同，便于回归验证列表没有误读全局三网数据。
     homepagePingBindings: { "2": nodes.map((node) => node.uuid) },
     enableHomepageMultiPing:
-      new URLSearchParams(window.location.search).get("multiPing") === "1",
+      new URLSearchParams(window.location.search).get("multiPing") !== "0",
     homepageMultiPingTaskIds: [1, 2, 3],
   };
 
@@ -716,9 +830,24 @@ export function installDevMockApi() {
         metric_retention_days: 90,
         custom_head: "",
         custom_body: "",
-        theme_settings: activeSaved
-          ? { ...defaultMockThemeSettings, ...activeSaved }
-          : defaultMockThemeSettings,
+        theme_settings: {
+          ...defaultMockThemeSettings,
+          ...(activeSaved ?? {}),
+          ...(new URLSearchParams(window.location.search).get("template") === "layered"
+            ? { serverCardTemplate: "layered" }
+            : new URLSearchParams(window.location.search).get("template") === "classic"
+              ? { serverCardTemplate: "classic" }
+              : {}),
+          ...(new URLSearchParams(window.location.search).get("viewMode")
+            ? {
+                desktopNodeViewMode: new URLSearchParams(window.location.search).get("viewMode"),
+                mobileNodeViewMode: new URLSearchParams(window.location.search).get("viewMode"),
+              }
+            : {}),
+          ...(new URLSearchParams(window.location.search).get("appearance")
+            ? { defaultAppearance: new URLSearchParams(window.location.search).get("appearance") }
+            : {}),
+        },
       });
     }
 
@@ -734,6 +863,7 @@ export function installDevMockApi() {
           uuid?: string;
           type?: string;
           task_id?: number;
+          task_ids?: number[];
           hours?: number;
           metric_keys?: string[];
           entity_ids?: string[];
@@ -763,9 +893,92 @@ export function installDevMockApi() {
           }
           return reply(loadMetricPayload(payload.params ?? {}));
         }
-        case "public:getPingMetricStats":
-          // 统计接口不实现:api.ts 对它单独 catch 后会用 records 本地计算,足够 dev 用。
-          return methodNotFound();
+        case "public:getPingMetricStats": {
+          const hours = Number(payload.params?.hours) || 24;
+          const taskIds = (payload.params?.task_ids as number[]) ?? [1, 2, 3];
+          const entityIds = (payload.params?.entity_ids as string[]) ?? nodes.map((n) => n.uuid);
+          const totalPoints = hours * 60; // 模拟每分钟一点
+
+          const stats = entityIds.flatMap((uuid) => {
+            const nodeIndex = nodes.findIndex((n) => n.uuid === uuid);
+            // 覆盖所有评级颜色梯度，方便在设置中勾选不同单台服务器直接测试颜色变换：
+            // 节点 0 (Tokyo Edge): 冠军极优 (>=90分, 暖橙色) ~ 98.4分
+            // 节点 1 (Singapore API): 良好 (>=80分, 天青色) ~ 86.0分
+            // 节点 2 (Frankfurt DB): 警告 (>=60分, 琥珀色) ~ 72.0分
+            // 节点 3 (New York Worker): 赤红 (<60分, 危险红色) ~ 46.0分
+            // 节点 4 (Hong Kong Cache): 极优 (92.5分)
+            // 节点 5 (Sydney Backup): 良好 (84.5分)
+            return taskIds.map((taskId) => {
+              const task = pingTasks.find((t) => t.id === taskId) ?? pingTasks[0];
+              const isCt = taskId === 1;
+              const isCu = taskId === 2;
+
+              let baseLoss = 0.001; // 0.1%
+              let baseAvg = 48;
+              let baseStddev = 1.2;
+
+              if (nodeIndex === 0) {
+                // Excellent (>=90分, ~98分 暖橙)
+                baseLoss = isCt ? 0.001 : isCu ? 0.002 : 0.003;
+                baseAvg = isCt ? 42 : isCu ? 49 : 53;
+                baseStddev = 1.1;
+              } else if (nodeIndex === 1) {
+                // Good (80~89分, ~86分 天青色)
+                baseLoss = isCt ? 0.05 : isCu ? 0.05 : 0.05; // 5% 丢包扣 14 分 => 86 分
+                baseAvg = isCt ? 55 : isCu ? 60 : 65;
+                baseStddev = 2.0;
+              } else if (nodeIndex === 2) {
+                // Warning (60~79分, ~72分 琥珀色)
+                baseLoss = isCt ? 0.11 : isCu ? 0.11 : 0.11; // 11% 丢包扣 27.8 分 => 72.2 分
+                baseAvg = 160;
+                baseStddev = 3.5;
+              } else if (nodeIndex === 3) {
+                // Error (<60分, ~46分 赤红色)
+                baseLoss = isCt ? 0.28 : isCu ? 0.30 : 0.32; // >25% 扣满 50 分，加抖动 => ~46 分
+                baseAvg = 220;
+                baseStddev = 25;
+              } else if (nodeIndex === 4) {
+                // Excellent (>=90分, ~93分)
+                baseLoss = isCt ? 0.015 : isCu ? 0.02 : 0.025;
+                baseAvg = 25;
+                baseStddev = 1.5;
+              } else if (nodeIndex === 5) {
+                // Good (80~89分, ~84分)
+                baseLoss = isCt ? 0.055 : isCu ? 0.06 : 0.065;
+                baseAvg = 180;
+                baseStddev = 3.0;
+              } else {
+                baseLoss = 0.02 * ((nodeIndex % 4) + 1);
+                baseAvg = 100 + nodeIndex * 15 + taskId * 10;
+                baseStddev = 6.0;
+              }
+
+              const valid = Math.round(totalPoints * (1 - baseLoss));
+              const lossPercent = Number((baseLoss * 100).toFixed(2));
+
+              return {
+                entity_id: uuid,
+                task_id: taskId,
+                name: task.name,
+                type: "icmp",
+                interval: 60,
+                total: totalPoints,
+                valid,
+                loss: lossPercent,
+                min: Math.max(1, baseAvg - 8),
+                max: baseAvg + 35,
+                avg: baseAvg,
+                latest: baseAvg + 2,
+                p50: baseAvg,
+                p99: baseAvg + 12,
+                stddev: baseStddev,
+                p99_p50_ratio: Number(((baseAvg + 12) / baseAvg).toFixed(3)),
+              };
+            });
+          });
+
+          return reply({ stats });
+        }
         case "public:getPublicPingTasks":
           return reply(pingTasks);
         case "common:getNodes":

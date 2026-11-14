@@ -1,7 +1,8 @@
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { CalendarClock, X } from "lucide-react";
 import { usePriceVisibility } from "@/hooks/usePriceVisibility";
+import { supportsFineHover } from "@/utils/mediaQuery";
 import {
   EMPTY_RENEWAL_REMINDER_PREFERENCES,
   formatRenewalReminderExpiry,
@@ -63,6 +64,7 @@ export function RenewalReminder({
   const [align, setAlign] = useState<"left" | "right">("left");
   const [clock, setClock] = useState(() => Date.now());
   const [preferences, setPreferences] = useState(readPreferences);
+  const navigate = useNavigate();
   const { isPriceVisible } = usePriceVisibility();
   const rootRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
@@ -244,6 +246,10 @@ export function RenewalReminder({
           aria-controls={open ? panelId : undefined}
           title={`${visibleReminders.length} 个续费提醒`}
           onClick={() => {
+            if (!supportsFineHover() || window.innerWidth <= 768) {
+              navigate("/assets");
+              return;
+            }
             const next = !open;
             setOpen(next);
             onOpenChange?.(next);

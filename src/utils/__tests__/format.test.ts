@@ -4,6 +4,7 @@ import {
   formatByteRate,
   formatByteRateLabel,
   formatClockTime,
+  formatCompactNumber,
   formatExpireDays,
   formatTrafficRateLabel,
   formatUptimeDays,
@@ -187,5 +188,52 @@ describe("parseTags", () => {
     expect(parseTags("CN2GIA")).toEqual([{ label: "CN2GIA", color: "blue" }]);
     expect(parseTags("4837")).toEqual([{ label: "4837", color: "green" }]);
     expect(parseTags("Random")).toEqual([{ label: "Random", color: "violet" }]);
+  });
+});
+
+describe("formatCompactNumber", () => {
+  it("returns '0' for non-positive or non-finite values", () => {
+    expect(formatCompactNumber(0)).toBe("0");
+    expect(formatCompactNumber(-5)).toBe("0");
+    expect(formatCompactNumber(null)).toBe("0");
+    expect(formatCompactNumber(undefined)).toBe("0");
+    expect(formatCompactNumber(Number.NaN)).toBe("0");
+  });
+
+  it("keeps full integers with commas for 1 to 4 digits (< 10,000)", () => {
+    expect(formatCompactNumber(520)).toBe("520");
+    expect(formatCompactNumber(1250)).toBe("1,250");
+    expect(formatCompactNumber(8920)).toBe("8,920");
+    expect(formatCompactNumber(9999)).toBe("9,999");
+  });
+
+  it("compacts to K for 5 to 6 digits (10,000 to 999,999)", () => {
+    expect(formatCompactNumber(10000)).toBe("10K");
+    expect(formatCompactNumber(10340)).toBe("10.3K");
+    expect(formatCompactNumber(12158)).toBe("12.2K");
+    expect(formatCompactNumber(13000)).toBe("13K");
+    expect(formatCompactNumber(99940)).toBe("99.9K");
+    expect(formatCompactNumber(125400)).toBe("125K");
+  });
+
+  it("compacts to M for 7 digits and above (>= 1,000,000)", () => {
+    expect(formatCompactNumber(1000000)).toBe("1M");
+    expect(formatCompactNumber(1250000)).toBe("1.3M");
+    expect(formatCompactNumber(12000000)).toBe("12M");
+  });
+
+  it("supports custom threshold: 7 digits for asset total (threshold=1,000,000)", () => {
+    expect(formatCompactNumber(37986, 1_000_000)).toBe("37,986");
+    expect(formatCompactNumber(125400, 1_000_000)).toBe("125,400");
+    expect(formatCompactNumber(999999, 1_000_000)).toBe("999,999");
+    expect(formatCompactNumber(1250000, 1_000_000)).toBe("1.3M");
+  });
+
+  it("supports custom threshold:千万内不缩写 for remaining asset (threshold=10,000,000)", () => {
+    expect(formatCompactNumber(23432, 10_000_000)).toBe("23,432");
+    expect(formatCompactNumber(1250000, 10_000_000)).toBe("1,250,000");
+    expect(formatCompactNumber(9999999, 10_000_000)).toBe("9,999,999");
+    expect(formatCompactNumber(10000000, 10_000_000)).toBe("10M");
+    expect(formatCompactNumber(12500000, 10_000_000)).toBe("12.5M");
   });
 });

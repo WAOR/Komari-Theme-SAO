@@ -747,6 +747,64 @@ export const CompactNodeCard = memo(function CompactNodeCard({
   const showConnections = themeSettings.isReady && themeSettings.showConnections;
   // 开关关闭或节点离线时,完全跳过格式化工作。
   const uptimeLabel = showUptime && !isOffline ? formatCompactUptime(node.uptime) : "";
+  const isLayered = themeSettings.serverCardTemplate === "layered";
+
+  if (isLayered) {
+    return (
+      <article
+        id={`node-card-${uuid}`}
+        className={clsx("compact-node-card is-layered", isOffline && "is-offline")}
+      >
+        <div className="server-card-layered-top">
+          <CompactNodeHeader
+            node={node}
+            osName={osName}
+            showTodayTraffic={showTodayTraffic}
+          />
+          <CompactNodeChips subtitle={subtitle} tags={footerTags} ipv4={node.ipv4} ipv6={node.ipv6} />
+          <CompactNodeVitals node={node} loadFraction={loadFraction} />
+          <CompactNodeInfoStrip
+            node={node}
+            trafficTrend={trafficTrend}
+            upRate={upRate}
+            downRate={downRate}
+            showTrafficTotal={showTrafficTotal}
+            showBilling={showBilling}
+            showConnections={showConnections}
+            expire={expire}
+            expireColor={expireColor}
+            renewalPrice={compactRenewalPrice}
+            isPriceVisible={isPriceVisible}
+          />
+          <CompactTrafficBar
+            traffic={traffic}
+            uptimeLabel={uptimeLabel}
+            trafficHeatSpectrum={trafficHeatSpectrum}
+          />
+        </div>
+
+        <div className="server-card-layered-bottom">
+          {homepagePingLines.length >= HOMEPAGE_MULTI_PING_MIN_COUNT ? (
+            <MultiPingStatus
+              lines={homepagePingLines}
+              density="compact"
+              className="compact-node-bottom layered-multi-ping"
+            />
+          ) : (
+            <CompactNodeHealth
+              ping={ping}
+              pingBuckets={pingBuckets}
+              latencyColor={latencyColor}
+              lossColor={lossColor}
+              hasRealHomepagePingBinding={hasRealHomepagePingBinding}
+              pingLoading={pingLoading}
+              pingError={pingError}
+            />
+          )}
+        </div>
+      </article>
+    );
+  }
 
   return (
     <article

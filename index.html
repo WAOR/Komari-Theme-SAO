@@ -7,6 +7,9 @@
       name="keywords"
       content="Komari-Theme-SAO, SAO, server monitor, real-time server status, server performance dashboard, monitoring tool" />
     <meta name="theme-color" content="#f4f5f7" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -26,6 +29,25 @@
         // 超前核心 API 预加载：利用浏览器解析 HTML 与下载 React Bundle 的网络空档期，提前并发拉取关键数据
         try {
           if (typeof window !== "undefined" && typeof fetch === "function") {
+            const search = window.location.search || "";
+            // Mock 纯前端开发预览时跳过预加载，避免打到未启动的本地后端端口并污染首屏
+            let isMock = search.includes("mock=1") || search.includes("mock=true");
+            if (!isMock && !search.includes("mock=0")) {
+              try {
+                const stored = sessionStorage.getItem("komari_dev_mock");
+                isMock = stored
+                  ? stored === "1"
+                  : window.location.port === "5173" ||
+                    window.location.port === "5174" ||
+                    window.location.port === "5175" ||
+                    window.location.hostname === "localhost" ||
+                    window.location.hostname === "127.0.0.1";
+              } catch {
+                isMock = true;
+              }
+            }
+            if (isMock) return;
+
             const p = window.location.pathname || "/";
             const dir = p.endsWith("/") ? p : p.substring(0, p.lastIndexOf("/") + 1);
             const prefix = dir === "/" ? "" : dir.replace(/\/+$/, "");
@@ -46,26 +68,46 @@
             const now = Date.now();
             const d = new Date(now);
             d.setHours(0, 0, 0, 0);
-            const startIso = d.toISOString();
+            const todayStartMs = d.getTime();
+            const SEVEN_HOURS_MS = 7 * 60 * 60 * 1000;
+            const queryStartMs = Math.min(todayStartMs, now - SEVEN_HOURS_MS);
+            const startIso = new Date(queryStartMs).toISOString();
             const endIso = new Date(now).toISOString();
+            const fiveMinutesMs = 5 * 60 * 1000;
+            const maxPoints = Math.max(1, Math.ceil((now - queryStartMs) / fiveMinutesMs));
+
+            const yesterdayMs = todayStartMs - 24 * 60 * 60 * 1000;
+            const yesterdayElapsedMs = now - yesterdayMs;
+            const yesterdayQueryHours = Math.max(24, Math.ceil(yesterdayElapsedMs / (60 * 60 * 1000)));
 
             window.__EARLY_DATA__ = {
               public: fetch(base + "/api/public", opts).then((r) => (r.ok ? r.json() : null)).catch(() => null),
               me: fetch(base + "/api/me", opts).then((r) => (r.ok ? r.json() : null)).catch(() => null),
               nodes: fetch(base + "/api/nodes", opts).then((r) => (r.ok ? r.json() : null)).catch(() => null),
               rpc_nodes: rpcPost("common:getNodes"),
+              yesterday_ping: rpcPost("public:getPingMetricStats", {
+                hours: yesterdayQueryHours,
+                task_ids: [1, 2, 3],
+                max_points: 24,
+              }),
               today_traffic: {
-                startMs: d.getTime(),
+                startMs: queryStartMs,
                 promise: rpcPost("public:queryMetrics", {
                   start: startIso,
                   end: endIso,
                   metric_keys: ["traffic.up", "traffic.down", "net.out.rate", "net.in.rate"],
+                  max_points: maxPoints,
+                  max_points_by_metric: {
+                    "net.out.rate": maxPoints,
+                    "net.in.rate": maxPoints,
+                  },
                   aggregation_by_metric: {
                     "traffic.up": "sum",
                     "traffic.down": "sum",
                     "net.out.rate": "max",
                     "net.in.rate": "max",
                   },
+                  fill_empty: false,
                 }),
               },
             };

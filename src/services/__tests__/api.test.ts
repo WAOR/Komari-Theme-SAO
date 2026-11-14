@@ -298,7 +298,7 @@ describe("metric boundary repair in the API adapter", () => {
     );
   });
 
-  it("uses a small point budget for traffic totals while preserving rate chart detail", async () => {
+  it("requests metric points for traffic totals and rate chart detail", async () => {
     rpcCallMock.mockResolvedValue({ start: START, end: END, series: [] });
 
     await getTodayTrafficMetrics(
@@ -312,8 +312,6 @@ describe("metric boundary repair in the API adapter", () => {
       expect.objectContaining({
         max_points: 144,
         max_points_by_metric: {
-          "traffic.up": 12,
-          "traffic.down": 12,
           "net.out.rate": 144,
           "net.in.rate": 144,
         },

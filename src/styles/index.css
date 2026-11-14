@@ -101,6 +101,17 @@ html.theme-flip *::after {
   outline-offset: 2px;
 }
 
+/* 全局移除表单输入控件、选择框和文本域在聚焦时触发的原生/系统蓝框 */
+input:focus,
+input:focus-visible,
+select:focus,
+select:focus-visible,
+textarea:focus,
+textarea:focus-visible {
+  outline: none !important;
+  outline-offset: 0 !important;
+}
+
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;

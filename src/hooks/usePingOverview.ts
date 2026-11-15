@@ -279,7 +279,6 @@ function resolvePingAssignmentKey(
 const PING_REQUEST_TIMEOUT_MS = 35_000;
 const PING_CACHE_STORAGE_KEY = "komari:sao:homepage-ping:v1";
 const LEGACY_PING_CACHE_STORAGE_KEY = "komari:lumina-plus:homepage-ping:v1";
-const PING_CACHE_TTL_MS = 5 * 60_000;
 
 interface PingOverviewCachePayload {
   version: 1;
@@ -702,40 +701,6 @@ interface PingOverviewStoreState {
   multiLines: Map<string, HomepagePingLine[]>;
 }
 
-let pingOverviewState: PingOverviewStoreState = {
-  assignmentKey: "",
-  intervalMs: DEFAULT_PING_REFRESH_INTERVAL,
-  singleItems: new Map(),
-  multiLines: new Map(),
-};
-let pingOverviewStatus: PingOverviewStatusSnapshot = EMPTY_PING_STATUS;
-let scheduledVisibleUuids: string[] = [];
-let scheduledVisibleKey = "";
-let scheduledBindings: HomepagePingTaskBindings = {};
-let scheduledMultiTaskIds: number[] = [];
-let scheduledSelectionKey = `${stringifyBindings({})}|multi:`;
-let pingRefreshInFlight = false;
-let pingRefreshTimer: number | null = null;
-let pingAbortController: AbortController | null = null;
-let activeConsumers = 0;
-// HMR dispose 后置真:阻止 in-flight 请求的 finally 恢复逻辑在旧模块实例上复活轮询。
-let pingPollingDisposed = false;
-const pingListeners = new Map<string, Set<Listener>>();
-const globalPingListeners = new Set<Listener>();
-
-function setPingOverviewStatus(
-  status: PingOverviewLoadState,
-  isRefreshing: boolean,
-) {
-  if (
-    pingOverviewStatus.status === status &&
-    pingOverviewStatus.isRefreshing === isRefreshing
-  ) {
-    return;
-  }
-  pingOverviewStatus = { status, isRefreshing };
-}
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
@@ -801,23 +766,37 @@ function parseCachedPingItem(value: unknown): PingOverviewItem | null {
   };
 }
 
-function readPingOverviewCache(
-  assignmentKey: string,
-): Omit<PingOverviewCachePayload, "version" | "savedAt" | "assignmentKey"> | null {
-  if (!assignmentKey || typeof window === "undefined") return null;
+function getRawPingCache(): string | null {
+  if (typeof window === "undefined") return null;
   try {
-    const raw =
+    return (
+      (typeof window.localStorage !== "undefined"
+        ? window.localStorage.getItem(PING_CACHE_STORAGE_KEY)
+        : null) ||
       window.sessionStorage.getItem(PING_CACHE_STORAGE_KEY) ||
-      window.sessionStorage.getItem(LEGACY_PING_CACHE_STORAGE_KEY);
-    if (!raw) return null;
+      window.sessionStorage.getItem(LEGACY_PING_CACHE_STORAGE_KEY)
+    );
+  } catch {
+    return null;
+  }
+}
+
+function parsePingOverviewCache(
+  raw: string | null,
+): {
+  intervalMs: number;
+  singleItems: Array<[string, PingOverviewItem]>;
+  multiLines: Array<[string, HomepagePingLine[]]>;
+  assignmentKey: string;
+} | null {
+  if (!raw) return null;
+  try {
     const parsed = JSON.parse(raw) as unknown;
     if (!isRecord(parsed)) return null;
     if (
       parsed.version !== 1 ||
-      parsed.assignmentKey !== assignmentKey ||
       typeof parsed.savedAt !== "number" ||
       !Number.isFinite(parsed.savedAt) ||
-      Date.now() - parsed.savedAt > PING_CACHE_TTL_MS ||
       !Array.isArray(parsed.singleItems) ||
       !Array.isArray(parsed.multiLines)
     ) {
@@ -859,6 +838,7 @@ function readPingOverviewCache(
     }
 
     return {
+      assignmentKey: typeof parsed.assignmentKey === "string" ? parsed.assignmentKey : "",
       intervalMs:
         typeof parsed.intervalMs === "number" &&
         Number.isFinite(parsed.intervalMs) &&
@@ -871,6 +851,62 @@ function readPingOverviewCache(
   } catch {
     return null;
   }
+}
+
+function readPingOverviewCache(
+  _assignmentKey?: string,
+): Omit<PingOverviewCachePayload, "version" | "savedAt" | "assignmentKey"> | null {
+  const cached = parsePingOverviewCache(getRawPingCache());
+  if (!cached) return null;
+  // SWR: 无论上次保存时间距今多久，均立即可用作 Stale 数据，消除占位符闪烁
+  return cached;
+}
+
+function getInitialPingOverviewState(): PingOverviewStoreState {
+  const cached = parsePingOverviewCache(getRawPingCache());
+  if (cached && (cached.singleItems.length > 0 || cached.multiLines.length > 0)) {
+    return {
+      assignmentKey: cached.assignmentKey,
+      intervalMs: cached.intervalMs,
+      singleItems: new Map(cached.singleItems),
+      multiLines: new Map(cached.multiLines),
+    };
+  }
+  return {
+    assignmentKey: "",
+    intervalMs: DEFAULT_PING_REFRESH_INTERVAL,
+    singleItems: new Map(),
+    multiLines: new Map(),
+  };
+}
+
+let pingOverviewState: PingOverviewStoreState = getInitialPingOverviewState();
+let pingOverviewStatus: PingOverviewStatusSnapshot = EMPTY_PING_STATUS;
+let scheduledVisibleUuids: string[] = [];
+let scheduledVisibleKey = "";
+let scheduledBindings: HomepagePingTaskBindings = {};
+let scheduledMultiTaskIds: number[] = [];
+let scheduledSelectionKey = `${stringifyBindings({})}|multi:`;
+let pingRefreshInFlight = false;
+let pingRefreshTimer: number | null = null;
+let pingAbortController: AbortController | null = null;
+let activeConsumers = 0;
+// HMR dispose 后置真:阻止 in-flight 请求的 finally 恢复逻辑在旧模块实例上复活轮询。
+let pingPollingDisposed = false;
+const pingListeners = new Map<string, Set<Listener>>();
+const globalPingListeners = new Set<Listener>();
+
+function setPingOverviewStatus(
+  status: PingOverviewLoadState,
+  isRefreshing: boolean,
+) {
+  if (
+    pingOverviewStatus.status === status &&
+    pingOverviewStatus.isRefreshing === isRefreshing
+  ) {
+    return;
+  }
+  pingOverviewStatus = { status, isRefreshing };
 }
 
 export function selectPersistablePingOverview(
@@ -908,7 +944,19 @@ function persistPingOverviewCache(result: PingOverviewMapResult) {
       intervalMs: result.intervalMs,
       ...persistable,
     };
-    window.sessionStorage.setItem(PING_CACHE_STORAGE_KEY, JSON.stringify(payload));
+    const serialized = JSON.stringify(payload);
+    try {
+      window.sessionStorage.setItem(PING_CACHE_STORAGE_KEY, serialized);
+    } catch {
+      // sessionStorage 配额不足或隐私模式
+    }
+    try {
+      if (typeof window.localStorage !== "undefined") {
+        window.localStorage.setItem(PING_CACHE_STORAGE_KEY, serialized);
+      }
+    } catch {
+      // localStorage 隐私模式或配额不足
+    }
   } catch {
     // 隐私模式或存储配额不足时继续使用内存数据。
   }
@@ -1202,13 +1250,24 @@ function ensurePingOverviewStarted(
       multiTaskIds,
     );
     const cached = readPingOverviewCache(assignmentKey);
+    const singleItems = cached
+      ? new Map(cached.singleItems)
+      : pingOverviewState.singleItems.size > 0
+        ? pingOverviewState.singleItems
+        : new Map();
+    const multiLines = cached
+      ? new Map(cached.multiLines)
+      : pingOverviewState.multiLines.size > 0
+        ? pingOverviewState.multiLines
+        : new Map();
+    const hasData = singleItems.size > 0 || multiLines.size > 0;
     commitPingOverview(
       assignmentKey,
-      cached?.intervalMs ?? DEFAULT_PING_REFRESH_INTERVAL,
-      cached ? new Map(cached.singleItems) : new Map(),
-      cached ? new Map(cached.multiLines) : new Map(),
+      cached?.intervalMs ?? pingOverviewState.intervalMs,
+      singleItems,
+      multiLines,
       {
-        status: cached ? "ready" : "loading",
+        status: hasData ? "ready" : "loading",
         isRefreshing: true,
       },
     );

@@ -512,4 +512,29 @@ describe("homepage ping polling selection", () => {
 
     expect(nextResult.multiLines.get("node-a")?.[0]?.taskName).toBe("西南电信");
   });
+
+  it("selectPersistablePingOverview preserves ready single items and multiLines", () => {
+    const mapResult = {
+      assignmentKey: "test-assignment",
+      intervalMs: 15_000,
+      successfulTaskIds: [1],
+      failedTaskIds: [],
+      pendingTaskIds: [],
+      singleItems: new Map([
+        ["node-a", { client: "node-a", isAssigned: true, loadState: "ready" as const, lastValue: 20, loss: 0, samples: [], max: 100 }],
+        ["node-b", { client: "node-b", isAssigned: true, loadState: "pending" as const, lastValue: null, loss: null, samples: [], max: 0 }],
+      ]),
+      multiLines: new Map([
+        ["node-a", [{ taskId: 1, taskName: "电信", client: "node-a", isAssigned: true, loadState: "ready" as const, lastValue: 25, loss: 0, samples: [], max: 100 }]],
+        ["node-b", [{ taskId: 1, taskName: "电信", client: "node-b", isAssigned: true, loadState: "pending" as const, lastValue: null, loss: null, samples: [], max: 0 }]],
+      ]),
+    };
+
+    const persistable = selectPersistablePingOverview(mapResult);
+    expect(persistable).not.toBeNull();
+    expect(persistable?.singleItems).toHaveLength(1);
+    expect(persistable?.singleItems[0]?.[0]).toBe("node-a");
+    expect(persistable?.multiLines).toHaveLength(1);
+    expect(persistable?.multiLines[0]?.[0]).toBe("node-a");
+  });
 });

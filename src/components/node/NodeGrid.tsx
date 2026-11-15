@@ -964,7 +964,7 @@ export function NodeGrid() {
     return calculateCarrierLoss(
       allPing.multiLines,
       allPing.singleItems,
-      visibleUuids,
+      visibleUuids.length > 0 ? visibleUuids : undefined,
       isMultiPingMode,
     );
   }, [
@@ -974,6 +974,14 @@ export function NodeGrid() {
     themeSettings.carrierLossIncludedNodes,
     isMultiPingMode,
   ]);
+
+  const lastCarrierLossRef = useRef<CarrierLossSummary | null>(null);
+  if (carrierLoss.hasAnyData) {
+    lastCarrierLossRef.current = carrierLoss;
+  }
+  const effectiveCarrierLoss = carrierLoss.hasAnyData
+    ? carrierLoss
+    : (lastCarrierLossRef.current ?? carrierLoss);
   // 「名称」排序需要展示名(摘要无 name),从 meta 注入。
   const nameByUuid = useMemo(() => {
     const map = new Map<string, string>();
@@ -1206,12 +1214,12 @@ export function NodeGrid() {
       totalCores,
       recentRebootNode,
       avgPing: null,
-      avgLoss: carrierLoss.peakLoss,
-      carrierLoss,
+      avgLoss: effectiveCarrierLoss.peakLoss,
+      carrierLoss: effectiveCarrierLoss,
       yesterdayBestScope: yesterdayScope,
       yesterdayBest: yesterdayBestDisplay,
     };
-  }, [visibleNodes, visibleMeta, carrierLoss, yesterdayScope, yesterdayBestDisplay]);
+  }, [visibleNodes, visibleMeta, effectiveCarrierLoss, yesterdayScope, yesterdayBestDisplay]);
   const showHomeOverview = themeSettings.isReady && themeSettings.showHomeOverview;
   const showTrafficPopover = themeSettings.isReady && themeSettings.showTodayTrafficPopover;
   const loggedIn = Boolean(me?.logged_in);

@@ -1,5 +1,5 @@
-import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { startTransition, useEffect, useMemo, useState } from "react";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
 import "uplot/dist/uPlot.min.css";
 import { InstanceDetails } from "@/components/instance/InstanceDetails";
@@ -16,6 +16,36 @@ import { useThemeSettings } from "@/hooks/useThemeSettings";
 
 const DEFAULT_PING_HOURS = 4;
 type TimeRangeOption = ReturnType<typeof buildLoadTimeRangeOptions>[number];
+
+function InstanceHomeLink() {
+  const { state } = useLocation();
+  const navigate = useNavigate();
+  const homeHistorySteps: number | undefined = state?.homeHistorySteps;
+
+  return (
+    <Link
+      to="/"
+      className="instance-page-back"
+      onClick={(event) => {
+        if (
+          !homeHistorySteps ||
+          event.button !== 0 ||
+          event.metaKey ||
+          event.ctrlKey ||
+          event.altKey ||
+          event.shiftKey
+        ) {
+          return;
+        }
+        event.preventDefault();
+        navigate(-homeHistorySteps);
+      }}
+    >
+      <ChevronLeft size={14} />
+      返回
+    </Link>
+  );
+}
 
 function RangeSelector({
   ranges,
@@ -52,7 +82,6 @@ export function Instance() {
   const [chartType, setChartType] = useState<"load" | "ping">("load");
   const [loadHours, setLoadHours] = useState(0);
   const [pingHours, setPingHours] = useState(DEFAULT_PING_HOURS);
-  const chartControlsRef = useRef<HTMLDivElement | null>(null);
 
   const metricRetentionHours =
     config?.metric_retention_days && config.metric_retention_days > 0
@@ -68,17 +97,6 @@ export function Instance() {
     [config?.ping_record_preserve_time, metricRetentionHours],
   );
   const showPingChart = themeSettings.isReady && themeSettings.showPingChart;
-
-  const alignCharts = useCallback(() => {
-    const frame = window.requestAnimationFrame(() => {
-      const element = chartControlsRef.current;
-      if (!element) return;
-      const rect = element.getBoundingClientRect();
-      if (rect.top >= 0 && rect.top < window.innerHeight) return;
-      element.scrollIntoView({ behavior: "auto", block: "start" });
-    });
-    return () => window.cancelAnimationFrame(frame);
-  }, []);
 
   useEffect(() => {
     if (!loadRanges.some((range) => range.value === loadHours)) {
@@ -112,10 +130,7 @@ export function Instance() {
         : null;
     return (
       <div className="flex flex-col gap-5 py-2">
-        <Link to="/" className="instance-page-back">
-          <ChevronLeft size={14} />
-          返回
-        </Link>
+        <InstanceHomeLink />
         <div className="flex min-h-[50vh] flex-col items-center justify-center gap-3 text-center">
           {message ? (
             <>
@@ -134,15 +149,9 @@ export function Instance() {
 
   return (
     <div className="flex flex-col gap-5 py-2">
-      <Link
-        to="/"
-        className="instance-page-back"
-      >
-        <ChevronLeft size={14} />
-        返回
-      </Link>
-      <InstanceDetails uuid={uuid} onNodeReady={alignCharts} />
-      <div ref={chartControlsRef} className="instance-chart-controls">
+      <InstanceHomeLink />
+      <InstanceDetails uuid={uuid} />
+      <div className="instance-chart-controls">
         <div className="instance-segmented">
           <button
             type="button"

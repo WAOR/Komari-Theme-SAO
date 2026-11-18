@@ -1,5 +1,4 @@
 import { memo, useState, type CSSProperties, type ReactNode } from "react";
-import { Link } from "react-router-dom";
 import {
   ArrowDown,
   ArrowUp,
@@ -30,6 +29,7 @@ import {
 import { formatHealthBucketTooltip } from "./pingBucketText";
 import { formatBytes, type ByteRateDisplay } from "@/utils/format";
 import type { NodeInfo, NodeMetrics, PingOverviewItem, PingOverviewBucket } from "@/types/komari";
+import { HomeInstanceLink } from "./HomeInstanceLink";
 
 // 迷你卡固定为巡检布局，不跟随紧凑卡的可选指标开关；数据仍走共享模型。
 const HEALTH_BAR_COUNT = 24;
@@ -47,22 +47,21 @@ function MiniHeader({
   showTodayTraffic: boolean;
 }) {
   const detailLabels = nodeDetailLinkLabels(node.name, osName);
-  const detailHref = `/instance/${encodeURIComponent(node.uuid)}`;
   return (
     <header className="mini-node-header">
       <Flag region={node.region} size={14} />
-      <Link to={detailHref} className="mini-node-title" title={node.name}>
+      <HomeInstanceLink uuid={node.uuid} className="mini-node-title" title={node.name}>
         {node.name}
-      </Link>
+      </HomeInstanceLink>
       {showTodayTraffic && <NodeTodayTrafficPopover uuid={node.uuid} size={13} />}
-      <Link
-        to={detailHref}
+      <HomeInstanceLink
+        uuid={node.uuid}
         className="mini-node-os"
         title={detailLabels.title}
         aria-label={detailLabels.ariaLabel}
       >
         <OsLogo value={node.os} size={14} />
-      </Link>
+      </HomeInstanceLink>
     </header>
   );
 }

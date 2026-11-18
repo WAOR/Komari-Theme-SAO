@@ -75,7 +75,7 @@ export function OverviewCardPool({
         next.set("faq", "yesterday-best-line-boundaries");
         return next;
       },
-      { replace: true },
+      { replace: true, preventScrollReset: true },
     );
   }, [setSearchParams]);
   const [draggingCard, setDraggingCard] = useState<{

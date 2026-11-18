@@ -6,7 +6,7 @@ import {
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Check, ChevronDown, ChevronUp } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useAllNodeMeta, useHomeNodeSummaries } from "@/hooks/useNode";
@@ -18,6 +18,7 @@ export function InstanceSwitcher({ currentUuid }: { currentUuid: string }) {
   const summaries = useHomeNodeSummaries();
   const { hiddenNodes } = useThemeSettings();
   const { data: me } = useAuth();
+  const { state } = useLocation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const listId = useId();
@@ -83,7 +84,12 @@ export function InstanceSwitcher({ currentUuid }: { currentUuid: string }) {
   const select = (uuid: string) => {
     triggerRef.current?.focus();
     setOpen(false);
-    if (uuid !== currentUuid) navigate(`/instance/${encodeURIComponent(uuid)}`);
+    if (uuid !== currentUuid) {
+      const homeHistorySteps: number | undefined = state?.homeHistorySteps;
+      navigate(`/instance/${encodeURIComponent(uuid)}`, {
+        state: homeHistorySteps ? { homeHistorySteps: homeHistorySteps + 1 } : undefined,
+      });
+    }
   };
 
   const handleListKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {

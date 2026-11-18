@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { RefreshCw } from "lucide-react";
 import { useNodeMeta, useNodeMetrics } from "@/hooks/useNode";
 import { useMinuteClock } from "@/hooks/useClock";
@@ -22,25 +22,12 @@ const TIME_FORMATTER = new Intl.DateTimeFormat("zh-CN", {
   second: "2-digit",
 });
 
-export function InstanceDetails({
-  uuid,
-  onNodeReady,
-}: {
-  uuid: string;
-  onNodeReady?: () => (() => void) | void;
-}) {
+export function InstanceDetails({ uuid }: { uuid: string }) {
   const now = useMinuteClock();
   const meta = useNodeMeta(uuid);
   const metrics = useNodeMetrics(uuid);
   const trafficQuery = useTodayTrafficStats([uuid], now, "summary");
   const todayStat = trafficQuery.data?.rows.find((row) => row.uuid === uuid);
-  const isReady = Boolean(meta && metrics);
-
-  useEffect(() => {
-    if (!isReady) return;
-    return onNodeReady?.();
-  }, [isReady, onNodeReady, uuid]);
-
   if (!meta || !metrics) return null;
 
   const isOnline = metrics.online;

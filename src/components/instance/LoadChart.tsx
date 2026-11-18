@@ -323,6 +323,7 @@ const ChartCard = memo(function ChartCard({
       rangeHours,
       estimatedWidth: 176,
       setTooltip,
+      touchScrub: true,
       buildRows: (idx) =>
         keys.map((key, keyIndex) => ({
           label: getSeriesLabel(key),

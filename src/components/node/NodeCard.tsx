@@ -1,5 +1,4 @@
 import { memo, useCallback, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Link } from "react-router-dom";
 import {
   Cpu,
   Gauge,
@@ -47,6 +46,7 @@ import { formatHealthBucketTooltip } from "./pingBucketText";
 import { clsx } from "clsx";
 import type { NodeInfo, NodeMetrics, PingOverviewBucket, PingOverviewItem, TrafficTrendSample } from "@/types/komari";
 import type { ByteRateDisplay } from "@/utils/format";
+import { HomeInstanceLink } from "./HomeInstanceLink";
 
 type NodeCardNode = NodeInfo & NodeMetrics;
 type DisplayStat = { value: string; unit: string };
@@ -305,13 +305,13 @@ function NodeCardHeader({
       <div className="server-card-title-block">
         <div className="server-card-title-row">
           <Flag region={node.region} size={15} />
-          <Link
-            to={`/instance/${encodeURIComponent(node.uuid)}`}
+          <HomeInstanceLink
+            uuid={node.uuid}
             className="server-card-title-link"
             title={node.name}
           >
             {node.name}
-          </Link>
+          </HomeInstanceLink>
         </div>
         {(subtitle || node.ipv4 || node.ipv6) && (
           <div className="server-card-subtitle-row">
@@ -326,14 +326,14 @@ function NodeCardHeader({
       </div>
       <div className="server-card-actions">
         {showTodayTraffic && <NodeTodayTrafficPopover uuid={node.uuid} />}
-        <Link
-          to={`/instance/${encodeURIComponent(node.uuid)}`}
+        <HomeInstanceLink
+          uuid={node.uuid}
           className="server-card-detail-link"
           title={detailLabels.title}
           aria-label={detailLabels.ariaLabel}
         >
           <OsLogo value={node.os} size={15} />
-        </Link>
+        </HomeInstanceLink>
       </div>
     </header>
   );

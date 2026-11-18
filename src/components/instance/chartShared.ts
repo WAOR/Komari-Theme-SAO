@@ -238,12 +238,14 @@ export function buildChartTooltipHooks({
   estimatedWidth,
   setTooltip,
   buildRows,
+  touchScrub = false,
 }: {
   dataRef: { readonly current: uPlot.AlignedData };
   rangeHours: number;
   estimatedWidth: number;
   setTooltip: Dispatch<SetStateAction<ChartTooltipState>>;
   buildRows: (idx: number) => ChartTooltipState["rows"];
+  touchScrub?: boolean;
 }): {
   onInit: (u: uPlot) => void;
   onDestroy: (u: uPlot) => void;
@@ -251,6 +253,10 @@ export function buildChartTooltipHooks({
 } {
   let frame: number | null = null;
   let view: Window | null = null;
+  let detachTouch: (() => void) | undefined;
+  type TouchPoint = { left: number; top: number; idx: uPlot.Cursor["idx"] };
+  let dragPoint: TouchPoint | null = null;
+  let pinnedPoint: TouchPoint | null = null;
   const cancelScheduled = () => {
     if (frame != null) view?.cancelAnimationFrame(frame);
     frame = null;
@@ -259,9 +265,13 @@ export function buildChartTooltipHooks({
     cancelScheduled();
     setTooltip((prev) => (prev.show ? { ...prev, show: false } : prev));
   };
+  const onMouseLeave = () => {
+    if (!dragPoint && !pinnedPoint) hide();
+  };
   const update = (u: uPlot) => {
     frame = null;
-    const idx = u.cursor.idx;
+    // uPlot 的鼠标离开事件会清空 cursor，触屏选点以手势记录为准。
+    const { idx, top } = dragPoint ?? pinnedPoint ?? u.cursor;
     if (idx == null || idx < 0) {
       hide();
       return;
@@ -273,9 +283,7 @@ export function buildChartTooltipHooks({
     }
     const bbox = u.root.getBoundingClientRect();
     const anchorX = u.over.offsetLeft + u.valToPos(timestamp, "x");
-    const anchorY =
-      u.over.offsetTop +
-      (typeof u.cursor.top === "number" ? u.cursor.top : u.over.clientHeight * 0.5);
+    const anchorY = u.over.offsetTop + (top ?? u.over.clientHeight * 0.5);
     const rows = buildRows(idx);
     const position = getChartTooltipPosition({
       containerWidth: bbox.width,
@@ -293,21 +301,83 @@ export function buildChartTooltipHooks({
       time: formatTooltipTime(timestamp, rangeHours),
     });
   };
+  const scheduleUpdate = (u: uPlot) => {
+    view ??= u.root.ownerDocument.defaultView;
+    if (frame != null) return;
+    frame = view?.requestAnimationFrame(() => update(u)) ?? null;
+    if (frame == null) update(u);
+  };
+  const isPrimaryTouch = (event: PointerEvent) => event.pointerType === "touch" && event.isPrimary;
   return {
     onInit: (u) => {
-      view = u.root.ownerDocument.defaultView;
-      u.root.addEventListener("mouseleave", hide);
+      const doc = u.root.ownerDocument;
+      view = doc.defaultView;
+      u.root.addEventListener("mouseleave", onMouseLeave);
+      if (!touchScrub) return;
+
+      const plot = u.over;
+      const moveTouchCursor = (event: PointerEvent) => {
+        if (!isPrimaryTouch(event)) return;
+        const rect = plot.getBoundingClientRect();
+        const position = {
+          left: clamp(event.clientX - rect.left, 0, rect.width),
+          top: clamp(event.clientY - rect.top, 0, rect.height),
+        };
+        u.setCursor(position, false);
+        dragPoint = { ...position, idx: u.cursor.idx };
+        scheduleUpdate(u);
+      };
+      const pinTouchCursor = (event: PointerEvent) => {
+        if (!isPrimaryTouch(event) || !dragPoint) return;
+        pinnedPoint = dragPoint;
+        dragPoint = null;
+      };
+      const cancelTouchCursor = (event: PointerEvent) => {
+        if (!isPrimaryTouch(event)) return;
+        dragPoint = null;
+        u.setCursor(pinnedPoint ?? { left: -10, top: -10 }, false);
+        if (pinnedPoint) scheduleUpdate(u);
+        else hide();
+      };
+      const dismissOnOutsideClick = (event: MouseEvent) => {
+        if (!pinnedPoint || event.composedPath().includes(u.root)) return;
+        pinnedPoint = null;
+        u.setCursor({ left: -10, top: -10 }, false);
+        hide();
+      };
+      plot.addEventListener("pointerdown", moveTouchCursor);
+      plot.addEventListener("pointermove", moveTouchCursor);
+      plot.addEventListener("pointerup", pinTouchCursor);
+      plot.addEventListener("pointercancel", cancelTouchCursor);
+      doc.addEventListener("click", dismissOnOutsideClick, true);
+      detachTouch = () => {
+        plot.removeEventListener("pointerdown", moveTouchCursor);
+        plot.removeEventListener("pointermove", moveTouchCursor);
+        plot.removeEventListener("pointerup", pinTouchCursor);
+        plot.removeEventListener("pointercancel", cancelTouchCursor);
+        doc.removeEventListener("click", dismissOnOutsideClick, true);
+      };
     },
     onDestroy: (u) => {
       cancelScheduled();
-      u.root.removeEventListener("mouseleave", hide);
+      if (dragPoint || pinnedPoint) hide();
+      dragPoint = pinnedPoint = null;
+      u.root.removeEventListener("mouseleave", onMouseLeave);
+      detachTouch?.();
+      detachTouch = undefined;
       view = null;
     },
     onSetCursor: (u) => {
-      if (!view) view = u.root.ownerDocument.defaultView;
-      if (frame != null) return;
-      frame = view?.requestAnimationFrame(() => update(u)) ?? null;
-      if (frame == null) update(u);
+      const touchPoint = dragPoint ?? pinnedPoint;
+      if (!touchPoint) {
+        scheduleUpdate(u);
+        return;
+      }
+
+      // 松手后浏览器可能派发兼容鼠标事件，恢复触屏选点的十字线与标记。
+      if (u.cursor.left !== touchPoint.left || u.cursor.top !== touchPoint.top) {
+        u.setCursor(touchPoint, false);
+      }
     },
   };
 }

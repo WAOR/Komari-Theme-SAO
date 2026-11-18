@@ -1,5 +1,5 @@
 import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
 import "uplot/dist/uPlot.min.css";
 import { InstanceDetails } from "@/components/instance/InstanceDetails";
@@ -16,6 +16,36 @@ import { useThemeSettings } from "@/hooks/useThemeSettings";
 
 const DEFAULT_PING_HOURS = 4;
 type TimeRangeOption = ReturnType<typeof buildLoadTimeRangeOptions>[number];
+
+function InstanceHomeLink() {
+  const { state } = useLocation();
+  const navigate = useNavigate();
+  const homeHistorySteps: number | undefined = state?.homeHistorySteps;
+
+  return (
+    <Link
+      to="/"
+      className="instance-page-back"
+      onClick={(event) => {
+        if (
+          !homeHistorySteps ||
+          event.button !== 0 ||
+          event.metaKey ||
+          event.ctrlKey ||
+          event.altKey ||
+          event.shiftKey
+        ) {
+          return;
+        }
+        event.preventDefault();
+        navigate(-homeHistorySteps);
+      }}
+    >
+      <ChevronLeft size={14} />
+      返回
+    </Link>
+  );
+}
 
 function RangeSelector({
   ranges,
@@ -112,10 +142,7 @@ export function Instance() {
         : null;
     return (
       <div className="flex flex-col gap-5 py-2">
-        <Link to="/" className="instance-page-back">
-          <ChevronLeft size={14} />
-          返回
-        </Link>
+        <InstanceHomeLink />
         <div className="flex min-h-[50vh] flex-col items-center justify-center gap-3 text-center">
           {message ? (
             <>
@@ -134,13 +161,7 @@ export function Instance() {
 
   return (
     <div className="flex flex-col gap-5 py-2">
-      <Link
-        to="/"
-        className="instance-page-back"
-      >
-        <ChevronLeft size={14} />
-        返回
-      </Link>
+      <InstanceHomeLink />
       <InstanceDetails uuid={uuid} onNodeReady={alignCharts} />
       <div ref={chartControlsRef} className="instance-chart-controls">
         <div className="instance-segmented">

@@ -325,6 +325,7 @@ export function PingChart({
       rangeHours: hours,
       estimatedWidth: 196,
       setTooltip,
+      touchScrub: true,
       buildRows: (idx) =>
         visibleTasks
           .map((task) => {

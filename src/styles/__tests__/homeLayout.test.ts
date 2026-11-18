@@ -12,6 +12,10 @@ const miniSource = readFileSync(
   new URL("../../components/node/MiniNodeCard.tsx", import.meta.url),
   "utf8",
 );
+const homeInstanceLinkSource = readFileSync(
+  new URL("../../components/node/HomeInstanceLink.tsx", import.meta.url),
+  "utf8",
+);
 const nodeGridSource = readFileSync(
   new URL("../../components/node/NodeGrid.tsx", import.meta.url),
   "utf8",
@@ -55,7 +59,8 @@ describe("home responsive layout contracts", () => {
       /from\s+["']\.\/(?:MetricBar|LatencyBars|QualityBars|CanvasStrip)["']/,
     );
     expect(miniSource).not.toContain("<canvas");
-    expect(miniSource).toContain("encodeURIComponent(node.uuid)");
+    expect(miniSource).toMatch(/<HomeInstanceLink\s+uuid=\{node\.uuid\}/);
+    expect(homeInstanceLinkSource).toContain("encodeURIComponent(uuid)");
   });
 
   it("does not render zero-value overview cards before the node store is hydrated", () => {

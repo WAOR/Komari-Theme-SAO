@@ -1,5 +1,4 @@
 import { memo, useCallback, useState } from "react";
-import { Link } from "react-router-dom";
 import { ArrowDown, ArrowUp, CircleDollarSign } from "lucide-react";
 import { clsx } from "clsx";
 import { Flag } from "@/components/ui/Flag";
@@ -16,6 +15,7 @@ import { HealthBucketTooltip } from "./HealthBucketTooltip";
 import { formatOsLabel, joinTagTitle, nodeDetailLinkLabels } from "./nodeCardShared";
 import { formatHealthBucketTooltip } from "./pingBucketText";
 import type { PingOverviewTaskLoadState } from "@/types/komari";
+import { HomeInstanceLink } from "./HomeInstanceLink";
 
 const GAUGE_SEGMENTS = 14;
 // 列表网络列的延迟柱数:比卡片(24)少,配窄列宽,柱子仍清晰可读。
@@ -281,9 +281,9 @@ const NodeRow = memo(function NodeRow({ uuid }: { uuid: string }) {
   ].join("，");
 
   return (
-    <Link
+    <HomeInstanceLink
       id={`node-card-${uuid}`}
-      to={`/instance/${encodeURIComponent(uuid)}`}
+      uuid={uuid}
       className={clsx("node-list-row", isOffline && "is-offline")}
       title={detailLabels.title}
       aria-label={rowLabel}
@@ -390,7 +390,7 @@ const NodeRow = memo(function NodeRow({ uuid }: { uuid: string }) {
         <StackLine value={uptime.value} unit={uptime.unit} color="var(--progress-cpu)" />
         <StackLine value={expire.value} unit={expire.unit} color={expireColor} />
       </div>
-    </Link>
+    </HomeInstanceLink>
   );
 });
 

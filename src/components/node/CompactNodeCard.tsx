@@ -1,6 +1,5 @@
 import { memo, useMemo, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
-import { Link } from "react-router-dom";
 import {
   ArrowDown,
   ArrowUp,
@@ -53,6 +52,7 @@ import type {
 } from "@/types/komari";
 import type { ByteRateDisplay } from "@/utils/format";
 import type { TrafficDisplay } from "@/utils/traffic";
+import { HomeInstanceLink } from "./HomeInstanceLink";
 
 const TRAFFIC_DOT_COUNT = 16;
 const HEALTH_BAR_COUNT = 18;
@@ -346,27 +346,27 @@ function CompactNodeHeader({
       <div className="compact-node-title-wrap">
         <div className="compact-node-title-row">
           <Flag region={node.region} size={15} />
-          <Link
-            to={`/instance/${encodeURIComponent(node.uuid)}`}
+          <HomeInstanceLink
+            uuid={node.uuid}
             className="compact-node-title"
             title={node.name}
           >
             {node.name}
-          </Link>
+          </HomeInstanceLink>
         </div>
       </div>
       <div className="compact-node-actions">
         {showTodayTraffic && (
           <NodeTodayTrafficPopover uuid={node.uuid} size={14} />
         )}
-        <Link
-          to={`/instance/${encodeURIComponent(node.uuid)}`}
+        <HomeInstanceLink
+          uuid={node.uuid}
           className="compact-node-detail-link"
           title={detailLabels.title}
           aria-label={detailLabels.ariaLabel}
         >
           <OsLogo value={node.os} size={15} />
-        </Link>
+        </HomeInstanceLink>
       </div>
     </header>
   );

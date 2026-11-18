@@ -88,7 +88,7 @@ export function ThemeManage() {
           params.set("tab", next);
           return params;
         },
-        { replace: true },
+        { replace: true, preventScrollReset: true },
       );
       if (window.innerWidth >= 900) {
         sectionsRef.current?.scrollTo({ top: 0 });

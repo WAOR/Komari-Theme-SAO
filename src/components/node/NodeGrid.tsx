@@ -859,6 +859,8 @@ const RegionTabs = memo(function RegionTabs({
   );
 });
 
+let hasMountedHomeCards = false;
+
 export function NodeGrid() {
   const now = useHourlyClock();
   const queryClient = useQueryClient();
@@ -880,14 +882,16 @@ export function NodeGrid() {
   const [selectedRegion, setSelectedRegion] = useState(HOME_ALL_REGION);
   useHomepagePingOverview(mode);
 
-  // 首帧优先让问候语昵称流光与方格热力矩阵独占主线程渲染，下一帧再挂载数十张服务器卡片，消除开屏掉帧
-  const [cardsReady, setCardsReady] = useState(false);
+  // 仅首次打开首页时延后一帧挂载卡片。再次进入时，滚动恢复需要完整的页面高度。
+  const [cardsReady, setCardsReady] = useState(hasMountedHomeCards);
   useEffect(() => {
+    if (cardsReady) return;
     const raf = requestAnimationFrame(() => {
+      hasMountedHomeCards = true;
       setCardsReady(true);
     });
     return () => cancelAnimationFrame(raf);
-  }, []);
+  }, [cardsReady]);
 
   // 摘要不含名称，先从完整 meta 解析主题隐藏列表，再统一过滤各类数据。
   const hiddenUuids = useHiddenNodeUuids();

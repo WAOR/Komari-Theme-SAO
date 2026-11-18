@@ -387,6 +387,7 @@ export function useThemeManageDraft({
     draft.costRateApiUrl.trim() !== "" && !isCostRateApiUrlValid(draft.costRateApiUrl.trim());
   const draftMultiPingInvalid =
     draft.enableHomepageMultiPing &&
+    sortedTasks.length > 0 &&
     !isHomepageMultiPingConfigured(draft.homepageMultiPingTaskIds);
 
   const draftSettings = useMemo(() => draftToThemeSettings(draft), [draft]);

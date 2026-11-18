@@ -27,6 +27,7 @@ import {
   type HomeSortField,
 } from "@/utils/homeSort";
 import {
+  DEFAULT_HOMEPAGE_MULTI_PING_TASK_IDS,
   normalizeHomepageMultiPingTaskIds,
   normalizeHomepagePingTaskBindings,
   type HomepagePingTaskBindings,
@@ -337,7 +338,7 @@ export const DEFAULT_THEME_SETTINGS: ResolvedThemeSettings = {
   showPingChart: true,
   homepagePingBindings: {},
   enableHomepageMultiPing: false,
-  homepageMultiPingTaskIds: [],
+  homepageMultiPingTaskIds: [...DEFAULT_HOMEPAGE_MULTI_PING_TASK_IDS],
   fakePingForUnbound: false,
   pingLatencyThresholds: DEFAULT_PING_LATENCY_THRESHOLDS,
   pingLatencyColors: DEFAULT_PING_LATENCY_COLORS,
@@ -634,9 +635,16 @@ export function normalizeYesterdayBestDisplayMode(raw: unknown): YesterdayBestDi
 export function normalizeThemeSettings(
   settings: (ThemeSettings & Record<string, unknown>) | null | undefined,
 ): ResolvedThemeSettings {
-  const homepageMultiPingTaskIds = normalizeHomepageMultiPingTaskIds(
-    settings?.homepageMultiPingTaskIds,
+  const rawMultiIds = normalizeHomepageMultiPingTaskIds(settings?.homepageMultiPingTaskIds);
+  const fallbackIndependentIds = normalizeHomepageMultiPingTaskIds(
+    (settings as Record<string, unknown> | undefined)?.homepageIndependentDefaultTaskIds,
   );
+  const homepageMultiPingTaskIds =
+    rawMultiIds.length > 0
+      ? rawMultiIds
+      : fallbackIndependentIds.length > 0
+        ? fallbackIndependentIds
+        : [...DEFAULT_HOMEPAGE_MULTI_PING_TASK_IDS];
   return {
     defaultAppearance: normalizeAppearance(settings?.defaultAppearance),
     desktopNodeViewMode: normalizeNodeViewMode(

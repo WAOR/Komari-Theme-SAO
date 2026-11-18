@@ -1,6 +1,11 @@
 import type { AdminClient, PingTask, ThemeSettings } from "@/types/komari";
 import type { CostPremiumEntry } from "@/utils/cost";
-import { normalizeHomepagePingTaskBindings, type HomepagePingTaskBindings } from "@/utils/pingTasks";
+import {
+  DEFAULT_HOMEPAGE_MULTI_PING_TASK_IDS,
+  normalizeHomepageMultiPingTaskIds,
+  normalizeHomepagePingTaskBindings,
+  type HomepagePingTaskBindings,
+} from "@/utils/pingTasks";
 import {
   normalizeOverviewCards,
   normalizePingLatencyColors,
@@ -252,6 +257,10 @@ export function draftToThemeSettings(targetDraft: ThemeDraft): ThemeSettings {
     pingLossColors: normalizePingLossColors(rest.pingLossColors),
     trafficSpectrumColors: normalizeTrafficSpectrumColors(rest.trafficSpectrumColors),
     overviewCards: normalizeOverviewCards(rest.overviewCards),
+    homepageMultiPingTaskIds:
+      normalizeHomepageMultiPingTaskIds(rest.homepageMultiPingTaskIds).length > 0
+        ? normalizeHomepageMultiPingTaskIds(rest.homepageMultiPingTaskIds)
+        : [...DEFAULT_HOMEPAGE_MULTI_PING_TASK_IDS],
     homepagePingBindings: pruneBindings(rest.homepagePingBindings),
     homeGroupOrder: normalizeHomeGroupOrder(rest.homeGroupOrder),
     bandwidthRatingLabels: ratingLabels.bandwidth,

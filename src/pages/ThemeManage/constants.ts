@@ -59,9 +59,9 @@ export const COLOR_THEME_OPTIONS: ColorThemeOption[] = [
   },
   {
     id: "eva",
-    label: "EVA 初号机",
-    badge: "UNIT-01",
-    desc: "机体紫配荧光绿，经典动漫科幻撞色",
+    label: "EVA",
+    badge: "NERV",
+    desc: "机体紫配荧光绿，经典机甲高对比撞色",
     colors: ["#7c3aed", "#00ff66", "#f97316", "#ef4444"],
     badgeClass: "bg-purple-500/15 text-purple-600 dark:text-purple-300 border-purple-500/30",
   },
@@ -72,6 +72,19 @@ export const COLOR_THEME_OPTIONS: ColorThemeOption[] = [
     desc: "复古辉光管暖橙色，温暖护眼耐看",
     colors: ["#fdba74", "#f97316", "#ea580c", "#ef4444"],
     badgeClass: "bg-orange-500/15 text-orange-600 dark:text-orange-300 border-orange-500/30",
+  },
+  {
+    id: "aurora",
+    label: "云雾抹茶",
+    badge: "MATCHA",
+    desc: "清润抹茶与轻柔云雾漫射，温润雅致通透",
+    colors: [
+      "#e5f6d7",
+      "#82dd2d",
+      "#58a021",
+      "#dce5da repeating-linear-gradient(135deg, rgba(100, 125, 95, 0.4) 0, rgba(100, 125, 95, 0.4) 1px, transparent 1px, transparent 2.5px)",
+    ],
+    badgeClass: "bg-lime-500/15 text-lime-600 dark:text-lime-300 border-lime-500/30",
   },
 ];
 
@@ -128,7 +141,7 @@ export const PREVIEW_LATENCY_SAMPLES = [
   15, 25, 40, 55, 65, 80, 95, 110, 130, 150, 165, 185, 195, 210, 260, 320,
 ];
 export const PREVIEW_LOSS_SAMPLES = [
-  0, 0, 0, 1.2, 0, 0, 2.5, 0, 4.8, 7.5, 0, 12.0, 18.5, 0, 25.0, 0,
+  0, 0, 0, 0, 10, 0, 0, 0, 0, 10, 0, 0, 10, 0, 0, 0,
 ];
 
 export const PREVIEW_LATENCY_BUCKETS: PingOverviewBucket[] = PREVIEW_LATENCY_SAMPLES.map(
@@ -166,10 +179,20 @@ export const LATENCY_TIER_CONFIG = [
 ] as const;
 
 export const LOSS_TIER_CONFIG = [
-  { key: "zero" as const, label: "无丢包 (0%)", hint: "网络通畅，零样本丢失", defaultColor: DEFAULT_PING_LOSS_COLORS.zero },
-  { key: "low" as const, label: "轻微丢包", hint: "偶发微量丢包，基本可用", defaultColor: DEFAULT_PING_LOSS_COLORS.low },
-  { key: "medium" as const, label: "中度丢包", hint: "较明显持续丢包，需注意", defaultColor: DEFAULT_PING_LOSS_COLORS.medium },
-  { key: "high" as const, label: "严重丢包", hint: "严重丢包甚至失联脱网", defaultColor: DEFAULT_PING_LOSS_COLORS.high },
+  {
+    key: "zero" as const,
+    label: "正常 (0%)",
+    hint: "网络通畅无丢包时的光柱颜色",
+    condition: "= 0% (无丢包)",
+    defaultColor: DEFAULT_PING_LOSS_COLORS.zero,
+  },
+  {
+    key: "loss" as const,
+    label: "丢包 (> 0%)",
+    hint: "存在丢包时的光柱颜色（启用斜纹时作为底色）",
+    condition: "> 0% (有丢包)",
+    defaultColor: DEFAULT_PING_LOSS_COLORS.loss ?? DEFAULT_PING_LOSS_COLORS.low,
+  },
 ] as const;
 
 export const TRAFFIC_SPECTRUM_ANCHOR_CONFIG = [
@@ -196,9 +219,9 @@ export const TRAFFIC_SPECTRUM_ANCHOR_CONFIG = [
   },
   {
     key: "end" as const,
-    label: "危险耗尽色 (100% 警报红)",
-    stage: "耗尽警报红",
-    hint: "临近或已耗尽，末端绝对保证警报红",
+    label: "危险耗尽色 (~100%)",
+    stage: "危险耗尽期",
+    hint: "临近或已耗尽，到达上限状态",
     defaultColor: DEFAULT_TRAFFIC_SPECTRUM_COLORS.end,
   },
 ] as const;

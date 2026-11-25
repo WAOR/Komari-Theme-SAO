@@ -16,7 +16,7 @@ export const DiaTextReveal = React.memo(function DiaTextReveal({
   text,
   children,
   className,
-  colors = ["#c679c4", "#fa3d1d", "#ffb005", "#8b5cf6", "#0358f7"],
+  colors,
   auroraColors,
   sweepDuration = 2.5,
   auroraSpeed = 8,
@@ -31,10 +31,12 @@ export const DiaTextReveal = React.memo(function DiaTextReveal({
       : text
     : children ?? "";
 
-  const effectiveAuroraColors = auroraColors ?? [...colors, colors[0]];
+  const hasCustomColors = colors !== undefined;
+  const resolvedColors = colors ?? ["#c679c4", "#fa3d1d", "#ffb005", "#8b5cf6", "#0358f7"];
+  const effectiveAuroraColors = auroraColors ?? [...resolvedColors, resolvedColors[0]];
 
-  const colorStops = colors
-    .map((c, i) => `${c} ${35 + (i / (colors.length - 1)) * 30}%`)
+  const colorStops = resolvedColors
+    .map((c, i) => `${c} ${35 + (i / (resolvedColors.length - 1)) * 30}%`)
     .join(", ");
   const sweepGradient = `linear-gradient(110deg, currentColor 0%, currentColor 25%, ${colorStops}, currentColor 75%, currentColor 100%)`;
 
@@ -59,9 +61,9 @@ export const DiaTextReveal = React.memo(function DiaTextReveal({
           } ${mode === "reveal-then-aurora" ? "dia-text-reveal-once" : ""}`}
           style={
             {
-              "--dia-gradient": sweepGradient,
               "--dia-duration": `${sweepDuration}s`,
               "--dia-delay": `${delay}s`,
+              ...(hasCustomColors ? { "--dia-gradient": sweepGradient } : {}),
             } as React.CSSProperties
           }
         >
@@ -77,10 +79,10 @@ export const DiaTextReveal = React.memo(function DiaTextReveal({
           } ${mode === "aurora-only" ? "aurora-text-layer-only" : ""}`}
           style={
             {
-              "--aurora-gradient": auroraGradient,
               "--aurora-speed": `${auroraSpeed}s`,
               "--dia-duration": `${sweepDuration}s`,
               "--dia-delay": `${delay}s`,
+              ...(hasCustomColors || auroraColors ? { "--aurora-gradient": auroraGradient } : {}),
             } as React.CSSProperties
           }
         >

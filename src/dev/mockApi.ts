@@ -1,4 +1,10 @@
 import type { NodeInfo } from "@/types/komari";
+import {
+  DEFAULT_CARD_METRIC_COLORS,
+  DEFAULT_PING_LATENCY_COLORS,
+  DEFAULT_PING_LOSS_COLORS,
+  DEFAULT_TRAFFIC_SPECTRUM_COLORS,
+} from "@/utils/themeSettings";
 
 const GIB = 1024 ** 3;
 const TIB = 1024 ** 4;
@@ -447,6 +453,42 @@ function trafficMetricPayload(params: {
   };
 }
 
+// 模拟丢包分布生成：用于直观对比无丢包、轻微丢包、中度丢包与严重丢包
+function resolveMockNodeLossRatio(
+  index: number,
+  pointIndex: number,
+  pointCount: number,
+  taskId: number,
+  isOnline: boolean,
+): number {
+  if (!isOnline) return 1.0;
+  // 节点 0 (Tokyo Edge): 全阶展示台，在同一张卡片光柱上依序呈现：无丢包 -> 轻微丢包 -> 无丢包 -> 中度丢包 -> 无丢包 -> 严重丢包
+  if (index === 0) {
+    const fraction = pointIndex / Math.max(1, pointCount);
+    if (fraction >= 0.20 && fraction < 0.40) return 0.02; // 轻微丢包 2% (<= 3%)
+    if (fraction >= 0.50 && fraction < 0.70) return 0.06; // 中度丢包 6% (3% ~ 10%)
+    if (fraction >= 0.80) return 0.18; // 严重丢包 18% (> 10%)
+    return 0; // 无丢包 0%
+  }
+  // 节点 1 (Singapore API): 整体以轻微丢包为主 (约 2.2%)
+  if (index === 1) {
+    const fraction = pointIndex / Math.max(1, pointCount);
+    return fraction >= 0.25 && fraction < 0.85 ? 0.022 : 0;
+  }
+  // 节点 2 (Frankfurt DB): 持续中度拥塞 (约 6.5%)
+  if (index === 2) {
+    const fraction = pointIndex / Math.max(1, pointCount);
+    return fraction >= 0.15 ? 0.065 : 0;
+  }
+  // 节点 3 (New York Worker): 持续严重脱网丢包 (约 22%)
+  if (index === 3) {
+    const fraction = pointIndex / Math.max(1, pointCount);
+    return fraction >= 0.10 ? 0.22 : 0;
+  }
+  // 其余节点根据不同探针任务呈现差异
+  return taskId === 1 ? 0 : taskId === 2 ? (pointIndex % 15 === 0 ? 0.04 : 0) : (pointIndex % 4 === 0 ? 0.15 : 0);
+}
+
 // queryMetrics 的 ping 路径:latency/loss 双序列,tags 携带 task_id;丢包桶 latency 为
 // null、loss 为 1,与真实后端聚合语义一致(mergePingMetricSeries 会还原成 -1 记录)。
 function pingMetricPayload(params: {
@@ -483,29 +525,25 @@ function pingMetricPayload(params: {
         interval_seconds: intervalMs / 1000,
         points: Array.from({ length: pointCount }, (_, pointIndex) => {
           const time = new Date(start + (pointIndex + 1) * intervalMs).toISOString();
-          // 差异化模拟三网丢包：
-          // task.id === 1 (中国电信 CT): 极佳健康 (约 0.5% 丢包，低柱 良好)
-          // task.id === 2 (中国联通 CU): 轻度波动 (约 6.7% 丢包，中柱 警告黄)
-          // task.id === 3 (中国移动 CM): 严重拥塞 (约 25.0% 丢包，高柱 报警红)
-          const lost =
-            !profile[9] ||
-            (task.id === 1
-              ? index === 0 && pointIndex % 180 === 0
-              : task.id === 2
-                ? pointIndex % 15 === 0
-                : task.id === 3
-                  ? pointIndex % 4 === 0
-                  : index % 11 === 0 && pointIndex % 17 === 0);
+          const lossRatio = resolveMockNodeLossRatio(
+            index,
+            pointIndex,
+            pointCount,
+            task.id,
+            Boolean(profile[9]),
+          );
+
           if (metricKey === "ping.loss") {
-            return { time, value: lost ? 1 : 0, count: 1 };
+            return { time, value: lossRatio, count: 100 };
           }
           const baseline = profile[4] + (task.id - 1) * 18;
           return {
             time,
-            value: lost
-              ? null
-              : Math.max(1, baseline + Math.round(Math.sin(pointIndex / 5 + index) * 9)),
-            count: 1,
+            value:
+              lossRatio >= 1
+                ? null
+                : Math.max(1, baseline + Math.round(Math.sin(pointIndex / 5 + index) * 9)),
+            count: 100,
           };
         }),
       }));
@@ -572,26 +610,17 @@ function pingRecords(uuid?: string, taskId = 1) {
     const profile = getNodeStatusProfile(index, nodes[index] ?? nodes[0]);
     const baseline = profile[4] + (taskId - 1) * 18;
     return Array.from({ length: 60 }, (_, sample) => {
-      // 差异化模拟三网丢包：
-      // taskId 1 (中国电信 CT): 几乎无丢包 (约 0.3% 极佳健康)
-      // taskId 2 (中国联通 CU): 轻度抖动 (约 6.7% 轻度波动 Warning)
-      // taskId 3 (中国移动 CM): 较明显丢包 (约 25.0% 严重拥塞 Error)
-      const isDropped =
-        taskId === 1
-          ? index === 0 && sample === 17
-          : taskId === 2
-            ? sample % 15 === 0
-            : taskId === 3
-              ? sample % 4 === 0
-              : index % 11 === 0 && sample % 17 === 0;
+      const lossRatio = resolveMockNodeLossRatio(index, sample, 60, taskId, Boolean(profile[9]));
       return {
         task_id: taskId,
         time: now - (59 - sample) * 60_000,
         value:
-          !profile[9] || isDropped
+          !profile[9] || lossRatio >= 1
             ? -1
             : Math.max(1, baseline + Math.round(Math.sin(sample / 5 + index) * 9)),
         client,
+        count: 100,
+        loss: lossRatio * 100,
       };
     });
   });
@@ -678,9 +707,16 @@ export function installDevMockApi() {
   const defaultTheme = "SAO";
   const MOCK_STORAGE_KEY = "komari_mock_theme_settings";
   const defaultMockThemeSettings: Record<string, unknown> = {
+    matrixColorTheme: "aurora",
+    enablePingLossHatch: true,
+    metricColors: { ...DEFAULT_CARD_METRIC_COLORS },
+    trafficSpectrumColors: { ...DEFAULT_TRAFFIC_SPECTRUM_COLORS },
+    pingLatencyColors: { ...DEFAULT_PING_LATENCY_COLORS },
+    pingLossColors: { ...DEFAULT_PING_LOSS_COLORS },
     desktopNodeViewMode: "compact",
     mobileNodeViewMode: "compact",
-    clusterOverviewMode: "classic",
+    clusterOverviewMode: "nodes",
+    enableClusterFlip: true,
     serverCardTemplate: "layered",
     showHomeOverview: true,
     overviewCardVisualMode: "visual",
@@ -918,23 +954,23 @@ export function installDevMockApi() {
               let baseStddev = 1.2;
 
               if (nodeIndex === 0) {
-                // Excellent (>=90分, ~98分 暖橙)
-                baseLoss = isCt ? 0.001 : isCu ? 0.002 : 0.003;
+                // Tokyo Edge: 呈现 2.4% 整体微量丢包，光柱内部包含三种丢包全阶对比
+                baseLoss = isCt ? 0.02 : isCu ? 0.024 : 0.028;
                 baseAvg = isCt ? 42 : isCu ? 49 : 53;
                 baseStddev = 1.1;
               } else if (nodeIndex === 1) {
-                // Good (80~89分, ~86分 天青色)
-                baseLoss = isCt ? 0.05 : isCu ? 0.05 : 0.05; // 5% 丢包扣 14 分 => 86 分
+                // Singapore API: 轻微丢包 2.2%
+                baseLoss = 0.022;
                 baseAvg = isCt ? 55 : isCu ? 60 : 65;
                 baseStddev = 2.0;
               } else if (nodeIndex === 2) {
-                // Warning (60~79分, ~72分 琥珀色)
-                baseLoss = isCt ? 0.11 : isCu ? 0.11 : 0.11; // 11% 丢包扣 27.8 分 => 72.2 分
+                // Frankfurt DB: 中度丢包 6.5%
+                baseLoss = 0.065;
                 baseAvg = 160;
                 baseStddev = 3.5;
               } else if (nodeIndex === 3) {
-                // Error (<60分, ~46分 赤红色)
-                baseLoss = isCt ? 0.28 : isCu ? 0.30 : 0.32; // >25% 扣满 50 分，加抖动 => ~46 分
+                // New York Worker: 严重丢包 22%
+                baseLoss = 0.22;
                 baseAvg = 220;
                 baseStddev = 25;
               } else if (nodeIndex === 4) {

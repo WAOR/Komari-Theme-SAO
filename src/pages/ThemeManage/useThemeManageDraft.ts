@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { useSearchParams } from "react-router-dom";
 import type { PublicConfig } from "@/types/komari";
 import type {
+  MetricColorKey,
   NodeInfo,
   PingLatencyColors,
   PingLatencyThresholds,
@@ -12,15 +13,19 @@ import type {
   TrafficSpectrumColors,
 } from "@/types/komari";
 import {
+  DEFAULT_CARD_METRIC_COLORS,
   DEFAULT_PING_LATENCY_COLORS,
   DEFAULT_PING_LATENCY_THRESHOLDS,
   DEFAULT_PING_LOSS_COLORS,
   DEFAULT_PING_LOSS_THRESHOLDS,
   DEFAULT_TRAFFIC_SPECTRUM_COLORS,
+  isValidHexColor,
   normalizeThemeSettings,
+  STATUS_BAR_PRESETS,
   type ResolvedThemeSettings,
   type StatusBarPreset,
 } from "@/utils/themeSettings";
+import { applyMetricColors } from "@/hooks/useMetricColors";
 import {
   calculateCostPremiumAmount,
   calculateCostPremiumBasisAt,
@@ -200,13 +205,44 @@ export function useThemeManageDraft({
   const patchPingLossColor = useCallback(
     (key: keyof PingLossColors, hex: string) => {
       editVersionRef.current += 1;
-      setDraft((prev) => ({
-        ...prev,
-        pingLossColors: {
+      setDraft((prev) => {
+        const next = {
           ...prev.pingLossColors,
           [key]: hex,
-        },
-      }));
+        };
+        if (key === "loss") {
+          next.low = hex;
+          next.medium = hex;
+          next.high = hex;
+        }
+        return {
+          ...prev,
+          pingLossColors: next,
+        };
+      });
+    },
+    [],
+  );
+
+  const resetPingLossTier = useCallback(
+    (key: keyof PingLossColors, defaultColor: string) => {
+      editVersionRef.current += 1;
+      setDraft((prev) => {
+        const nextColors = {
+          ...prev.pingLossColors,
+          [key]: defaultColor,
+        };
+        if (key === "loss") {
+          nextColors.low = defaultColor;
+          nextColors.medium = defaultColor;
+          nextColors.high = defaultColor;
+        }
+        return {
+          ...prev,
+          pingLossColors: nextColors,
+          ...(key !== "zero" ? { enablePingLossHatch: false } : {}),
+        };
+      });
     },
     [],
   );
@@ -217,6 +253,7 @@ export function useThemeManageDraft({
       ...prev,
       pingLossThresholds: DEFAULT_PING_LOSS_THRESHOLDS,
       pingLossColors: DEFAULT_PING_LOSS_COLORS,
+      enablePingLossHatch: false,
     }));
   }, []);
 
@@ -236,12 +273,48 @@ export function useThemeManageDraft({
 
   const applyStatusBarPreset = useCallback((preset: StatusBarPreset) => {
     editVersionRef.current += 1;
-    setDraft((prev) => ({
-      ...prev,
-      trafficSpectrumColors: { ...preset.colors },
-      pingLatencyColors: { ...preset.latencyColors },
-      pingLossColors: { ...preset.lossColors },
-    }));
+    setDraft((prev) => {
+      const nextMetricColors = { ...preset.metricColors };
+      applyMetricColors(nextMetricColors);
+      return {
+        ...prev,
+        trafficSpectrumColors: { ...preset.colors },
+        pingLatencyColors: { ...preset.latencyColors },
+        pingLossColors: { ...preset.lossColors },
+        enablePingLossHatch: preset.enablePingLossHatch ?? false,
+        metricColors: nextMetricColors,
+      };
+    });
+  }, []);
+
+  const patchMetricColor = useCallback((key: MetricColorKey, color: string) => {
+    const hex = color.trim().toLowerCase();
+    if (!isValidHexColor(hex)) return;
+    editVersionRef.current += 1;
+    setDraft((prev) => {
+      const nextMetric = {
+        ...prev.metricColors,
+        [key]: hex,
+      };
+      applyMetricColors(nextMetric);
+      return {
+        ...prev,
+        metricColors: nextMetric,
+      };
+    });
+  }, []);
+
+  const resetMetricColors = useCallback(() => {
+    editVersionRef.current += 1;
+    setDraft((prev) => {
+      const matched = STATUS_BAR_PRESETS.find((p) => p.id === prev.matrixColorTheme);
+      const nextMetric = { ...(matched?.metricColors ?? DEFAULT_CARD_METRIC_COLORS) };
+      applyMetricColors(nextMetric);
+      return {
+        ...prev,
+        metricColors: nextMetric,
+      };
+    });
   }, []);
 
   const resetTrafficSpectrum = useCallback(() => {
@@ -441,6 +514,13 @@ export function useThemeManageDraft({
         ...currentDraftThemeSettings,
       };
       writeCachedThemeSettings(nextSettings);
+      queryClient.setQueryData<PublicConfig>(["public"], (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          theme_settings: nextSettings,
+        };
+      });
       const savePromise = saveThemeSettings(config.theme, nextSettings);
       const minDelayPromise = new Promise((resolve) => setTimeout(resolve, 260));
       await Promise.all([savePromise, minDelayPromise]);
@@ -534,8 +614,11 @@ export function useThemeManageDraft({
     resetPingLatency,
     patchPingLossThreshold,
     patchPingLossColor,
+    resetPingLossTier,
     resetPingLoss,
     patchTrafficSpectrumColor,
+    patchMetricColor,
+    resetMetricColors,
     applyStatusBarPreset,
     resetTrafficSpectrum,
     patchMultiPingTask,

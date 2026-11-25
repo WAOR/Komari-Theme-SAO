@@ -1,6 +1,7 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   AlertTriangle,
+  ArrowDownUp,
   ChevronLeft,
   ChevronRight,
   Eye,
@@ -9,7 +10,6 @@ import {
   LayoutGrid,
   List,
   Monitor,
-  Palette,
   Settings,
   SlidersHorizontal,
   Square,
@@ -23,13 +23,12 @@ import { useNodeStoreStatus } from "@/hooks/useNode";
 import { useAuth } from "@/hooks/useAuth";
 import { useThemeSettings } from "@/hooks/useThemeSettings";
 import { usePriceVisibility } from "@/hooks/usePriceVisibility";
+import { useHomeSort } from "@/hooks/useHomeSort";
+import { HOME_SORT_FIELD_LABELS } from "@/utils/homeSort";
+import { HomeSortModal } from "@/components/node/HomeSortModal";
 import type { NodeViewMode } from "@/utils/themeSettings";
 import { clsx } from "clsx";
 import type { Appearance } from "@/utils/themeSettings";
-
-const MetricColorPicker = lazy(() =>
-  import("./MetricColorPicker").then((module) => ({ default: module.MetricColorPicker })),
-);
 
 // 悬浮球切换按钮展示"下一档"的图标/文案(点击后会切到的视图),而不是当前视图——
 // 与 ThemeManage 里 NODE_VIEW_MODE_OPTIONS 的图标语义保持一致。
@@ -65,16 +64,16 @@ export function FloatingControls({
   const { data: me } = useAuth();
   const themeSettings = useThemeSettings();
   const { isPriceVisible, togglePriceVisibility } = usePriceVisibility();
+  const sortState = useHomeSort();
+  const [isSortModalOpen, setIsSortModalOpen] = useState(false);
   const { failureStreak } = useNodeStoreStatus();
   const [collapsed, setCollapsed] = useState(true);
-  const [colorsOpen, setColorsOpen] = useState(false);
-  const [colorsMounted, setColorsMounted] = useState(false);
   const settingsReady = themeSettings.isReady;
   const showAdmin = settingsReady && themeSettings.enableAdminButton;
-  // 主题管理入口与配色取色器都仅对登录管理员开放（配色存后端、全局生效）。
+  const showHomeSort = settingsReady && themeSettings.enableHomeSort;
+  // 主题管理入口仅对登录管理员开放（保存到后端、全局生效）。
   const loggedIn = Boolean(me?.logged_in);
   const showThemeManage = loggedIn;
-  const showColorPicker = loggedIn;
   const showPriceToggle = loggedIn;
   const showSyncWarning = failureStreak >= 2;
   const hiddenTabIndex = collapsed ? -1 : undefined;
@@ -100,7 +99,6 @@ export function FloatingControls({
 
     const handleUserScroll = () => {
       setCollapsed(true);
-      setColorsOpen(false);
       onExpandedChange?.(false);
     };
 
@@ -114,9 +112,7 @@ export function FloatingControls({
   }, [collapsed, onExpandedChange]);
 
   const toggleControls = () => {
-    // 收起快捷栏时同时结束子面板状态，避免下次展开时调色盘自动复现。
     const nextCollapsed = !collapsed;
-    if (nextCollapsed) setColorsOpen(false);
     setCollapsed(nextCollapsed);
     onExpandedChange?.(!nextCollapsed);
   };
@@ -177,23 +173,16 @@ export function FloatingControls({
                     {isPriceVisible ? <Eye size={16} /> : <EyeOff size={16} />}
                   </button>
                 )}
-                {showColorPicker && (
+                {showHomeSort && (
                   <button
                     type="button"
-                    onClick={() => {
-                      setColorsMounted(true);
-                      setColorsOpen((value) => !value);
-                    }}
-                    aria-label="卡片配色"
-                    aria-pressed={colorsOpen}
-                    title="卡片配色"
+                    onClick={() => setIsSortModalOpen(true)}
+                    aria-label={`服务器排序，当前${HOME_SORT_FIELD_LABELS[sortState.field]}${sortState.direction === "asc" ? "升序" : "降序"}`}
+                    title={`服务器排序（当前：${HOME_SORT_FIELD_LABELS[sortState.field]} · ${sortState.direction === "asc" ? "升序" : "降序"}）`}
                     tabIndex={hiddenTabIndex}
-                    className={clsx(
-                      "control-button grid h-9 w-9 place-items-center",
-                      colorsOpen && "control-toggle is-active",
-                    )}
+                    className="control-button grid h-9 w-9 place-items-center"
                   >
-                    <Palette size={16} />
+                    <ArrowDownUp size={16} />
                   </button>
                 )}
               </>
@@ -235,18 +224,23 @@ export function FloatingControls({
             )}
           </button>
         </div>
-        {showColorPicker && colorsMounted && (
-          <Suspense fallback={null}>
-            <MetricColorPicker hidden={collapsed || !colorsOpen} />
-          </Suspense>
-        )}
-        {showSyncWarning && !collapsed && !colorsOpen && (
+        {showSyncWarning && !collapsed && (
           <div className="floating-controls-sync-warning pointer-events-none flex items-center gap-2 rounded-full border border-[color-mix(in_srgb,var(--status-offline)_32%,transparent)] bg-[color-mix(in_srgb,var(--surface-a)_90%,transparent)] px-3 py-1 text-[11px] font-medium text-(--status-offline) shadow-[0_10px_25px_-18px_rgba(0,0,0,0.8)] backdrop-blur">
             <AlertTriangle size={12} />
             <span>实时状态同步异常，当前展示的是最近缓存</span>
           </div>
         )}
       </div>
+      {showHomeSort && (
+        <HomeSortModal
+          isOpen={isSortModalOpen}
+          onClose={() => setIsSortModalOpen(false)}
+          state={sortState}
+          palette={themeSettings.matrixColorTheme || "default"}
+          defaultField={themeSettings.homeSortField}
+          defaultDirection={themeSettings.homeSortDirection}
+        />
+      )}
     </div>
   );
 }

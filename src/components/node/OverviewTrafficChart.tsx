@@ -133,6 +133,38 @@ export function getTrafficChartThemeStyles(
             },
       };
 
+    case "aurora":
+      return {
+        // 上行：取自方格矩阵中载绿（青柠中绿），上下行拉开明度与深浅层次
+        up: isDark
+          ? {
+              color: "#5b9528",
+              gradientTop: "rgba(91, 149, 40, 0.28)",
+              gradientBottom: "rgba(91, 149, 40, 0.01)",
+              haloRgba: "rgba(91, 149, 40, 0.35)",
+            }
+          : {
+              color: "#72c627",
+              gradientTop: "rgba(114, 198, 39, 0.22)",
+              gradientBottom: "rgba(114, 198, 39, 0.01)",
+              haloRgba: "rgba(114, 198, 39, 0.25)",
+            },
+        // 下行：取自方格矩阵高载极光绿（深色高亮发光翡绿 / 浅色纯正深翡绿）
+        down: isDark
+          ? {
+              color: "#89c852",
+              gradientTop: "rgba(137, 200, 82, 0.28)",
+              gradientBottom: "rgba(137, 200, 82, 0.01)",
+              haloRgba: "rgba(137, 200, 82, 0.35)",
+            }
+          : {
+              color: "#58a021",
+              gradientTop: "rgba(88, 160, 33, 0.22)",
+              gradientBottom: "rgba(88, 160, 33, 0.01)",
+              haloRgba: "rgba(88, 160, 33, 0.25)",
+            },
+      };
+
     case "default":
     default:
       // 经典标准：保持现状，常规监控蓝 (Up) / 活跃传输纯正翠绿 (Down)
@@ -206,15 +238,17 @@ function SingleTrafficCard({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const rect = canvas.getBoundingClientRect();
-    const width = rect.width;
-    const height = rect.height;
+    const wrap = wrapRef.current;
+    // 使用容器实际 CSS 布局尺寸（clientWidth / clientHeight），彻底免疫 3D rotateY 投影形变
+    const width = wrap ? wrap.clientWidth : canvas.clientWidth;
+    const height = wrap ? wrap.clientHeight : canvas.clientHeight;
 
-    if (width === 0 || height === 0) {
+    // 当面处于翻转背面隐藏 (is-hidden-face) 或尚未挂载具有实际尺寸时暂不绘制，杜绝生成拉伸模糊畸变缓存
+    if (width <= 20 || height <= 20) {
       return;
     }
 
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
     const pixelWidth = Math.max(1, Math.round(width * dpr));
     const pixelHeight = Math.max(1, Math.round(height * dpr));
 
@@ -409,11 +443,13 @@ function SingleTrafficCard({
     }
 
     window.addEventListener("resize", handleResize, { passive: true });
+    window.addEventListener("sao:cluster-flip", handleResize);
 
     return () => {
       if (resizeRafId !== null) cancelAnimationFrame(resizeRafId);
       if (ro) ro.disconnect();
       window.removeEventListener("resize", handleResize);
+      window.removeEventListener("sao:cluster-flip", handleResize);
     };
   }, [draw]);
 

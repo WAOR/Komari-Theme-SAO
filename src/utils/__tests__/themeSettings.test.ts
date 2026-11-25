@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { normalizeThemeSettings } from "@/utils/themeSettings";
+import {
+  normalizeThemeSettings,
+  readStoredDarkBrandColor,
+  persistDarkBrandColor,
+} from "@/utils/themeSettings";
 
 describe("normalizeThemeSettings", () => {
   it("keeps mini and falls unknown saved view modes back to compact", () => {
@@ -98,7 +102,14 @@ describe("normalizeThemeSettings", () => {
     expect(normalizeThemeSettings({ clusterOverviewMode: "nodes" }).clusterOverviewMode).toBe("nodes");
     expect(normalizeThemeSettings({ clusterOverviewMode: "traffic" as never }).clusterOverviewMode).toBe("classic");
     expect(normalizeThemeSettings({ clusterOverviewMode: "carousel" as never }).clusterOverviewMode).toBe("nodes");
-    expect(normalizeThemeSettings({ clusterOverviewMode: "invalid" as never }).clusterOverviewMode).toBe("classic");
+    expect(normalizeThemeSettings({ clusterOverviewMode: "invalid" as never }).clusterOverviewMode).toBe("nodes");
+  });
+
+  it("normalizes enableClusterFlip correctly with default true", () => {
+    expect(normalizeThemeSettings({ enableClusterFlip: true }).enableClusterFlip).toBe(true);
+    expect(normalizeThemeSettings({ enableClusterFlip: false }).enableClusterFlip).toBe(false);
+    expect(normalizeThemeSettings({}).enableClusterFlip).toBe(true);
+    expect(normalizeThemeSettings({ enableClusterFlip: undefined }).enableClusterFlip).toBe(true);
   });
 
   it("normalizes serverCardTemplate correctly across classic and layered options", () => {
@@ -112,18 +123,19 @@ describe("normalizeThemeSettings", () => {
     expect(normalizeThemeSettings({ matrixColorTheme: "default" }).matrixColorTheme).toBe("default");
     expect(normalizeThemeSettings({ matrixColorTheme: "eva" }).matrixColorTheme).toBe("eva");
     expect(normalizeThemeSettings({ matrixColorTheme: "divergence" }).matrixColorTheme).toBe("divergence");
-    expect(normalizeThemeSettings({ matrixColorTheme: "cyberpunk" as never }).matrixColorTheme).toBe("eva");
-    expect(normalizeThemeSettings({ matrixColorTheme: "matrix-code" as never }).matrixColorTheme).toBe("eva");
-    expect(normalizeThemeSettings({ matrixColorTheme: "dual-blades" as never }).matrixColorTheme).toBe("eva");
-    expect(normalizeThemeSettings({ matrixColorTheme: "red-comet" as never }).matrixColorTheme).toBe("eva");
-    expect(normalizeThemeSettings({ matrixColorTheme: "invalid" as never }).matrixColorTheme).toBe("eva");
+    expect(normalizeThemeSettings({ matrixColorTheme: "aurora" }).matrixColorTheme).toBe("aurora");
+    expect(normalizeThemeSettings({ matrixColorTheme: "cyberpunk" as never }).matrixColorTheme).toBe("aurora");
+    expect(normalizeThemeSettings({ matrixColorTheme: "matrix-code" as never }).matrixColorTheme).toBe("aurora");
+    expect(normalizeThemeSettings({ matrixColorTheme: "dual-blades" as never }).matrixColorTheme).toBe("aurora");
+    expect(normalizeThemeSettings({ matrixColorTheme: "red-comet" as never }).matrixColorTheme).toBe("aurora");
+    expect(normalizeThemeSettings({ matrixColorTheme: "invalid" as never }).matrixColorTheme).toBe("aurora");
   });
 
   it("normalizes matrixMockFill correctly", () => {
     expect(normalizeThemeSettings({ matrixMockFill: true }).matrixMockFill).toBe(true);
     expect(normalizeThemeSettings({ matrixMockFill: false }).matrixMockFill).toBe(false);
-    expect(normalizeThemeSettings({ matrixMockFill: "yes" as never }).matrixMockFill).toBe(false);
-    expect(normalizeThemeSettings({}).matrixMockFill).toBe(false);
+    expect(normalizeThemeSettings({ matrixMockFill: "yes" as never }).matrixMockFill).toBe(true);
+    expect(normalizeThemeSettings({}).matrixMockFill).toBe(true);
   });
 
   it("normalizes matrixBootAnimation correctly", () => {
@@ -207,7 +219,7 @@ describe("normalizeThemeSettings", () => {
       },
     });
     expect(fallback.pingLatencyThresholds.excellent).toBe(60);
-    expect(fallback.pingLatencyColors.excellent).toBe("#10b981");
+    expect(fallback.pingLatencyColors.excellent).toBe("#82dd2d");
   });
 
   it("normalizes ping loss thresholds and colors correctly", () => {
@@ -226,6 +238,7 @@ describe("normalizeThemeSettings", () => {
     expect(custom.pingLossThresholds).toEqual({ low: 5, medium: 15 });
     expect(custom.pingLossColors).toEqual({
       zero: "#00ff00",
+      loss: "#ffff00",
       low: "#ffff00",
       medium: "#ff8800",
       high: "#ff0000",
@@ -241,7 +254,49 @@ describe("normalizeThemeSettings", () => {
       },
     });
     expect(fallback.pingLossThresholds.low).toBe(3);
-    expect(fallback.pingLossColors.zero).toBe("#10b981");
+    expect(fallback.pingLossColors.zero).toBe("#82dd2d");
+  });
+
+  it("smoothly enables enablePingLossHatch for legacy aurora/divergence upgrades", () => {
+    // 场景 1：老版本用户配置了云雾抹茶（只有旧的 low/high，没有 enablePingLossHatch 和 loss 字段）
+    const legacyAurora = normalizeThemeSettings({
+      matrixColorTheme: "aurora",
+      pingLossColors: {
+        zero: "#82dd2d",
+        low: "#dce5da",
+        medium: "#dce5da",
+        high: "#dce5da",
+      },
+    } as never);
+    expect(legacyAurora.enablePingLossHatch).toBe(true);
+    expect(legacyAurora.pingLossColors.loss).toBe("#dce5da");
+
+    // 场景 2：老版本用户仅保存了 matrixColorTheme: aurora，未定制 pingLossColors
+    const legacyAuroraThemeOnly = normalizeThemeSettings({
+      matrixColorTheme: "aurora",
+    } as never);
+    expect(legacyAuroraThemeOnly.enablePingLossHatch).toBe(true);
+    expect(legacyAuroraThemeOnly.pingLossColors.loss).toBe("#dce5da");
+
+    // 场景 3：老版本用户配置了命运石之门
+    const legacyDivergence = normalizeThemeSettings({
+      matrixColorTheme: "divergence",
+    } as never);
+    expect(legacyDivergence.enablePingLossHatch).toBe(true);
+    expect(legacyDivergence.pingLossColors.loss).toBe("#facc15");
+
+    // 场景 4：经典标准等默认不启用斜纹
+    const legacyClassic = normalizeThemeSettings({
+      matrixColorTheme: "default",
+    } as never);
+    expect(legacyClassic.enablePingLossHatch).toBe(false);
+
+    // 场景 5：用户显式关闭了斜纹，必须尊重用户显式配置
+    const userDisabled = normalizeThemeSettings({
+      matrixColorTheme: "aurora",
+      enablePingLossHatch: false,
+    } as never);
+    expect(userDisabled.enablePingLossHatch).toBe(false);
   });
 
   it("normalizes traffic spectrum colors correctly with presets and fallbacks", () => {
@@ -267,10 +322,10 @@ describe("normalizeThemeSettings", () => {
       },
     });
     expect(fallback.trafficSpectrumColors).toEqual({
-      start: "#10b981",
-      mid: "#eab308",
-      high: "#f97316",
-      end: "#ef4444",
+      start: "#b4f475",
+      mid: "#82dd2d",
+      high: "#4f8f1c",
+      end: "#234c0e",
     });
   });
 
@@ -318,6 +373,20 @@ describe("normalizeThemeSettings", () => {
       "process",
       "cores",
     ]);
+  });
+
+  it("defaults enableDarkBrandColor to true and normalizes false when explicitly set", () => {
+    expect(normalizeThemeSettings({}).enableDarkBrandColor).toBe(true);
+    expect(normalizeThemeSettings(null).enableDarkBrandColor).toBe(true);
+    expect(normalizeThemeSettings({ enableDarkBrandColor: true }).enableDarkBrandColor).toBe(true);
+    expect(normalizeThemeSettings({ enableDarkBrandColor: false }).enableDarkBrandColor).toBe(false);
+  });
+
+  it("reads and persists dark brand color in localStorage", () => {
+    persistDarkBrandColor(false);
+    expect(readStoredDarkBrandColor()).toBe(false);
+    persistDarkBrandColor(true);
+    expect(readStoredDarkBrandColor()).toBe(true);
   });
 });
 

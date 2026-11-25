@@ -174,7 +174,6 @@ function ListLatency({
   loadState,
   hasRealHomepagePingBinding,
   pingIsAssigned,
-  latencyColor,
   buckets,
   redrawKey,
 }: {
@@ -182,7 +181,6 @@ function ListLatency({
   loadState: PingOverviewTaskLoadState | undefined;
   hasRealHomepagePingBinding: boolean;
   pingIsAssigned: boolean;
-  latencyColor: string;
   buckets: Parameters<typeof LatencyBars>[0]["buckets"];
   redrawKey: string;
 }) {
@@ -204,9 +202,9 @@ function ListLatency({
       data-ping-state={state}
       aria-label={`网络延迟 ${status.ariaText}`}
     >
+      {/* 架构设计规范：网络延迟与丢包数值文本严格统一使用中性次级色（var(--text-secondary)）。状态完全由下方的光柱表达，严禁在数值文本上染色。 */}
       <span
         className="node-list-latency-value tabular"
-        style={{ color: latencyColor }}
         title={status.title}
       >
         {status.visibleText}
@@ -228,7 +226,10 @@ function ListLatency({
 const NodeRow = memo(function NodeRow({ uuid }: { uuid: string }) {
   const { resolvedAppearance } = usePreferences();
   const colorsVersion = useMetricColorsVersion();
-  const redrawKey = `${resolvedAppearance}:${colorsVersion}`;
+  const themeSettings = useThemeSettings();
+  const { metricColors } = themeSettings;
+  const metricSignature = `${metricColors.cpu}:${metricColors.memory}:${metricColors.disk}:${metricColors.load}`;
+  const redrawKey = `${resolvedAppearance}:${colorsVersion}:${metricSignature}`;
   const model = useNodeCardModel(uuid, {
     pingBucketCount: LIST_PING_BUCKETS,
   });
@@ -247,7 +248,6 @@ const NodeRow = memo(function NodeRow({ uuid }: { uuid: string }) {
     expireColor,
     uptime,
     renewalPrice,
-    latencyColor,
     hasRealHomepagePingBinding,
     loadFraction,
     upRate,
@@ -327,13 +327,13 @@ const NodeRow = memo(function NodeRow({ uuid }: { uuid: string }) {
       </div>
 
       <div className="node-list-cell col-metric">
-        <ListGauge value={pctText(node.cpuPct)} fraction={node.cpuPct / 100} paint="var(--progress-cpu)" redrawKey={redrawKey} />
+        <ListGauge value={pctText(node.cpuPct)} fraction={node.cpuPct / 100} paint={metricColors.cpu} redrawKey={redrawKey} />
       </div>
       <div className="node-list-cell col-metric">
-        <ListGauge value={pctText(node.ramPct)} fraction={node.ramPct / 100} paint="var(--progress-memory)" redrawKey={redrawKey} />
+        <ListGauge value={pctText(node.ramPct)} fraction={node.ramPct / 100} paint={metricColors.memory} redrawKey={redrawKey} />
       </div>
       <div className="node-list-cell col-metric">
-        <ListGauge value={pctText(node.diskPct)} fraction={node.diskPct / 100} paint="var(--progress-disk)" redrawKey={redrawKey} />
+        <ListGauge value={pctText(node.diskPct)} fraction={node.diskPct / 100} paint={metricColors.disk} redrawKey={redrawKey} />
       </div>
 
       <div className="node-list-cell col-load">
@@ -341,7 +341,7 @@ const NodeRow = memo(function NodeRow({ uuid }: { uuid: string }) {
           value={node.load1.toFixed(2)}
           unit=""
           fraction={loadFraction}
-          paint="var(--progress-load)"
+          paint={metricColors.load}
           redrawKey={redrawKey}
         />
       </div>
@@ -351,13 +351,13 @@ const NodeRow = memo(function NodeRow({ uuid }: { uuid: string }) {
           icon={<ArrowUp size={11} strokeWidth={2.4} />}
           value={upRate.value}
           unit={upRate.unit}
-          color={speedRateColor(upRate.unit)}
+          color={speedRateColor(upRate.unit, metricColors)}
         />
         <StackLine
           icon={<ArrowDown size={11} strokeWidth={2.4} />}
           value={downRate.value}
           unit={downRate.unit}
-          color={speedRateColor(downRate.unit)}
+          color={speedRateColor(downRate.unit, metricColors)}
         />
       </div>
 
@@ -380,14 +380,13 @@ const NodeRow = memo(function NodeRow({ uuid }: { uuid: string }) {
           loadState={ping.loadState}
           hasRealHomepagePingBinding={hasRealHomepagePingBinding}
           pingIsAssigned={ping.isAssigned}
-          latencyColor={latencyColor}
           buckets={pingBuckets}
           redrawKey={redrawKey}
         />
       </div>
 
       <div className="node-list-cell col-life node-list-stack">
-        <StackLine value={uptime.value} unit={uptime.unit} color="var(--progress-cpu)" />
+        <StackLine value={uptime.value} unit={uptime.unit} color={metricColors.cpu} />
         <StackLine value={expire.value} unit={expire.unit} color={expireColor} />
       </div>
     </HomeInstanceLink>

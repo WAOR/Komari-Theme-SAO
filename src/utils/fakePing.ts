@@ -57,14 +57,21 @@ export function buildFakePingItem(uuid: string, minuteIndex: number): PingOvervi
   const seed = hashUuid(uuid);
   // 基线只由 seed 决定,落在 [3,8];叠加浮动后 ∈ [3,9] ⊂ [1,10]。样本存浮点,显示端 Math.round。
   const base = FAKE_BASE_MIN_MS + unitAt(seed, 0x9e3779b1) * FAKE_BASE_SPAN_MS;
-  const samples = new Array<{ time: number; value: number }>(FAKE_SAMPLE_COUNT);
+  const samples = new Array<{ time: number; value: number; count?: number; loss?: number }>(FAKE_SAMPLE_COUNT);
   let max = 0;
   let lastValue = base;
 
   for (let i = 0; i < FAKE_SAMPLE_COUNT; i++) {
     const slot = minuteIndex - (FAKE_SAMPLE_COUNT - 1) + i;
     const value = base + smoothUnitAt(seed, slot);
-    samples[i] = { time: slot * MINUTE_MS, value };
+    let sampleLoss = 0;
+    if (uuid === "tokyo-edge-01") {
+      const frac = i / FAKE_SAMPLE_COUNT;
+      if (frac >= 0.20 && frac < 0.40) sampleLoss = 2;
+      else if (frac >= 0.50 && frac < 0.70) sampleLoss = 6;
+      else if (frac >= 0.80) sampleLoss = 18;
+    }
+    samples[i] = { time: slot * MINUTE_MS, value, count: 100, loss: sampleLoss };
     if (value > max) max = value;
     lastValue = value;
   }
@@ -75,6 +82,6 @@ export function buildFakePingItem(uuid: string, minuteIndex: number): PingOvervi
     lastValue,
     samples,
     max,
-    loss: 0,
+    loss: uuid === "tokyo-edge-01" ? 2.4 : 0,
   };
 }

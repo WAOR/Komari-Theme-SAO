@@ -2,14 +2,19 @@ import { memo, useState } from "react";
 import { clsx } from "clsx";
 import { useMetricColorsVersion } from "@/hooks/useMetricColors";
 import { usePreferences } from "@/hooks/usePreferences";
-import { useThemeSettings } from "@/hooks/useThemeSettings";
 import type { HomepagePingDisplayLine } from "@/types/komari";
-import { resolveCustomLatencyColor, resolveCustomLossColor } from "@/utils/metricTone";
 import { isFallbackTaskName } from "@/utils/pingTasks";
 import { HealthBucketTooltip } from "./HealthBucketTooltip";
 import { LatencyBars } from "./LatencyBars";
 import { QualityBars } from "./QualityBars";
 import { formatHealthBucketTooltip } from "./pingBucketText";
+
+/**
+ * 架构设计规范（重要）：
+ * 网络延迟与丢包数值文本严格统一使用中性次级色（var(--text-secondary)），与左侧线路名称保持绝对一致。
+ * 状态评估与主题色彩完全由下方的光柱（LatencyBars / QualityBars）负责表达。
+ * 严禁在此处或任何新配色方案中对数值文本进行染色，避免浅色/低对比度方案下文字看不清或产生视觉杂乱。
+ */
 
 type MultiPingStatusDensity = "large" | "compact";
 type MultiPingMetric = "latency" | "loss";
@@ -25,18 +30,7 @@ const MultiPingMetricRow = memo(function MultiPingMetricRow({
   density: MultiPingStatusDensity;
   redrawKey: string;
 }) {
-  const themeSettings = useThemeSettings();
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-  const latencyColor = resolveCustomLatencyColor(
-    line.lastValue,
-    themeSettings.pingLatencyThresholds,
-    themeSettings.pingLatencyColors,
-  );
-  const lossColor = resolveCustomLossColor(
-    line.loss,
-    themeSettings.pingLossThresholds,
-    themeSettings.pingLossColors,
-  );
   const isLoading = line.loadState === "pending";
   const isError = line.loadState === "error";
   const staleError = isError && (line.lastValue != null || line.loss != null);
@@ -63,7 +57,6 @@ const MultiPingMetricRow = memo(function MultiPingMetricRow({
     : null;
   const chartHeight = density === "compact" ? 9 : 11;
   const value = metric === "latency" ? line.lastValue : line.loss;
-  const valueColor = metric === "latency" ? latencyColor : lossColor;
   const unit = metric === "latency" ? "ms" : "%";
   const waiting = isLoading && value == null;
   const displayValue =
@@ -103,10 +96,10 @@ const MultiPingMetricRow = memo(function MultiPingMetricRow({
           </span>
         )}
         <strong
-          className="multi-ping-value tabular"
-          style={{
-            color: value == null ? "var(--text-tertiary)" : valueColor,
-          }}
+          className={clsx(
+            "multi-ping-value tabular",
+            value == null && "is-empty",
+          )}
         >
           {displayValue}
           {value != null && <small>{unit}</small>}

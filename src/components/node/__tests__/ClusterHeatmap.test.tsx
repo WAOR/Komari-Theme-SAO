@@ -28,6 +28,7 @@ function createMockNode(overrides: Partial<HomeNodeSummary> = {}): HomeNodeSumma
     load1: 0,
     load5: 0,
     load15: 0,
+    uptime: 0,
     ...overrides,
   };
 }

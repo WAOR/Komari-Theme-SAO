@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Activity, HelpCircle, LayoutGrid, PackagePlus, RotateCcw, Settings, Sparkles, X } from "lucide-react";
+import { InstancePanel } from "@/components/instance/InstancePanel";
 import { OverviewStatCard, type OverviewData } from "@/components/node/OverviewStatCard";
 import {
   ALL_OVERVIEW_CARD_IDS,
@@ -199,35 +200,29 @@ export function OverviewCardPool({
   const todayTrafficLoading = todayTrafficPending;
 
   return (
-    <div
-      className="rounded-2xl border border-(--hairline) bg-[color-mix(in_srgb,var(--bg-card)_55%,transparent)] p-3 sm:p-5 shadow-xs"
-      data-palette={draft.matrixColorTheme || "default"}
+    <InstancePanel
+      kicker="指标"
+      title="指标卡池"
+      description="显示在首页顶部的核心数据卡片。点击任意两张卡可对调顺序，也可以从下方备选池点击替换。"
+      titleAction={
+        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded border border-(--hairline) bg-(--bg-card) text-(--accent-500)">
+          固定 6 槽位
+        </span>
+      }
+      aside={
+        <button
+          type="button"
+          className="theme-reset-pill-btn shrink-0 whitespace-nowrap cursor-pointer"
+          onClick={resetOverviewCards}
+          title="恢复官方默认 6 张卡片配置与排序"
+        >
+          <RotateCcw size={12} strokeWidth={2.2} />
+          <span>重置</span>
+        </button>
+      }
     >
-                      {/* 模块头部：标题 + 状态角标 + 恢复默认按钮 */}
-                      <div className="flex items-start justify-between gap-3 pb-3.5 mb-4 border-b border-(--hairline)">
-                        <div className="min-w-0">
-                          <div className="text-xs font-semibold text-(--text-primary) flex items-center gap-1.5">
-                            <span>SAO 指标卡池模块</span>
-                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded border border-(--hairline) bg-(--bg-card) text-(--accent-500)">
-                              固定 6 槽位
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-(--text-muted) mt-0.5">
-                            显示在首页顶部的核心数据卡片。点击任意两张卡可对调顺序，也可以从下方备选池点击替换。
-                          </p>
-                        </div>
-                        <button
-                          type="button"
-                          className="theme-reset-pill-btn shrink-0 whitespace-nowrap"
-                          onClick={resetOverviewCards}
-                          title="恢复官方默认 6 张卡片配置与排序"
-                        >
-                          <RotateCcw size={12} strokeWidth={2.2} />
-                          <span>重置</span>
-                        </button>
-                      </div>
-
-                      {/* 小卡视觉呈现模式（智能切换 / 图形卡片 / 文字卡片） */}
+      <div data-palette={draft.matrixColorTheme || "default"}>
+        {/* 小卡视觉呈现模式（智能切换 / 图形卡片 / 文字卡片） */}
                       <div className="flex flex-col gap-2 mb-4 p-3 rounded-xl bg-(--bg-card) border border-(--hairline)">
                         <div className="flex items-center justify-between gap-2">
                           <span className="text-[11px] font-semibold text-(--text-secondary) shrink-0">指标卡片呈现</span>
@@ -303,7 +298,7 @@ export function OverviewCardPool({
                         )}
 
                         <div
-                          className="grid grid-cols-2 md:grid-cols-3 gap-1.5 sm:gap-3 mao-stat-grid"
+                          className="grid grid-cols-2 md:grid-cols-3 gap-1.5 sm:gap-3 mao-stat-grid theme-manage-overview-grid"
                           data-visual-mode={draft.overviewCardVisualMode || "adaptive"}
                           data-palette={draft.matrixColorTheme || "default"}
                         >
@@ -718,7 +713,6 @@ export function OverviewCardPool({
                         onSave={(currency) => patch("costCurrency", currency)}
                       />
                     </div>
-
-
+                  </InstancePanel>
   );
 }

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Outlet, ScrollRestoration, useLocation } from "react-router-dom";
 import { Lock, WifiOff, RotateCw, ArrowRight } from "lucide-react";
 import { Spinner } from "@/components/ui/Spinner";
@@ -9,20 +9,112 @@ import { useSiteMetadata } from "@/hooks/useSiteMetadata";
 import { readStoredSiteMetadata } from "@/hooks/useSiteMetadata";
 import { useMetricColorsSync } from "@/hooks/useMetricColors";
 import { useNodeStoreStatus } from "@/hooks/useNode";
+import { useThemeSettings } from "@/hooks/useThemeSettings";
 import { HomeSkeleton } from "./HomeSkeleton";
+import { PixelSnow } from "@/components/ui/PixelSnow";
+import {
+  BrandIcon,
+  readStoredSiteBrandIcon,
+  isSiteBrandIconId,
+  DEFAULT_SITE_BRAND_ICON,
+} from "@/components/brand-icons";
+import {
+  readStoredPalette,
+  persistPalette,
+  readStoredDarkBrandColor,
+  persistDarkBrandColor,
+  isMatrixColorTheme,
+} from "@/utils/themeSettings";
 
 export function AppShell() {
-  useAppearance();
+  const appearance = useAppearance();
+  const isDark = appearance === "dark";
   useSiteMetadata();
   useMetricColorsSync();
+  const themeSettings = useThemeSettings();
   const { pathname, search } = useLocation();
   const publicConfig = usePublicConfig();
   const auth = useAuth();
+
+  const cachedPalette = readStoredPalette();
+  const searchParamsPalette = typeof window !== "undefined"
+    ? new URLSearchParams(window.location.search).get("palette")
+    : null;
+  const urlPalette = isMatrixColorTheme(searchParamsPalette) ? searchParamsPalette : null;
+  const rawConfigPalette = publicConfig.data?.theme_settings?.matrixColorTheme;
+  const validRawConfigPalette = isMatrixColorTheme(rawConfigPalette) ? rawConfigPalette : null;
+
+  const activePalette =
+    urlPalette ||
+    validRawConfigPalette ||
+    (publicConfig.isPending
+      ? (cachedPalette || themeSettings.matrixColorTheme || "aurora")
+      : (themeSettings.matrixColorTheme || "aurora"));
+
+  useEffect(() => {
+    if (themeSettings.matrixColorTheme) {
+      persistPalette(themeSettings.matrixColorTheme);
+      if (typeof document !== "undefined") {
+        document.documentElement.dataset.palette = themeSettings.matrixColorTheme;
+      }
+    }
+  }, [themeSettings.matrixColorTheme]);
+
   const cachedMeta = readStoredSiteMetadata();
   const siteName =
     publicConfig.data?.sitename?.trim() ||
     cachedMeta.siteName ||
     (publicConfig.isPending ? "" : "Komari");
+  const cachedBrandIcon = readStoredSiteBrandIcon();
+  const rawConfigIcon = publicConfig.data?.theme_settings?.siteBrandIcon;
+  const activeBrandIcon =
+    isSiteBrandIconId(rawConfigIcon)
+      ? rawConfigIcon
+      : (cachedBrandIcon || (isSiteBrandIconId(themeSettings.siteBrandIcon) ? themeSettings.siteBrandIcon : DEFAULT_SITE_BRAND_ICON));
+
+  const cachedDarkBrandColor = readStoredDarkBrandColor();
+  const rawConfigDarkBrandColor = publicConfig.data?.theme_settings?.enableDarkBrandColor;
+  const activeDarkBrandColor =
+    typeof rawConfigDarkBrandColor === "boolean"
+      ? rawConfigDarkBrandColor
+      : (cachedDarkBrandColor !== null
+          ? cachedDarkBrandColor
+          : (themeSettings.enableDarkBrandColor !== false));
+
+  useEffect(() => {
+    persistDarkBrandColor(activeDarkBrandColor);
+  }, [activeDarkBrandColor]);
+
+  const [liveBrandIcon, setLiveBrandIcon] = useState<string | null>(null);
+  const [liveDarkBrandColor, setLiveDarkBrandColor] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const handleBrandIcon = (e: Event) => {
+      const customEvent = e as CustomEvent<string>;
+      if (customEvent.detail) setLiveBrandIcon(customEvent.detail);
+      else setLiveBrandIcon(readStoredSiteBrandIcon());
+    };
+    const handleDarkBrandColor = (e: Event) => {
+      const customEvent = e as CustomEvent<boolean>;
+      if (typeof customEvent.detail === "boolean") setLiveDarkBrandColor(customEvent.detail);
+      else setLiveDarkBrandColor(readStoredDarkBrandColor());
+    };
+    window.addEventListener("sao:brand-icon-change", handleBrandIcon);
+    window.addEventListener("sao:dark-brand-color-change", handleDarkBrandColor);
+    return () => {
+      window.removeEventListener("sao:brand-icon-change", handleBrandIcon);
+      window.removeEventListener("sao:dark-brand-color-change", handleDarkBrandColor);
+    };
+  }, []);
+
+  const currentBrandIcon = liveBrandIcon || activeBrandIcon;
+  const currentDarkBrandColor = liveDarkBrandColor !== null ? liveDarkBrandColor : activeDarkBrandColor;
+
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      document.documentElement.dataset.darkBrandColor = currentDarkBrandColor ? "true" : "false";
+    }
+  }, [currentDarkBrandColor]);
   const normalizedPath = (pathname.replace(/\/+$/, "") || "/").toLowerCase();
   const isDataRoute =
     normalizedPath === "/" ||
@@ -62,27 +154,41 @@ export function AppShell() {
     canHydrateHome && !homeStoreStatus.hydrated && !homeStoreStatus.nodeInfoError;
   const isCheckingShell = isCheckingAccess || isCheckingHomeData;
   return (
-    <div className="relative flex min-h-screen flex-col">
+    <div
+      className="relative flex min-h-screen flex-col"
+      data-palette={activePalette}
+      data-dark-brand-color={currentDarkBrandColor ? "true" : "false"}
+    >
+      {/* 季节限定：仅在首页且深色模式下展示冬夜落雪动效 */}
+      {themeSettings.enableSeasonalSnow && isHomeDashboard && isDark && (
+        <div
+          className="pointer-events-none fixed inset-0 z-20 overflow-hidden"
+          aria-hidden="true"
+        >
+          <PixelSnow
+            color="#ffffff"
+            lightMode={false}
+            variant="snowflake"
+            density={0.35}
+            speed={0.8}
+            wind={0.2}
+            sway={0.6}
+            flakeSize={1.1}
+            pixelSize={3}
+            brightness={1}
+            glow={0.7}
+            twinkle={0.35}
+            mouseInteraction={true}
+          />
+        </div>
+      )}
       {/* MAO 风格顶部导航 Bar 框架 */}
       <header className="mao-top-nav-bar">
         <div className="mx-auto flex h-14 w-full max-w-430 items-center justify-between px-3 sm:px-5 md:px-6 lg:px-8">
-          <div className="mao-nav-brand-left flex items-center gap-2.5">
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="text-(--text-primary)"
-            >
-              <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-              <path d="M12 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" />
-              <path d="M16.924 11.132a5 5 0 1 0 -4.056 5.792" />
-              <path d="M3 12a9 9 0 1 0 9 -9" />
-            </svg>
+          <div className="mao-nav-brand-left flex items-center gap-3">
+            <span className="mao-nav-brand-icon" aria-hidden="true">
+              <BrandIcon id={currentBrandIcon} />
+            </span>
             <span className="mao-nav-title" title={siteName}>
               {siteName}
             </span>

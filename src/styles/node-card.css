@@ -528,12 +528,19 @@
   opacity: 0.7;
 }
 
+/* 架构设计规范：网络延迟与丢包数值文本严格统一使用中性次级色（var(--text-secondary)），与左侧线路名称保持一致。
+   状态评级与主题色彩完全由下方的光柱负责表达，严禁在此对数值文本施加主题色，保证全主题/全模式下的对比度与纯净视觉。 */
 .multi-ping-value {
   flex: 0 0 auto;
+  color: var(--text-secondary);
   font-size: 11.5px;
   font-weight: 720;
   letter-spacing: -0.02em;
   white-space: nowrap;
+}
+
+.multi-ping-value.is-empty {
+  color: var(--text-tertiary);
 }
 
 .multi-ping-value small {
@@ -584,6 +591,7 @@
 .server-health-value,
 .server-card-meta-value {
   flex: 0 0 auto;
+  color: var(--text-secondary);
   font-size: 15px;
   font-weight: 640;
   letter-spacing: -0.03em;

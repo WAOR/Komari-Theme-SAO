@@ -1,0 +1,162 @@
+.tilted-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  outline: none;
+  width: 100%;
+  perspective: var(--tc-perspective, 1300px);
+}
+
+.tilted-card__body {
+  position: relative;
+  width: 100%;
+  transform-style: preserve-3d;
+}
+
+/* 动时加速：仅在翻转动画中开启 will-change，静止落定时恢复 auto 确保文本极清 */
+.tilted-card.is-animating .tilted-card__body {
+  will-change: transform;
+}
+
+.tilted-card__face {
+  width: 100%;
+  border-radius: var(--tc-radius, 16px);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform: translateZ(0);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+}
+
+.tilted-card__front {
+  transform: rotateY(0deg);
+}
+
+.tilted-card__back {
+  transform: rotateY(180deg);
+}
+
+/* 动时漫透：仅淡化卡片内部的文字、图表与方格元素，卡片原有的磨砂半透明背景 (backdrop-filter) 与边框高光 100% 完整保留 */
+.tilted-card.is-animating .tilted-card__front > .mao-progress-container > * {
+  opacity: var(--tc-front-opacity, 1);
+  transition: none;
+}
+
+.tilted-card.is-animating .tilted-card__back > .mao-progress-container > * {
+  opacity: var(--tc-back-opacity, 1);
+  transition: none;
+}
+
+/* 静止状态：完全锁定 100% 不透明，杜绝任何透明度损耗与层叠干扰 */
+.tilted-card:not(.is-animating) .tilted-card__face.is-active-face > .mao-progress-container > * {
+  opacity: 1 !important;
+}
+
+.tilted-card:not(.is-animating) .tilted-card__face.is-hidden-face {
+  opacity: 0 !important;
+}
+
+/* 活跃面自然撑开容器，隐藏面以绝对定位贴合，避免移动端高差导致大片空白 */
+.tilted-card__face.is-active-face {
+  position: relative;
+  z-index: 2;
+  visibility: visible;
+}
+
+.tilted-card__face.is-hidden-face {
+  position: absolute;
+  inset: 0;
+  pointer-events: none !important;
+  visibility: hidden;
+  z-index: 1;
+}
+
+/* 桌面端大屏：锁定指标卡片与右侧大盘高度，杜绝翻转时拉伸变形 */
+@media (min-width: 1180px) {
+  /* 仅在首页锁定左侧指标卡片尺寸，与方格矩阵模式保持绝对一致，避免污染设置页 */
+  .mao-hero-main .mao-stat-grid {
+    grid-template-rows: repeat(2, 96px) !important;
+    flex: none !important;
+    align-content: end;
+  }
+
+  .mao-hero-main .mao-stat-card {
+    height: 96px !important;
+    min-height: 96px !important;
+    max-height: 96px !important;
+  }
+
+  .tilted-card {
+    height: 100%;
+  }
+
+  .tilted-card__body {
+    height: 100%;
+  }
+
+  .tilted-card__face {
+    height: 100%;
+  }
+
+  .tilted-card__face > .mao-progress-container {
+    height: 100%;
+  }
+
+  /* 优化趋势大盘面内部间距与图表高度，使其高度与方格矩阵面完美匹配 */
+  .mao-hero-side .mao-progress-container {
+    padding: 14px 16px;
+    gap: 10px;
+  }
+
+  .mao-hero-side .mao-progress-section {
+    padding: 8px 12px;
+    gap: 6px;
+  }
+
+  .mao-hero-side .mao-network-section {
+    gap: 6px;
+  }
+
+  .mao-hero-side .mao-realtime-chart-card {
+    padding: 6px 10px 4px;
+    gap: 3px;
+  }
+
+  .mao-hero-side .mao-realtime-chart-canvas-wrap {
+    height: 64px;
+  }
+}
+
+/* 集群状态卡片光标反馈与空白区域交互 */
+.mao-cluster-tilted-card {
+  width: 100%;
+  min-width: 0;
+  flex: 1;
+}
+
+/* 动时锁定手型：翻转动画中统一保持 pointer 手型，彻底杜绝多层卡片与缝隙扫过鼠标时指针狂闪 */
+.tilted-card.is-animating,
+.tilted-card.is-animating * {
+  cursor: pointer !important;
+}
+
+.mao-progress-container.is-flippable {
+  cursor: pointer;
+  position: relative;
+}
+
+/* 绿框业务内容展示区域内部保持默认光标，明确交互边界 */
+.mao-progress-container.is-flippable .mao-progress-section,
+.mao-progress-container.is-flippable .mao-cluster-pane,
+.mao-progress-container.is-flippable .mao-realtime-chart-card {
+  cursor: default;
+}
+
+.mao-progress-container.is-flippable .mao-progress-head,
+.mao-progress-container.is-flippable .mao-progress-title-wrap {
+  cursor: pointer;
+}

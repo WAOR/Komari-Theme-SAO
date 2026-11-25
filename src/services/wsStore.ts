@@ -43,6 +43,7 @@ export interface HomeNodeSummary {
   load1: number;
   load5: number;
   load15: number;
+  uptime: number;
 }
 
 export interface NodeOnlineSummary {
@@ -1257,6 +1258,7 @@ export function getHomeNodeSummariesSnapshot(): HomeNodeSummary[] {
         load1: metrics?.online === false ? 0 : metrics?.load1 ?? 0,
         load5: metrics?.online === false ? 0 : metrics?.load5 ?? 0,
         load15: metrics?.online === false ? 0 : metrics?.load15 ?? 0,
+        uptime: metrics?.online === false ? 0 : metrics?.uptime ?? 0,
       };
     })
     .filter((item): item is HomeNodeSummary => Boolean(item));
@@ -1289,7 +1291,8 @@ export function getHomeNodeSummariesSnapshot(): HomeNodeSummary[] {
         prev.process === item.process &&
         prev.load1 === item.load1 &&
         prev.load5 === item.load5 &&
-        prev.load15 === item.load15
+        prev.load15 === item.load15 &&
+        prev.uptime === item.uptime
       );
     })
   ) {

@@ -2,8 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import { useQueryClient } from "@tanstack/react-query";
 import { clearCssColorCache } from "@/components/node/CanvasStrip";
 import { usePublicConfig } from "@/hooks/usePublicConfig";
+import { useThemeSettings } from "@/hooks/useThemeSettings";
 import { saveThemeSettings } from "@/services/api";
 import type { PublicConfig } from "@/types/komari";
+import { DEFAULT_CARD_METRIC_COLORS, STATUS_BAR_PRESETS } from "@/utils/themeSettings";
 
 // 指标色和暗色深度保存到 theme_settings，并通过 CSS 变量全局应用。
 
@@ -56,30 +58,30 @@ const HEX = /^#[0-9a-f]{6}$/;
 
 export const DEFAULT_METRIC_COLORS: Record<"light" | "dark", Record<MetricColorKey, string>> = {
   light: {
-    cpu: "#3b82f6",
-    memory: "#8b5cf6",
-    disk: "#e97b35",
-    load: "#ec4899",
-    swap: "#6366f1",
-    speedIdle: "#3aa76a",
-    speedLow: "#d9992b",
-    speedHigh: "#e07a35",
-    speedMax: "#d6463d",
-    trafficUp: "#3b82f6",
-    trafficDown: "#2f9e65",
+    cpu: "#82dd2d",
+    memory: "#82dd2d",
+    disk: "#82dd2d",
+    load: "#82dd2d",
+    swap: "#82dd2d",
+    speedIdle: "#82dd2d",
+    speedLow: "#68bb1e",
+    speedHigh: "#4f8f1c",
+    speedMax: "#234c0e",
+    trafficUp: "#82dd2d",
+    trafficDown: "#4f8f1c",
   },
   dark: {
-    cpu: "#3b82f6",
-    memory: "#8b5cf6",
-    disk: "#f97316",
-    load: "#ec4899",
-    swap: "#6366f1",
-    speedIdle: "#10b981",
-    speedLow: "#f59e0b",
-    speedHigh: "#f97316",
-    speedMax: "#ef4444",
-    trafficUp: "#3b82f6",
-    trafficDown: "#10b981",
+    cpu: "#82dd2d",
+    memory: "#82dd2d",
+    disk: "#82dd2d",
+    load: "#82dd2d",
+    swap: "#82dd2d",
+    speedIdle: "#82dd2d",
+    speedLow: "#68bb1e",
+    speedHigh: "#4f8f1c",
+    speedMax: "#234c0e",
+    trafficUp: "#82dd2d",
+    trafficDown: "#4f8f1c",
   },
 };
 
@@ -96,8 +98,18 @@ function toInputHex(value: string): string {
   return HEX.test(v) ? v : "#888888";
 }
 
+export function getPresetMetricColors(theme?: unknown): Record<MetricColorKey, string> {
+  const matched = STATUS_BAR_PRESETS.find(
+    (p) =>
+      p.id === theme ||
+      (theme === "icefire" && p.id === "eva") ||
+      (theme === "classic" && p.id === "default"),
+  );
+  return matched ? matched.metricColors : DEFAULT_CARD_METRIC_COLORS;
+}
+
 /** 从后端 theme_settings 解析出已保存的指标配色（校验 hex 与已知 key）。 */
-function readMetricColorsFromSettings(
+export function readMetricColorsFromSettings(
   settings: Record<string, unknown> | undefined,
 ): MetricColors {
   const raw = settings?.[SETTINGS_KEY];
@@ -107,6 +119,33 @@ function readMetricColorsFromSettings(
   for (const { key } of METRIC_COLOR_META) {
     const v = source[key];
     if (typeof v === "string" && HEX.test(v.toLowerCase())) out[key] = v.toLowerCase();
+  }
+  // 平滑升级：云雾抹茶卡片硬件指标统一使用经典抹茶绿 #82dd2d，保证指标视觉高度凝聚一致
+  if (
+    out.cpu === "#82dd2d" &&
+    (out.memory === "#68bb1e" ||
+      out.disk === "#4f8f1c" ||
+      out.load === "#b4f475" ||
+      out.load === "#58a021" ||
+      out.swap === "#386c14")
+  ) {
+    out.memory = "#82dd2d";
+    out.disk = "#82dd2d";
+    out.load = "#82dd2d";
+    out.swap = "#82dd2d";
+  }
+  // 平滑升级：命运石之门卡片硬件指标统一使用经典辉光暖橙 #ff7700，保证指标视觉高度凝聚一致
+  if (
+    out.cpu === "#ff7700" &&
+    (out.memory === "#ea580c" ||
+      out.disk === "#c2410c" ||
+      out.load === "#facc15" ||
+      out.swap === "#9a3412")
+  ) {
+    out.memory = "#ff7700";
+    out.disk = "#ff7700";
+    out.load = "#ff7700";
+    out.swap = "#ff7700";
   }
   return out;
 }
@@ -152,13 +191,18 @@ function bumpVersionThrottled() {
 }
 
 /** 把一组配色应用到 <html>（CSS 变量即时覆盖；canvas 经 version 重绘）。相同配色不重复应用。 */
-function applyMetricColors(colors: MetricColors) {
-  const sig = JSON.stringify(colors ?? {});
+export function applyMetricColors(colors: MetricColors, theme?: unknown) {
+  const fallback = getPresetMetricColors(theme);
+  const effective: MetricColors = {};
+  for (const { key } of METRIC_COLOR_META) {
+    effective[key] = colors?.[key] || fallback[key];
+  }
+  const sig = JSON.stringify(effective);
   if (sig === appliedSig) return;
   appliedSig = sig;
   const root = document.documentElement;
   for (const { key, cssVar } of METRIC_COLOR_META) {
-    const v = colors[key];
+    const v = effective[key];
     if (v) root.style.setProperty(cssVar, v);
     else root.style.removeProperty(cssVar);
   }
@@ -184,8 +228,8 @@ function applyDarkDepth(value: number) {
   }
 }
 
-function applyPalette(palette: PaletteDraft) {
-  applyMetricColors(palette.colors);
+function applyPalette(palette: PaletteDraft, theme?: unknown) {
+  applyMetricColors(palette.colors, theme);
   applyDarkDepth(palette.darkDepth);
 }
 
@@ -212,16 +256,20 @@ export function readEffectiveColors(): Record<MetricColorKey, string> {
 /** 全局：把后端保存的配色应用到所有访客（在 AppShell 挂载一次）。 */
 export function useMetricColorsSync() {
   const { data: config } = usePublicConfig();
-  const palette = useMemo(
-    () => (config ? readPaletteDraft(config.theme_settings) : null),
-    [config],
+  const themeSettings = useThemeSettings();
+  const darkDepth = useMemo(
+    () => readDarkDepthFromSettings(config?.theme_settings),
+    [config?.theme_settings],
   );
   useEffect(() => {
     // 配置返回前保留 index.html 恢复的首帧缓存。
-    if (!palette) return;
+    if (!themeSettings.isReady) return;
     if (metricColorEditing) return;
-    applyPalette(palette);
-  }, [palette]);
+    applyPalette(
+      { colors: themeSettings.metricColors, darkDepth },
+      themeSettings.matrixColorTheme,
+    );
+  }, [themeSettings.isReady, themeSettings.metricColors, themeSettings.matrixColorTheme, darkDepth]);
 }
 
 /** 管理员编辑：改色/暗色深度即时预览 + 防抖保存到后端 theme_settings。 */

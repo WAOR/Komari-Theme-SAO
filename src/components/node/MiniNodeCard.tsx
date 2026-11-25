@@ -153,6 +153,7 @@ function MiniVitals({
   node: MiniNode;
   loadFraction: number;
 }) {
+  const { metricColors } = useThemeSettings();
   return (
     <div className="mini-node-vitals">
       <MiniMetricBar
@@ -161,7 +162,7 @@ function MiniVitals({
         valueText={node.cpuPct.toFixed(node.cpuPct >= 10 ? 0 : 1)}
         unit="%"
         fraction={node.cpuPct / 100}
-        paint="var(--progress-cpu)"
+        paint={metricColors.cpu}
       />
       <MiniMetricBar
         icon={<MemoryStick size={12} strokeWidth={2} />}
@@ -169,7 +170,7 @@ function MiniVitals({
         valueText={node.ramPct.toFixed(node.ramPct >= 10 ? 0 : 1)}
         unit="%"
         fraction={node.ramPct / 100}
-        paint="var(--progress-memory)"
+        paint={metricColors.memory}
       />
       <MiniMetricBar
         icon={<HardDrive size={12} strokeWidth={2} />}
@@ -177,14 +178,14 @@ function MiniVitals({
         valueText={node.diskPct.toFixed(node.diskPct >= 10 ? 0 : 1)}
         unit="%"
         fraction={node.diskPct / 100}
-        paint="var(--progress-disk)"
+        paint={metricColors.disk}
       />
       <MiniMetricBar
         icon={<Gauge size={12} strokeWidth={2} />}
         label="负载"
         valueText={node.load1.toFixed(2)}
         fraction={loadFraction}
-        paint="var(--progress-load)"
+        paint={metricColors.load}
       />
     </div>
   );
@@ -229,6 +230,7 @@ function MiniFlow({
   upRate: ByteRateDisplay;
   downRate: ByteRateDisplay;
 }) {
+  const { metricColors } = useThemeSettings();
   return (
     <div className="mini-node-flow">
       <div className="mini-node-flow-group" aria-label="实时网速">
@@ -236,14 +238,14 @@ function MiniFlow({
           icon={<ArrowUp size={12} strokeWidth={2.4} />}
           value={upRate.value}
           unit={upRate.unit}
-          color={speedRateColor(upRate.unit)}
+          color={speedRateColor(upRate.unit, metricColors)}
           title="实时上行"
         />
         <MiniFlowRow
           icon={<ArrowDown size={12} strokeWidth={2.4} />}
           value={downRate.value}
           unit={downRate.unit}
-          color={speedRateColor(downRate.unit)}
+          color={speedRateColor(downRate.unit, metricColors)}
           title="实时下行"
         />
       </div>
@@ -322,16 +324,12 @@ function MiniHealthBars({
 const MiniHealth = memo(function MiniHealth({
   ping,
   pingBuckets,
-  latencyColor,
-  lossColor,
   hasRealHomepagePingBinding,
   pingLoading,
   pingError,
 }: {
   ping: PingOverviewItem;
   pingBuckets: PingOverviewBucket[];
-  latencyColor: string;
-  lossColor: string;
   hasRealHomepagePingBinding: boolean;
   pingLoading: boolean;
   pingError: boolean;
@@ -357,7 +355,8 @@ const MiniHealth = memo(function MiniHealth({
             <Clock3 size={12} strokeWidth={2} />
             延迟
           </span>
-          <strong className="mini-node-health-value tabular" style={{ color: latencyColor }}>
+          {/* 架构设计规范：网络延迟与丢包数值文本严格统一使用中性次级色（var(--text-secondary)），与左侧标签保持一致。状态与严重度完全由下方的光柱表达，严禁在数值文本上染色。 */}
+          <strong className="mini-node-health-value tabular">
             {ping.lastValue != null ? (
               <>
                 {Math.round(ping.lastValue)}
@@ -376,7 +375,7 @@ const MiniHealth = memo(function MiniHealth({
             <Unplug size={12} strokeWidth={2} />
             丢包
           </span>
-          <strong className="mini-node-health-value tabular" style={{ color: lossColor }}>
+          <strong className="mini-node-health-value tabular">
             {ping.loss != null ? (
               <>
                 {ping.loss.toFixed(1)}
@@ -415,8 +414,6 @@ export const MiniNodeCard = memo(function MiniNodeCard({
     pingBuckets,
     footerTags,
     renewalPrice,
-    latencyColor,
-    lossColor,
     loadFraction,
     upRate,
     downRate,
@@ -448,8 +445,6 @@ export const MiniNodeCard = memo(function MiniNodeCard({
           <MiniHealth
             ping={ping}
             pingBuckets={pingBuckets}
-            latencyColor={latencyColor}
-            lossColor={lossColor}
             hasRealHomepagePingBinding={hasRealHomepagePingBinding}
             pingLoading={pingLoading}
             pingError={pingError}
@@ -475,8 +470,6 @@ export const MiniNodeCard = memo(function MiniNodeCard({
       <MiniHealth
         ping={ping}
         pingBuckets={pingBuckets}
-        latencyColor={latencyColor}
-        lossColor={lossColor}
         hasRealHomepagePingBinding={hasRealHomepagePingBinding}
         pingLoading={pingLoading}
         pingError={pingError}

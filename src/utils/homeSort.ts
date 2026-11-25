@@ -2,29 +2,32 @@ import type { HomeNodeSummary } from "@/services/wsStore";
 
 // 首页临时排序；默认使用后端 weight，离线节点始终沉底。
 
-export type HomeSortField = "default" | "name" | "speed" | "traffic" | "price";
+export type HomeSortField = "default" | "name" | "uptime" | "speed" | "traffic" | "price";
 export type HomeSortDirection = "asc" | "desc";
 
 export const HOME_SORT_FIELDS: readonly HomeSortField[] = [
   "default",
   "name",
+  "uptime",
   "speed",
   "traffic",
   "price",
 ];
 
 export const HOME_SORT_FIELD_LABELS: Record<HomeSortField, string> = {
-  default: "默认",
-  name: "名称",
+  default: "默认排序",
+  name: "节点名称",
+  uptime: "运行时长",
   speed: "实时网速",
   traffic: "累计流量",
-  price: "价格",
+  price: "机器价格",
 };
 
-// 每个维度的自然默认方向:文本升序(A→Z),数值降序(高的在前)。
+// 每个维度的自然默认方向:文本升序(A→Z),数值降序(高的在前)。运行时长自然降序(运行越长越靠前)。
 export const HOME_SORT_NATURAL_DIRECTION: Record<HomeSortField, HomeSortDirection> = {
   default: "asc",
   name: "asc",
+  uptime: "desc",
   speed: "desc",
   traffic: "desc",
   price: "desc",
@@ -82,6 +85,8 @@ function primaryValue(
       return (node.trafficUp || 0) + (node.trafficDown || 0);
     case "price":
       return ctx.priceByUuid.get(node.uuid) ?? 0;
+    case "uptime":
+      return node.uptime || 0;
     case "default":
     default:
       return node.weight;

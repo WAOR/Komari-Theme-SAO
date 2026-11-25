@@ -196,6 +196,23 @@
             }
           }
         } catch {}
+
+        try {
+          const cachedPalette = localStorage.getItem("komaritheme:palette");
+          const validPalettes = new Set(["default", "eva", "divergence", "aurora"]);
+          if (cachedPalette && validPalettes.has(cachedPalette)) {
+            document.documentElement.dataset.palette = cachedPalette;
+          }
+        } catch {}
+
+        try {
+          const cachedDarkBrandColor = localStorage.getItem("komaritheme:dark_brand_color");
+          if (cachedDarkBrandColor === "false") {
+            document.documentElement.dataset.darkBrandColor = "false";
+          } else if (cachedDarkBrandColor === "true") {
+            document.documentElement.dataset.darkBrandColor = "true";
+          }
+        } catch {}
       })();
     </script>
   </head>

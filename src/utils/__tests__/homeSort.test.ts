@@ -32,6 +32,7 @@ function node(partial: Partial<HomeNodeSummary> & Pick<HomeNodeSummary, "uuid">)
     load1: 0,
     load5: 0,
     load15: 0,
+    uptime: 0,
     ...partial,
   };
 }
@@ -85,6 +86,17 @@ describe("sortHomeNodes", () => {
     });
     expect(order(nodes, "name", "asc", context)).toEqual(["2", "3", "1"]);
     expect(order(nodes, "name", "desc", context)).toEqual(["1", "3", "2"]);
+  });
+
+  it("uptime sorts by seconds descending (longest online first), offline sinks", () => {
+    const nodes = [
+      node({ uuid: "short", uptime: 3600 }),
+      node({ uuid: "long", uptime: 864000 }),
+      node({ uuid: "mid", uptime: 86400 }),
+      node({ uuid: "off", uptime: 9999999, online: false }),
+    ];
+    expect(order(nodes, "uptime", "desc")).toEqual(["long", "mid", "short", "off"]);
+    expect(order(nodes, "uptime", "asc")).toEqual(["short", "mid", "long", "off"]);
   });
 
   it("traffic sorts by total (up + down) descending", () => {

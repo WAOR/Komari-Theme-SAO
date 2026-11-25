@@ -28,12 +28,12 @@
   --hover-bg: #f4f4f5;
 
   --progress-bg: #e4e4e7;
-  --progress-cpu: #3b82f6;
-  --progress-memory: #8b5cf6;
-  --progress-swap: #6366f1;
-  --progress-disk: #e97b35;
-  --progress-network: #10b981;
-  --progress-load: #ec4899;
+  --progress-cpu: #82dd2d;
+  --progress-memory: #82dd2d;
+  --progress-swap: #82dd2d;
+  --progress-disk: #82dd2d;
+  --progress-network: #82dd2d;
+  --progress-load: #82dd2d;
   /* compact 卡分段流量条的 heat 曲线 —— 与大卡 OKLCH trafficQuotaSegmentColor()
      的色标一致(metricTone.ts),`in oklch` 插值使各档感知均匀、相邻色不互相污浊。
      色相 green→chartreuse→yellow→orange→red,亮度在 yellow 处最高,绿色只占约 10%。
@@ -66,6 +66,15 @@
   /* 品牌深调:比 --accent-500 更沉、微偏靛,只用于主 CTA / 报头 / 激活态渐变的暗端,
      让品牌蓝有「azure→indigo」的体积感而非一块平涂色。数据色(--progress-cpu 等)不受影响。 */
   --accent-strong: #2f5be0;
+
+  /* 主题色语义 Token 体系（彻底解耦组件与具体配色，支持浅色/深色模式及未来任意新增主题） */
+  --theme-accent: #059669;
+  --theme-accent-hover: #047857;
+  --theme-accent-surface: rgba(16, 185, 129, 0.10);
+  --theme-accent-border: rgba(16, 185, 129, 0.35);
+  --theme-accent-glow: rgba(16, 185, 129, 0.25);
+  --theme-accent-contrast: #ffffff;
+  --theme-accent-text: #059669;
   /* 速率热力四档(现实可见区间):B/s 超低速绿 → KB/s 低速琥珀 → MB/s 高速橙 → GB/s 及以上 急速红。 */
   --speed-idle: #3aa76a;
   --speed-low: #d9992b;
@@ -170,12 +179,12 @@
   --hover-bg: #27272a;
 
   --progress-bg: #27272a;
-  --progress-cpu: #3b82f6;
-  --progress-memory: #8b5cf6;
-  --progress-swap: #6366f1;
-  --progress-disk: #f97316;
-  --progress-network: #10b981;
-  --progress-load: #ec4899;
+  --progress-cpu: #82dd2d;
+  --progress-memory: #82dd2d;
+  --progress-swap: #82dd2d;
+  --progress-disk: #82dd2d;
+  --progress-network: #82dd2d;
+  --progress-load: #82dd2d;
   /* --traffic-heat-spectrum 不重定义,继承 :root 的 OKLCH heat 曲线(dark 轨道上同样清晰)。 */
 
   --status-success: #10b981;
@@ -189,6 +198,14 @@
   --latency-critical: #ef4444;
   --accent-500: #3b82f6;
   --accent-strong: #2563eb;
+  /* 主题色语义 Token 体系 - 深色模式默认 */
+  --theme-accent: #10b981;
+  --theme-accent-hover: #34d399;
+  --theme-accent-surface: rgba(16, 185, 129, 0.16);
+  --theme-accent-border: rgba(16, 185, 129, 0.45);
+  --theme-accent-glow: rgba(16, 185, 129, 0.3);
+  --theme-accent-contrast: #121214;
+  --theme-accent-text: #6ee7b7;
   --speed-idle: #10b981;
   --speed-low: #f59e0b;
   --speed-high: #f97316;
@@ -301,3 +318,105 @@
 [data-tag="sage"] { --tag-bg: var(--tag-sage-bg); --tag-fg: var(--tag-sage-fg); }
 [data-tag="olive"] { --tag-bg: var(--tag-olive-bg); --tag-fg: var(--tag-olive-fg); }
 [data-tag="sand"] { --tag-bg: var(--tag-sand-bg); --tag-fg: var(--tag-sand-fg); }
+
+/* ==========================================================================
+   配色方案解耦语义 Token 体系 (Decoupled Palette Theme Tokens)
+   任何组件只需使用 var(--theme-accent) / var(--theme-accent-surface) 等语义 Token，
+   无需为每个配色方案单独写覆写选择器，新增配色方案时只需在此处注入对应 Token 即可全局生效。
+   ========================================================================== */
+
+/* 1. 云雾抹茶 (aurora) */
+:root[data-palette="aurora"],
+[data-palette="aurora"] {
+  --theme-accent: #58a021;
+  --theme-accent-hover: #488819;
+  --theme-accent-surface: rgba(130, 221, 45, 0.14);
+  --theme-accent-border: rgba(88, 160, 33, 0.35);
+  --theme-accent-glow: rgba(130, 221, 45, 0.25);
+  --theme-accent-contrast: #ffffff;
+  --theme-accent-text: #3d6e15;
+}
+
+:root[data-appearance="dark"][data-palette="aurora"],
+:root[data-appearance="dark"] [data-palette="aurora"],
+[data-appearance="dark"] [data-palette="aurora"] {
+  --theme-accent: #82dd2d;
+  --theme-accent-hover: #9bf043;
+  --theme-accent-surface: rgba(130, 221, 45, 0.18);
+  --theme-accent-border: rgba(130, 221, 45, 0.45);
+  --theme-accent-glow: rgba(130, 221, 45, 0.35);
+  --theme-accent-contrast: #121214;
+  --theme-accent-text: #b9ff66;
+}
+
+/* 2. 命运石之门 (divergence) */
+:root[data-palette="divergence"],
+[data-palette="divergence"] {
+  --theme-accent: #ea580c;
+  --theme-accent-hover: #c2410c;
+  --theme-accent-surface: rgba(234, 88, 12, 0.12);
+  --theme-accent-border: rgba(234, 88, 12, 0.35);
+  --theme-accent-glow: rgba(249, 115, 22, 0.25);
+  --theme-accent-contrast: #ffffff;
+  --theme-accent-text: #c2410c;
+}
+
+:root[data-appearance="dark"][data-palette="divergence"],
+:root[data-appearance="dark"] [data-palette="divergence"],
+[data-appearance="dark"] [data-palette="divergence"] {
+  --theme-accent: #ff7700;
+  --theme-accent-hover: #ff8f26;
+  --theme-accent-surface: rgba(255, 119, 0, 0.18);
+  --theme-accent-border: rgba(255, 119, 0, 0.45);
+  --theme-accent-glow: rgba(255, 119, 0, 0.35);
+  --theme-accent-contrast: #121214;
+  --theme-accent-text: #ffaa47;
+}
+
+/* 3. EVA (eva) */
+:root[data-palette="eva"],
+[data-palette="eva"] {
+  --theme-accent: #60289b;
+  --theme-accent-hover: #502182;
+  --theme-accent-surface: rgba(96, 40, 155, 0.12);
+  --theme-accent-border: rgba(96, 40, 155, 0.35);
+  --theme-accent-glow: rgba(96, 40, 155, 0.25);
+  --theme-accent-contrast: #ffffff;
+  --theme-accent-text: #60289b;
+}
+
+:root[data-appearance="dark"][data-palette="eva"],
+:root[data-appearance="dark"] [data-palette="eva"],
+[data-appearance="dark"] [data-palette="eva"] {
+  --theme-accent: #8b5cf6;
+  --theme-accent-hover: #a78bfa;
+  --theme-accent-surface: rgba(139, 92, 246, 0.18);
+  --theme-accent-border: rgba(139, 92, 246, 0.45);
+  --theme-accent-glow: rgba(139, 92, 246, 0.35);
+  --theme-accent-contrast: #121214;
+  --theme-accent-text: #c4b5fd;
+}
+
+/* 4. 经典标准 / 默认 (default) */
+:root[data-palette="default"],
+[data-palette="default"] {
+  --theme-accent: #059669;
+  --theme-accent-hover: #047857;
+  --theme-accent-surface: rgba(16, 185, 129, 0.12);
+  --theme-accent-border: rgba(16, 185, 129, 0.35);
+  --theme-accent-glow: rgba(16, 185, 129, 0.25);
+  --theme-accent-contrast: #ffffff;
+  --theme-accent-text: #059669;
+}
+
+:root[data-appearance="dark"][data-palette="default"],
+:root[data-appearance="dark"] [data-palette="default"],
+[data-appearance="dark"] [data-palette="default"] {
+  --theme-accent: #10b981;
+  --theme-accent-hover: #34d399;
+  --theme-accent-surface: rgba(16, 185, 129, 0.18);
+  --theme-accent-border: rgba(16, 185, 129, 0.45);
+  --theme-accent-glow: rgba(16, 185, 129, 0.35);
+  --theme-accent-contrast: #121214;
+  --theme-accent-text: #6ee7b7;
+}

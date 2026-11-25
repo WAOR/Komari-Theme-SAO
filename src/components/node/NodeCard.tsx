@@ -60,10 +60,12 @@ export const NodeCard = memo(function NodeCard({
   showTodayTraffic?: boolean;
 }) {
   const { resolvedAppearance } = usePreferences();
-  // 自定义配色改动时 version 自增，拼进 redrawKey 让 canvas 进度条即时重画（含离线静态卡）。
-  const colorsVersion = useMetricColorsVersion();
-  const redrawKey = `${resolvedAppearance}:${colorsVersion}`;
   const themeSettings = useThemeSettings();
+  // 自定义配色改动时 version 自增，拼进 redrawKey 让 canvas 进度条即时重画（含离线静态卡与丢包柱）。
+  const colorsVersion = useMetricColorsVersion();
+  const metricSignature = `${themeSettings.metricColors.cpu}:${themeSettings.metricColors.memory}:${themeSettings.metricColors.disk}:${themeSettings.metricColors.load}:${themeSettings.metricColors.trafficUp}:${themeSettings.metricColors.trafficDown}`;
+  const lossSignature = `${themeSettings.pingLossColors.zero}:${themeSettings.pingLossColors.loss ?? themeSettings.pingLossColors.low ?? ""}:${themeSettings.enablePingLossHatch}`;
+  const redrawKey = `${resolvedAppearance}:${colorsVersion}:${metricSignature}:${lossSignature}`;
   const trafficSegmentColors = useMemo(
     () => buildTrafficQuotaSegmentColors(themeSettings.trafficSpectrumColors),
     [themeSettings.trafficSpectrumColors],
@@ -93,8 +95,6 @@ export const NodeCard = memo(function NodeCard({
     expireColor,
     uptime,
     renewalPrice,
-    latencyColor,
-    lossColor,
     loadFraction,
     upRate,
     downRate,
@@ -192,8 +192,6 @@ export const NodeCard = memo(function NodeCard({
               shouldRenderPingBars={shouldRenderPingBars}
               pingLoading={pingLoading}
               pingError={pingError}
-              latencyColor={latencyColor}
-              lossColor={lossColor}
             />
           )}
         </div>
@@ -270,8 +268,6 @@ export const NodeCard = memo(function NodeCard({
               shouldRenderPingBars={shouldRenderPingBars}
               pingLoading={pingLoading}
               pingError={pingError}
-              latencyColor={latencyColor}
-              lossColor={lossColor}
             />
           )}
         </div>
@@ -348,6 +344,7 @@ function NodeMetricSection({
   loadFraction: number;
   redrawKey: string;
 }) {
+  const { metricColors } = useThemeSettings();
   return (
     <div className="card-metric-section server-metric-grid">
       <MetricBar
@@ -358,7 +355,7 @@ function NodeMetricSection({
         detailText={`${node.cpu_cores || 0} 核`}
         fraction={node.cpuPct / 100}
         redrawKey={redrawKey}
-        paint="var(--progress-cpu)"
+        paint={metricColors.cpu}
       />
       <MetricBar
         icon={<MemoryStick size={13} strokeWidth={2} />}
@@ -368,7 +365,7 @@ function NodeMetricSection({
         detailText={`${formatBytes(node.ramUsed)} / ${formatBytes(node.ramTotal)}`}
         fraction={node.ramPct / 100}
         redrawKey={redrawKey}
-        paint="var(--progress-memory)"
+        paint={metricColors.memory}
       />
       <MetricBar
         icon={<HardDrive size={13} strokeWidth={2} />}
@@ -378,7 +375,7 @@ function NodeMetricSection({
         detailText={`${formatBytes(node.diskUsed)} / ${formatBytes(node.diskTotal)}`}
         fraction={node.diskPct / 100}
         redrawKey={redrawKey}
-        paint="var(--progress-disk)"
+        paint={metricColors.disk}
       />
       <MetricBar
         icon={<Gauge size={13} strokeWidth={2} />}
@@ -386,7 +383,7 @@ function NodeMetricSection({
         valueText={node.load1.toFixed(2)}
         fraction={loadFraction}
         redrawKey={redrawKey}
-        paint="var(--progress-load)"
+        paint={metricColors.load}
       />
     </div>
   );
@@ -407,6 +404,7 @@ function NodeTrafficSection({
   isOnline: boolean;
   redrawKey: string;
 }) {
+  const { metricColors } = useThemeSettings();
   return (
     <div className="card-metric-section server-traffic-section">
       <TrafficStat
@@ -418,7 +416,7 @@ function NodeTrafficSection({
         live={isOnline}
         active={node.netUp > 0}
         redrawKey={redrawKey}
-        color="var(--traffic-up)"
+        color={metricColors.trafficUp}
         icon={<ArrowUp size={15} strokeWidth={2.4} />}
       />
       <TrafficStat
@@ -430,7 +428,7 @@ function NodeTrafficSection({
         live={isOnline}
         active={node.netDown > 0}
         redrawKey={redrawKey}
-        color="var(--traffic-down)"
+        color={metricColors.trafficDown}
         icon={<ArrowDown size={15} strokeWidth={2.4} />}
       />
     </div>
@@ -524,8 +522,6 @@ const NodeHealthSection = memo(function NodeHealthSection({
   shouldRenderPingBars,
   pingLoading,
   pingError,
-  latencyColor,
-  lossColor,
 }: {
   ping: PingOverviewItem;
   pingBuckets: PingOverviewBucket[];
@@ -534,8 +530,6 @@ const NodeHealthSection = memo(function NodeHealthSection({
   shouldRenderPingBars: boolean;
   pingLoading: boolean;
   pingError: boolean;
-  latencyColor: string;
-  lossColor: string;
 }) {
   const [hoveredLatencyIndex, setHoveredLatencyIndex] = useState<number | null>(null);
   const [hoveredLossIndex, setHoveredLossIndex] = useState<number | null>(null);
@@ -571,9 +565,9 @@ const NodeHealthSection = memo(function NodeHealthSection({
             <Clock3 size={13} strokeWidth={2} />
             <span>延迟</span>
           </div>
+          {/* 架构设计规范：网络延迟与丢包数值文本严格统一使用中性次级色（var(--text-secondary)），与左侧标签保持一致。状态与严重度完全由下方的光柱表达，严禁在数值文本上染色。 */}
           <span
             className="server-health-value tabular"
-            style={{ color: latencyColor }}
             title={
               pingError && ping.lastValue != null
                 ? "首页 Ping 刷新失败，显示上次数据"
@@ -617,7 +611,6 @@ const NodeHealthSection = memo(function NodeHealthSection({
           </div>
           <span
             className="server-health-value tabular"
-            style={{ color: lossColor }}
             title={
               pingError && ping.loss != null
                 ? "首页 Ping 刷新失败，显示上次数据"
@@ -769,7 +762,7 @@ function NodeCardFooter({
           label="在线"
           value={uptime.value}
           unit={uptime.unit}
-          color="var(--progress-cpu)"
+          color={useThemeSettings().metricColors.cpu}
         />
         <FooterStat
           icon={<Calendar size={13} strokeWidth={2} />}

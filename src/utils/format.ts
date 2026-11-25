@@ -221,9 +221,9 @@ export function formatExpireDays(
 }
 
 function inferPlainTagColor(label: string): string {
-  const normalized = label.trim().toLowerCase();
+  const normalized = label.trim().toLowerCase().replace(/[-_\s]/g, "");
 
-  if (/(cn2gia|9929|cmin2)/i.test(normalized)) {
+  if (/(cn2gia|cn2|9929|cmin2)/i.test(normalized)) {
     return "blue";
   }
 
@@ -231,7 +231,7 @@ function inferPlainTagColor(label: string): string {
     return "green";
   }
 
-  return "violet";
+  return "gray";
 }
 
 /** 把 `tag1<color>;tag2<color2>` (支持中英文分号/逗号分隔) 解析成 [{ label, color }]。 */

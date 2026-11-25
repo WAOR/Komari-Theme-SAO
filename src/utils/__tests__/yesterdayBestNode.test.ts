@@ -1,4 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
+import * as api from "@/services/api";
 import {
   getYesterdayTimeWindow,
   calculateNodeNetworkScore,
@@ -8,7 +9,17 @@ import {
   getYesterdayLeaderboardCache,
   setYesterdayLeaderboardCache,
   calculateYesterdayAverageScore,
+  calculateYesterdayBestLeaderboard,
 } from "../yesterdayBestNode";
+
+vi.mock("@/services/api", async () => {
+  const actual = await vi.importActual<typeof import("@/services/api")>("@/services/api");
+  return {
+    ...actual,
+    getPublicPingTasks: vi.fn(),
+    getPingOverviewStats: vi.fn(),
+  };
+});
 
 describe("yesterdayBestNode utils", () => {
   let store: Record<string, string> = {};
@@ -233,6 +244,99 @@ describe("yesterdayBestNode utils", () => {
     expect(avgResult?.avgLoss).toBe(0.6);
     expect(avgResult?.nodeCount).toBe(3);
     expect(avgResult?.qualifiedCount).toBe(3);
+  });
+
+  it("quarantines spurious tri failure when all nodes are disqualified due to missing multiple carriers", async () => {
+    clearYesterdayBestDisplayCache();
+    const mockNow = new Date(2026, 10, 8, 14, 0, 0).getTime();
+
+    // 1. 先进行一次健康的三网计算，缓存健康榜单
+    vi.mocked(api.getPublicPingTasks).mockResolvedValueOnce([
+      { id: 1, name: "电信 CT", interval: 60, clients: ["node-1", "node-2"] },
+      { id: 2, name: "联通 CU", interval: 60, clients: ["node-1", "node-2"] },
+      { id: 3, name: "移动 CM", interval: 60, clients: ["node-1", "node-2"] },
+    ] as any);
+    vi.mocked(api.getPingOverviewStats).mockResolvedValueOnce([
+      { client: "node-1", taskId: 1, avg: 20, loss: 0, stddev: 1, p50: 20, p99: 22, valid: 1440, total: 1440 },
+      { client: "node-1", taskId: 2, avg: 22, loss: 0, stddev: 1, p50: 22, p99: 24, valid: 1440, total: 1440 },
+      { client: "node-1", taskId: 3, avg: 25, loss: 0, stddev: 1, p50: 25, p99: 28, valid: 1440, total: 1440 },
+      { client: "node-2", taskId: 1, avg: 30, loss: 0, stddev: 2, p50: 30, p99: 35, valid: 1440, total: 1440 },
+      { client: "node-2", taskId: 2, avg: 32, loss: 0, stddev: 2, p50: 32, p99: 36, valid: 1440, total: 1440 },
+      { client: "node-2", taskId: 3, avg: 35, loss: 0, stddev: 2, p50: 35, p99: 40, valid: 1440, total: 1440 },
+    ] as any);
+
+    const initialResult = await calculateYesterdayBestLeaderboard(["node-1", "node-2"], {
+      now: mockNow,
+      scope: "tri",
+    });
+    expect(initialResult.best?.uuid).toBe("node-1");
+    expect(initialResult.leaderboard.every((i) => i.isQualified)).toBe(true);
+
+    // 2. 模拟停留 35 分钟后，缓存已过期重新计算。
+    // 此时公共任务接口发生降级，未返回联通和移动线路，且后端仅返回电信数据
+    const laterNow = mockNow + 35 * 60 * 1000;
+
+    vi.mocked(api.getPublicPingTasks).mockResolvedValueOnce([
+      { id: 1, name: "电信 CT", interval: 60, clients: ["node-1", "node-2"] },
+    ] as any);
+    vi.mocked(api.getPingOverviewStats).mockResolvedValueOnce([
+      { client: "node-1", taskId: 1, avg: 20, loss: 0, stddev: 1, p50: 20, p99: 22, valid: 1440, total: 1440 },
+      { client: "node-2", taskId: 1, avg: 30, loss: 0, stddev: 2, p50: 30, p99: 35, valid: 1440, total: 1440 },
+    ] as any);
+
+    const fallbackResult = await calculateYesterdayBestLeaderboard(["node-1", "node-2"], {
+      now: laterNow,
+      scope: "tri",
+    });
+
+    // 假性故障隔离机制应自动拦截全员“未配齐三网”的假死榜单，回退返回上一期健康榜单
+    expect(fallbackResult.best?.uuid).toBe("node-1");
+    expect(fallbackResult.leaderboard.length).toBe(2);
+    expect(fallbackResult.leaderboard.some((i) => i.isQualified)).toBe(true);
+
+    // 3. 验证从 localStorage 恢复的场景（清空内存缓存但保留 localStorage）
+    // 手动清空内存变量模拟冷加载
+    clearYesterdayBestDisplayCache();
+    // 恢复 localStorage 中的有效健康记录
+    setYesterdayLeaderboardCache(initialResult.leaderboard, "tri", mockNow);
+
+    vi.mocked(api.getPublicPingTasks).mockResolvedValueOnce([
+      { id: 1, name: "电信 CT", interval: 60, clients: ["node-1", "node-2"] },
+    ] as any);
+    vi.mocked(api.getPingOverviewStats).mockResolvedValueOnce([
+      { client: "node-1", taskId: 1, avg: 20, loss: 0, stddev: 1, p50: 20, p99: 22, valid: 1440, total: 1440 },
+      { client: "node-2", taskId: 1, avg: 30, loss: 0, stddev: 2, p50: 30, p99: 35, valid: 1440, total: 1440 },
+    ] as any);
+
+    const coldFallbackResult = await calculateYesterdayBestLeaderboard(["node-1", "node-2"], {
+      now: laterNow + 5000,
+      scope: "tri",
+    });
+
+    expect(coldFallbackResult.best?.uuid).toBe("node-1");
+    expect(coldFallbackResult.leaderboard.some((i) => i.isQualified)).toBe(true);
+  });
+
+  it("does not trigger tri quarantine for single-line scope", async () => {
+    clearYesterdayBestDisplayCache();
+    const mockNow = new Date(2026, 10, 8, 14, 0, 0).getTime();
+
+    // 单线电信模式下，仅有电信数据是完全合规的
+    vi.mocked(api.getPublicPingTasks).mockResolvedValueOnce([
+      { id: 1, name: "电信 CT", interval: 60, clients: ["node-1"] },
+    ] as any);
+    vi.mocked(api.getPingOverviewStats).mockResolvedValueOnce([
+      { client: "node-1", taskId: 1, avg: 20, loss: 0, stddev: 1, p50: 20, p99: 22, valid: 1440, total: 1440 },
+    ] as any);
+
+    const result = await calculateYesterdayBestLeaderboard(["node-1"], {
+      now: mockNow,
+      scope: "ct",
+    });
+
+    expect(result.best?.uuid).toBe("node-1");
+    expect(result.leaderboard[0].isQualified).toBe(true);
+    expect(result.leaderboard[0].missingCarriers).toEqual([]);
   });
 });
 

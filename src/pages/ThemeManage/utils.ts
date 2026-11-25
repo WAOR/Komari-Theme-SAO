@@ -14,6 +14,7 @@ import {
   normalizePingLossThresholds,
   normalizeThemeSettings,
   normalizeTrafficSpectrumColors,
+  normalizeCardMetricColors,
   type ResolvedThemeSettings,
 } from "@/utils/themeSettings";
 import {
@@ -165,6 +166,7 @@ export function pickManagedThemeSettings(settings: ResolvedThemeSettings) {
     mobileNodeViewMode: settings.mobileNodeViewMode,
     serverCardTemplate: settings.serverCardTemplate,
     clusterOverviewMode: settings.clusterOverviewMode,
+    enableClusterFlip: settings.enableClusterFlip,
     matrixColorTheme: settings.matrixColorTheme,
     matrixBootEffect: settings.matrixBootEffect,
     matrixMockFill: settings.matrixMockFill,
@@ -179,7 +181,9 @@ export function pickManagedThemeSettings(settings: ResolvedThemeSettings) {
     pingLatencyColors: settings.pingLatencyColors,
     pingLossThresholds: settings.pingLossThresholds,
     pingLossColors: settings.pingLossColors,
+    enablePingLossHatch: settings.enablePingLossHatch,
     trafficSpectrumColors: settings.trafficSpectrumColors,
+    metricColors: settings.metricColors,
     showHomeOverview: settings.showHomeOverview,
     overviewCards: settings.overviewCards,
     overviewCardVisualMode: settings.overviewCardVisualMode,
@@ -192,6 +196,9 @@ export function pickManagedThemeSettings(settings: ResolvedThemeSettings) {
     enableHomeSort: settings.enableHomeSort,
     homeSortField: settings.homeSortField,
     homeSortDirection: settings.homeSortDirection,
+    enableSeasonalSnow: settings.enableSeasonalSnow,
+    siteBrandIcon: settings.siteBrandIcon,
+    enableDarkBrandColor: settings.enableDarkBrandColor,
     showCostSummary: settings.showCostSummary,
     showCostSummaryFloatingButton: settings.showCostSummaryFloatingButton,
     showTrafficPageButton: settings.showTrafficPageButton,
@@ -256,6 +263,7 @@ export function draftToThemeSettings(targetDraft: ThemeDraft): ThemeSettings {
     pingLossThresholds: normalizePingLossThresholds(rest.pingLossThresholds),
     pingLossColors: normalizePingLossColors(rest.pingLossColors),
     trafficSpectrumColors: normalizeTrafficSpectrumColors(rest.trafficSpectrumColors),
+    metricColors: normalizeCardMetricColors(rest.metricColors),
     overviewCards: normalizeOverviewCards(rest.overviewCards),
     homepageMultiPingTaskIds:
       normalizeHomepageMultiPingTaskIds(rest.homepageMultiPingTaskIds).length > 0

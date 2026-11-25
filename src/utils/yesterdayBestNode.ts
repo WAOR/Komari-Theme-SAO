@@ -329,6 +329,9 @@ export function clearYesterdayBestDisplayCache(scope?: YesterdayBestScope): void
   memoryBestCache = null;
   inflightPromise = null;
   inflightKey = "";
+  if (!scope) {
+    knownTaskCarrierMap.clear();
+  }
 
   if (typeof window === "undefined" || !window.localStorage) return;
   try {
@@ -410,6 +413,9 @@ let memoryBestCache: {
 } | null = null;
 let inflightPromise: Promise<{ best: YesterdayBestNodeResult | null; leaderboard: YesterdayLeaderboardItem[] }> | null = null;
 let inflightKey = "";
+
+// 任务运营商认知记忆库：跨重算周期记录已知任务的运营商归属，防止定时重算时因接口偶发残缺而遗忘三网映射
+const knownTaskCarrierMap = new Map<number, CarrierType>();
 
 export function getMemoryYesterdayBestNode(
   candidateUuids: string[],
@@ -509,7 +515,12 @@ export async function calculateYesterdayBestLeaderboard(
 
     for (const t of publicTasks) {
       if (!Number.isInteger(t.id) || t.id <= 0) continue;
-      const carrier = detectCarrier(t.name || "");
+      let carrier = detectCarrier(t.name || "");
+      if (carrier === "unknown") {
+        carrier = knownTaskCarrierMap.get(t.id) || "unknown";
+      } else {
+        knownTaskCarrierMap.set(t.id, carrier);
+      }
       taskCarrierMap.set(t.id, carrier);
       allTaskIds.push(t.id);
       if (carrier === "ct") {
@@ -521,6 +532,25 @@ export async function calculateYesterdayBestLeaderboard(
       } else if (carrier === "cm") {
         cmTaskIds.push(t.id);
         triTaskIds.push(t.id);
+      }
+    }
+
+    // 若处于三网模式但当前返回的任务缺失了某些线路，从已知运营商记忆库中补全
+    if (scope === "tri") {
+      const hasCt = triTaskIds.some((id) => taskCarrierMap.get(id) === "ct");
+      const hasCu = triTaskIds.some((id) => taskCarrierMap.get(id) === "cu");
+      const hasCm = triTaskIds.some((id) => taskCarrierMap.get(id) === "cm");
+      if (!hasCt || !hasCu || !hasCm) {
+        for (const [id, carrier] of knownTaskCarrierMap.entries()) {
+          if (!taskCarrierMap.has(id)) {
+            taskCarrierMap.set(id, carrier);
+            allTaskIds.push(id);
+            if (carrier === "ct") ctTaskIds.push(id);
+            if (carrier === "cu") cuTaskIds.push(id);
+            if (carrier === "cm") cmTaskIds.push(id);
+            triTaskIds.push(id);
+          }
+        }
       }
     }
 
@@ -559,6 +589,25 @@ export async function calculateYesterdayBestLeaderboard(
     }
 
     if (!statsTotal || statsTotal.length === 0) {
+      // 优雅回退：若当前存在有效健康缓存，遇到临时接口异常或空数据时不盲目覆写空白
+      let previousBoard = memoryBestCache?.scope === scope ? memoryBestCache.leaderboard : null;
+      if (!previousBoard || !previousBoard.some((item) => item.isQualified)) {
+        try {
+          const key = `${LEADERBOARD_STORAGE_KEY}:${scope}`;
+          const raw = window.localStorage.getItem(key) || (scope === "tri" ? window.localStorage.getItem(LEADERBOARD_STORAGE_KEY) : null);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            const { todayDateStr } = getTodayCacheKey(now);
+            if (parsed && parsed.date === todayDateStr && Array.isArray(parsed.leaderboard)) {
+              previousBoard = parsed.leaderboard;
+            }
+          }
+        } catch {}
+      }
+      if (previousBoard && previousBoard.some((item) => item.isQualified)) {
+        const previousBest = previousBoard.find((item) => item.isQualified) || null;
+        return { best: previousBest, leaderboard: previousBoard };
+      }
       memoryBestCache = { date: yesterdayDateStr, timestamp: now, candidateKey: sortedKey, scope, result: null, leaderboard: [] };
       return { best: null, leaderboard: [] };
     }
@@ -604,7 +653,7 @@ export async function calculateYesterdayBestLeaderboard(
       let carrier: CarrierType | undefined;
       if (s.taskId != null) {
         agg.tasks.add(s.taskId);
-        carrier = taskCarrierMap.get(s.taskId);
+        carrier = taskCarrierMap.get(s.taskId) || knownTaskCarrierMap.get(s.taskId);
         if (carrier && carrier !== "unknown") {
           agg.coveredCarriers.add(carrier);
         }
@@ -735,12 +784,47 @@ export async function calculateYesterdayBestLeaderboard(
     // 只有合格未缺考的节点，才有资格当选昨日最佳总冠军！
     const bestNode = leaderboard.find((item) => item.isQualified) || null;
 
-    if (bestNode) {
-      setYesterdayBestNodeCache(bestNode, candidateUuids, scope);
-    }
-    setYesterdayLeaderboardCache(leaderboard, scope, now);
+    // 假性故障隔离机制（Cache Quarantine）：
+    // 若在三网综合考核（scope === "tri"）下，有节点参与（leaderboard.length > 0），
+    // 但全员均因缺少 >= 2 条线路而被标记为不合格（例如由于接口偶发单线导致全员缺联通、移动），
+    // 说明发生了运营商线路元数据丢失或接口降级假死。
+    // 此时绝不可用残缺榜单覆写已有健康缓存！
+    const isSpuriousTriFailure =
+      scope === "tri" &&
+      leaderboard.length > 0 &&
+      leaderboard.every((item) => !item.isQualified && item.missingCarriers && item.missingCarriers.length >= 2);
 
-    memoryBestCache = { date: yesterdayDateStr, timestamp: now, candidateKey: sortedKey, scope, result: bestNode, leaderboard };
+    if (!isSpuriousTriFailure) {
+      if (bestNode) {
+        setYesterdayBestNodeCache(bestNode, candidateUuids, scope);
+      }
+      setYesterdayLeaderboardCache(leaderboard, scope, now);
+
+      memoryBestCache = { date: yesterdayDateStr, timestamp: now, candidateKey: sortedKey, scope, result: bestNode, leaderboard };
+      return { best: bestNode, leaderboard };
+    }
+
+    // 若判定为假性故障，优先回退到上一次的有效榜单缓存，避免向用户呈现“全员未配齐三网”的异常假死界面
+    let previousBoard = memoryBestCache?.scope === scope ? memoryBestCache.leaderboard : null;
+    if (!previousBoard || !previousBoard.some((item) => item.isQualified)) {
+      try {
+        const key = `${LEADERBOARD_STORAGE_KEY}:${scope}`;
+        const raw = window.localStorage.getItem(key) || (scope === "tri" ? window.localStorage.getItem(LEADERBOARD_STORAGE_KEY) : null);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          const { todayDateStr } = getTodayCacheKey(now);
+          if (parsed && parsed.date === todayDateStr && Array.isArray(parsed.leaderboard)) {
+            previousBoard = parsed.leaderboard;
+          }
+        }
+      } catch {}
+    }
+
+    if (previousBoard && previousBoard.some((item) => item.isQualified)) {
+      const previousBest = previousBoard.find((item) => item.isQualified) || null;
+      return { best: previousBest, leaderboard: previousBoard };
+    }
+
     return { best: bestNode, leaderboard };
   })();
 

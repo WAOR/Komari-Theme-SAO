@@ -190,6 +190,7 @@ export function useNodeCardModel(
   }, [isPriceVisible, meta, now, showCardGroup]);
 
   // ping 派生的颜色只在 ping item 或主题 ping 配置变化时才变。
+  // 架构规范：卡片数值文本一律使用中性色 var(--text-secondary)，严禁在文本上应用此颜色；色彩仅由光柱表达。
   const pingModel = useMemo(
     () => ({
       latencyColor: resolveCustomLatencyColor(

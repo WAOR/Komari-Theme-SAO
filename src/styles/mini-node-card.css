@@ -303,6 +303,7 @@
 
 .mini-node-health-value {
   flex: 0 0 auto;
+  color: var(--text-secondary);
   font-size: 13px;
   font-weight: 680;
   letter-spacing: -0.03em;

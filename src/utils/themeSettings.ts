@@ -1,4 +1,5 @@
 import type {
+  MetricColorKey,
   OverviewCardId,
   PingLatencyColors,
   PingLatencyThresholds,
@@ -32,6 +33,19 @@ import {
   normalizeHomepagePingTaskBindings,
   type HomepagePingTaskBindings,
 } from "@/utils/pingTasks";
+import {
+  type SiteBrandIconId,
+  DEFAULT_SITE_BRAND_ICON,
+  isSiteBrandIconId,
+  SITE_BRAND_ICON_OPTIONS,
+} from "@/components/brand-icons";
+
+export {
+  type SiteBrandIconId,
+  DEFAULT_SITE_BRAND_ICON,
+  isSiteBrandIconId,
+  SITE_BRAND_ICON_OPTIONS,
+};
 
 export type Appearance = "system" | "light" | "dark";
 export type NodeViewMode = "large" | "compact" | "mini" | "list";
@@ -44,13 +58,66 @@ export type ClusterOverviewMode = "classic" | "nodes";
 export type MatrixColorTheme =
   | "default"
   | "eva"
-  | "divergence";
+  | "divergence"
+  | "aurora";
 
 export const MATRIX_COLOR_THEMES: readonly MatrixColorTheme[] = [
   "default",
   "eva",
   "divergence",
+  "aurora",
 ] as const;
+
+export const PALETTE_STORAGE_KEY = "komaritheme:palette";
+let memoryPalette: MatrixColorTheme | null = null;
+
+export function readStoredPalette(): MatrixColorTheme | null {
+  if (typeof localStorage !== "undefined") {
+    try {
+      const raw = localStorage.getItem(PALETTE_STORAGE_KEY);
+      if (isMatrixColorTheme(raw)) return raw;
+    } catch {}
+  }
+  return memoryPalette;
+}
+
+export function persistPalette(palette: MatrixColorTheme) {
+  memoryPalette = palette;
+  if (typeof localStorage !== "undefined") {
+    try {
+      localStorage.setItem(PALETTE_STORAGE_KEY, palette);
+    } catch {}
+  }
+}
+
+export const DARK_BRAND_COLOR_STORAGE_KEY = "komaritheme:dark_brand_color";
+let memoryDarkBrandColor: boolean | null = null;
+
+export function readStoredDarkBrandColor(): boolean | null {
+  if (typeof localStorage !== "undefined") {
+    try {
+      const raw = localStorage.getItem(DARK_BRAND_COLOR_STORAGE_KEY);
+      if (raw === "true") return true;
+      if (raw === "false") return false;
+    } catch {}
+  }
+  return memoryDarkBrandColor;
+}
+
+export function persistDarkBrandColor(enabled: boolean) {
+  memoryDarkBrandColor = enabled;
+  if (typeof localStorage !== "undefined") {
+    try {
+      localStorage.setItem(DARK_BRAND_COLOR_STORAGE_KEY, String(enabled));
+      if (typeof document !== "undefined") {
+        document.documentElement.dataset.darkBrandColor = enabled ? "true" : "false";
+      }
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("sao:dark-brand-color-change", { detail: enabled }));
+      }
+    } catch {}
+  }
+}
 
 export type OverviewCardVisualMode = "adaptive" | "visual" | "text";
 
@@ -91,11 +158,11 @@ export const DEFAULT_PING_LATENCY_THRESHOLDS: PingLatencyThresholds = {
 };
 
 export const DEFAULT_PING_LATENCY_COLORS: PingLatencyColors = {
-  excellent: "#10b981",
-  good: "#84cc16",
-  moderate: "#eab308",
-  elevated: "#f59e0b",
-  critical: "#ef4444",
+  excellent: "#82dd2d",
+  good: "#68bb1e",
+  moderate: "#4f8f1c",
+  elevated: "#386c14",
+  critical: "#234c0e",
 };
 
 export const DEFAULT_PING_LOSS_THRESHOLDS: PingLossThresholds = {
@@ -104,33 +171,51 @@ export const DEFAULT_PING_LOSS_THRESHOLDS: PingLossThresholds = {
 };
 
 export const DEFAULT_PING_LOSS_COLORS: PingLossColors = {
-  zero: "#10b981",
-  low: "#eab308",
-  medium: "#f97316",
-  high: "#ef4444",
+  zero: "#82dd2d",
+  loss: "#dce5da",
+  low: "#dce5da",
+  medium: "#dce5da",
+  high: "#dce5da",
 };
 
 export interface StatusBarPreset {
   id: string;
   name: string;
+  enablePingLossHatch?: boolean;
   colors: TrafficSpectrumColors;
   latencyColors: PingLatencyColors;
   lossColors: PingLossColors;
+  metricColors: Record<MetricColorKey, string>;
 }
 
 export type TrafficSpectrumPreset = StatusBarPreset;
 
 export const DEFAULT_TRAFFIC_SPECTRUM_COLORS: TrafficSpectrumColors = {
-  start: "#10b981",
-  mid: "#eab308",
-  high: "#f97316",
-  end: "#ef4444",
+  start: "#b4f475",
+  mid: "#82dd2d",
+  high: "#4f8f1c",
+  end: "#234c0e",
+};
+
+export const DEFAULT_CARD_METRIC_COLORS: Record<MetricColorKey, string> = {
+  cpu: "#82dd2d",
+  memory: "#82dd2d",
+  disk: "#82dd2d",
+  load: "#82dd2d",
+  swap: "#82dd2d",
+  speedIdle: "#82dd2d",
+  speedLow: "#68bb1e",
+  speedHigh: "#4f8f1c",
+  speedMax: "#234c0e",
+  trafficUp: "#82dd2d",
+  trafficDown: "#4f8f1c",
 };
 
 export const STATUS_BAR_PRESETS: readonly StatusBarPreset[] = [
   {
-    id: "classic",
-    name: "经典运维 (翡翠绿 · 琥珀黄 · 警示橙 · 熔岩红)",
+    id: "default",
+    name: "经典标准 (翡翠绿 · 琥珀黄 · 警示橙 · 熔岩红)",
+    enablePingLossHatch: false,
     colors: { start: "#10b981", mid: "#eab308", high: "#f97316", end: "#ef4444" },
     latencyColors: {
       excellent: "#10b981",
@@ -141,45 +226,122 @@ export const STATUS_BAR_PRESETS: readonly StatusBarPreset[] = [
     },
     lossColors: {
       zero: "#10b981",
-      low: "#eab308",
-      medium: "#f97316",
+      loss: "#ef4444",
+      low: "#ef4444",
+      medium: "#ef4444",
       high: "#ef4444",
+    },
+    metricColors: {
+      cpu: "#3b82f6",
+      memory: "#8b5cf6",
+      disk: "#f97316",
+      load: "#ec4899",
+      swap: "#6366f1",
+      speedIdle: "#10b981",
+      speedLow: "#f59e0b",
+      speedHigh: "#f97316",
+      speedMax: "#ef4444",
+      trafficUp: "#3b82f6",
+      trafficDown: "#10b981",
     },
   },
   {
-    id: "icefire",
-    name: "深邃冰火 (冰川蓝 · 暮光紫 · 烈焰橙 · 绝境红)",
-    colors: { start: "#06b6d4", mid: "#8b5cf6", high: "#f97316", end: "#ef4444" },
+    id: "eva",
+    name: "EVA (机体紫 · 装甲绿 · 警示橙 · 暴走红)",
+    enablePingLossHatch: true,
+    colors: { start: "#60289b", mid: "#8b5cf6", high: "#f58d39", end: "#e52c2c" },
     latencyColors: {
-      excellent: "#06b6d4",
-      good: "#3b82f6",
-      moderate: "#8b5cf6",
-      elevated: "#f97316",
-      critical: "#ef4444",
+      excellent: "#b8e84c",
+      good: "#52d053",
+      moderate: "#7c3aed",
+      elevated: "#f58d39",
+      critical: "#e52c2c",
     },
     lossColors: {
-      zero: "#06b6d4",
-      low: "#8b5cf6",
-      medium: "#f97316",
-      high: "#ef4444",
+      zero: "#7c3aed",
+      loss: "#f58d39",
+      low: "#f58d39",
+      medium: "#f58d39",
+      high: "#f58d39",
+    },
+    metricColors: {
+      cpu: "#7c3aed",
+      memory: "#7c3aed",
+      disk: "#b8e84c",
+      load: "#b8e84c",
+      swap: "#4d4d4d",
+      speedIdle: "#60289b",
+      speedLow: "#7c3aed",
+      speedHigh: "#f58d39",
+      speedMax: "#e52c2c",
+      trafficUp: "#60289b",
+      trafficDown: "#b8e84c",
     },
   },
   {
-    id: "marine",
-    name: "深海青翠 (薄荷青 · 蔚蓝海 · 暖杏黄 · 珊瑚红)",
-    colors: { start: "#14b8a6", mid: "#0284c7", high: "#f59e0b", end: "#ef4444" },
+    id: "divergence",
+    name: "命运石之门 (电离金 · 辉光橙 · 暮光琥珀 · 收敛深红)",
+    enablePingLossHatch: true,
+    colors: { start: "#facc15", mid: "#ff7700", high: "#ea580c", end: "#991b1b" },
     latencyColors: {
-      excellent: "#14b8a6",
-      good: "#06b6d4",
-      moderate: "#0284c7",
-      elevated: "#f59e0b",
-      critical: "#ef4444",
+      excellent: "#ff7700",
+      good: "#ea580c",
+      moderate: "#c2410c",
+      elevated: "#9a3412",
+      critical: "#dc2626",
     },
     lossColors: {
-      zero: "#14b8a6",
-      low: "#0284c7",
-      medium: "#f59e0b",
-      high: "#ef4444",
+      zero: "#ff7700",
+      loss: "#facc15",
+      low: "#facc15",
+      medium: "#facc15",
+      high: "#facc15",
+    },
+    metricColors: {
+      cpu: "#ff7700",
+      memory: "#ff7700",
+      disk: "#ff7700",
+      load: "#ff7700",
+      swap: "#ff7700",
+      speedIdle: "#ff7700",
+      speedLow: "#ea580c",
+      speedHigh: "#c2410c",
+      speedMax: "#dc2626",
+      trafficUp: "#ff7700",
+      trafficDown: "#facc15",
+    },
+  },
+  {
+    id: "aurora",
+    name: "云雾抹茶 (薄雾绿 · 浓醇抹茶 · 灰绿与警示斜纹)",
+    enablePingLossHatch: true,
+    colors: { start: "#b4f475", mid: "#82dd2d", high: "#4f8f1c", end: "#234c0e" },
+    latencyColors: {
+      excellent: "#82dd2d",
+      good: "#68bb1e",
+      moderate: "#4f8f1c",
+      elevated: "#386c14",
+      critical: "#234c0e",
+    },
+    lossColors: {
+      zero: "#82dd2d",
+      loss: "#dce5da",
+      low: "#dce5da",
+      medium: "#dce5da",
+      high: "#dce5da",
+    },
+    metricColors: {
+      cpu: "#82dd2d",
+      memory: "#82dd2d",
+      disk: "#82dd2d",
+      load: "#82dd2d",
+      swap: "#82dd2d",
+      speedIdle: "#82dd2d",
+      speedLow: "#68bb1e",
+      speedHigh: "#4f8f1c",
+      speedMax: "#234c0e",
+      trafficUp: "#82dd2d",
+      trafficDown: "#4f8f1c",
     },
   },
 ] as const;
@@ -263,6 +425,8 @@ export interface ResolvedThemeSettings {
   mobileNodeViewMode: NodeViewMode;
   serverCardTemplate: ServerCardTemplate;
   clusterOverviewMode: ClusterOverviewMode;
+  /** 是否允许点击集群状态卡片在趋势大盘与方格矩阵之间 3D 双面翻转（默认开启） */
+  enableClusterFlip: boolean;
   matrixColorTheme: MatrixColorTheme;
   matrixMockFill: boolean;
   matrixBootAnimation: boolean;
@@ -279,7 +443,9 @@ export interface ResolvedThemeSettings {
   pingLatencyColors: PingLatencyColors;
   pingLossThresholds: PingLossThresholds;
   pingLossColors: PingLossColors;
+  enablePingLossHatch: boolean;
   trafficSpectrumColors: TrafficSpectrumColors;
+  metricColors: Record<MetricColorKey, string>;
   showHomeOverview: boolean;
   /** 首页顶部总览左侧小卡片列表（固定 6 个槽位） */
   overviewCards: OverviewCardId[];
@@ -298,6 +464,9 @@ export interface ResolvedThemeSettings {
   enableHomeSort: boolean;
   homeSortField: HomeSortField;
   homeSortDirection: HomeSortDirection;
+  enableSeasonalSnow: boolean;
+  siteBrandIcon: SiteBrandIconId;
+  enableDarkBrandColor: boolean;
   showTrafficPageButton: boolean;
   showTrafficPageForGuests: boolean;
   showCostSummary: boolean;
@@ -327,9 +496,10 @@ export const DEFAULT_THEME_SETTINGS: ResolvedThemeSettings = {
   desktopNodeViewMode: "large",
   mobileNodeViewMode: "compact",
   serverCardTemplate: "layered",
-  clusterOverviewMode: "classic",
-  matrixColorTheme: "eva",
-  matrixMockFill: false,
+  clusterOverviewMode: "nodes",
+  enableClusterFlip: true,
+  matrixColorTheme: "aurora",
+  matrixMockFill: true,
   matrixBootAnimation: true,
   matrixBootEffect: "laser-scan",
   matrixCustomPattern: null,
@@ -344,7 +514,9 @@ export const DEFAULT_THEME_SETTINGS: ResolvedThemeSettings = {
   pingLatencyColors: DEFAULT_PING_LATENCY_COLORS,
   pingLossThresholds: DEFAULT_PING_LOSS_THRESHOLDS,
   pingLossColors: DEFAULT_PING_LOSS_COLORS,
+  enablePingLossHatch: true,
   trafficSpectrumColors: DEFAULT_TRAFFIC_SPECTRUM_COLORS,
+  metricColors: DEFAULT_CARD_METRIC_COLORS,
   showHomeOverview: true,
   overviewCards: [...DEFAULT_OVERVIEW_CARDS],
   overviewCardOrder: [...DEFAULT_OVERVIEW_CARDS],
@@ -359,6 +531,9 @@ export const DEFAULT_THEME_SETTINGS: ResolvedThemeSettings = {
   enableHomeSort: true,
   homeSortField: "default",
   homeSortDirection: HOME_SORT_NATURAL_DIRECTION.default,
+  enableSeasonalSnow: false,
+  siteBrandIcon: DEFAULT_SITE_BRAND_ICON,
+  enableDarkBrandColor: true,
   showTrafficPageButton: true,
   showTrafficPageForGuests: false,
   showCostSummary: true,
@@ -459,7 +634,7 @@ function normalizeOverviewCardVisualMode(value: unknown): OverviewCardVisualMode
 }
 
 function normalizeMatrixMockFill(value: unknown): boolean {
-  return value === true;
+  return value !== false;
 }
 
 export function normalizeMatrixBootAnimation(value: unknown): boolean {
@@ -538,7 +713,7 @@ function normalizeHomeSortDefault(
 
 const HEX_COLOR_REGEX = /^#[0-9a-fA-F]{6}$/;
 
-function isValidHexColor(val: unknown): val is string {
+export function isValidHexColor(val: unknown): val is string {
   return typeof val === "string" && HEX_COLOR_REGEX.test(val);
 }
 
@@ -565,11 +740,22 @@ export function normalizePingLatencyColors(val: unknown): PingLatencyColors {
   const defaults = DEFAULT_PING_LATENCY_COLORS;
   if (!val || typeof val !== "object") return defaults;
   const raw = val as Record<string, unknown>;
+  const rawExc = isValidHexColor(raw.excellent) ? raw.excellent.toLowerCase() : defaults.excellent;
+  const rawGood = isValidHexColor(raw.good) ? raw.good.toLowerCase() : defaults.good;
+  const rawMod = isValidHexColor(raw.moderate) ? raw.moderate.toLowerCase() : defaults.moderate;
+  const rawEle = isValidHexColor(raw.elevated) ? raw.elevated.toLowerCase() : defaults.elevated;
+
+  // 历史实验值平滑升级：修复中间突兀跳跃断层，恢复严格均匀递减的高级抹茶绿渐变
+  const isOldAurora =
+    (rawExc === "#b4f475" || rawExc === "#58a021") &&
+    rawGood === "#82dd2d" &&
+    rawMod === "#5cb022";
+
   return {
-    excellent: isValidHexColor(raw.excellent) ? raw.excellent.toLowerCase() : defaults.excellent,
-    good: isValidHexColor(raw.good) ? raw.good.toLowerCase() : defaults.good,
-    moderate: isValidHexColor(raw.moderate) ? raw.moderate.toLowerCase() : defaults.moderate,
-    elevated: isValidHexColor(raw.elevated) ? raw.elevated.toLowerCase() : defaults.elevated,
+    excellent: isOldAurora ? "#82dd2d" : rawExc,
+    good: isOldAurora ? "#68bb1e" : rawGood,
+    moderate: isOldAurora ? "#4f8f1c" : rawMod,
+    elevated: isOldAurora ? "#386c14" : rawEle,
     critical: isValidHexColor(raw.critical) ? raw.critical.toLowerCase() : defaults.critical,
   };
 }
@@ -587,15 +773,63 @@ export function normalizePingLossThresholds(val: unknown): PingLossThresholds {
   return { low, medium };
 }
 
-export function normalizePingLossColors(val: unknown): PingLossColors {
-  const defaults = DEFAULT_PING_LOSS_COLORS;
+export function normalizePingLossColors(
+  val: unknown,
+  fallbackTheme?: MatrixColorTheme,
+): PingLossColors {
+  const isEva = fallbackTheme === "eva";
+  const isDivergence = fallbackTheme === "divergence";
+  const defaults: PingLossColors = isEva
+    ? {
+        zero: "#7c3aed",
+        loss: "#f58d39",
+        low: "#f58d39",
+        medium: "#f58d39",
+        high: "#f58d39",
+      }
+    : isDivergence
+      ? {
+          zero: "#ff7700",
+          loss: "#facc15",
+          low: "#facc15",
+          medium: "#facc15",
+          high: "#facc15",
+        }
+      : fallbackTheme === "default"
+        ? {
+            zero: "#10b981",
+            loss: "#ef4444",
+            low: "#ef4444",
+            medium: "#ef4444",
+            high: "#ef4444",
+          }
+        : DEFAULT_PING_LOSS_COLORS;
+
   if (!val || typeof val !== "object") return defaults;
   const raw = val as Record<string, unknown>;
+  const zero = isValidHexColor(raw.zero) ? (raw.zero as string).toLowerCase() : defaults.zero;
+
+  const low = isValidHexColor(raw.low) ? (raw.low as string).toLowerCase() : defaults.low;
+  const medium = isValidHexColor(raw.medium) ? (raw.medium as string).toLowerCase() : defaults.medium;
+  const high = isValidHexColor(raw.high) ? (raw.high as string).toLowerCase() : defaults.high;
+
+  let loss: string;
+  if (isValidHexColor(raw.loss)) {
+    loss = (raw.loss as string).toLowerCase();
+  } else if (isValidHexColor(raw.low)) {
+    loss = (raw.low as string).toLowerCase();
+  } else if (isValidHexColor(raw.high)) {
+    loss = (raw.high as string).toLowerCase();
+  } else {
+    loss = defaults.loss ?? defaults.high ?? "#ef4444";
+  }
+
   return {
-    zero: isValidHexColor(raw.zero) ? raw.zero.toLowerCase() : defaults.zero,
-    low: isValidHexColor(raw.low) ? raw.low.toLowerCase() : defaults.low,
-    medium: isValidHexColor(raw.medium) ? raw.medium.toLowerCase() : defaults.medium,
-    high: isValidHexColor(raw.high) ? raw.high.toLowerCase() : defaults.high,
+    zero,
+    loss,
+    low,
+    medium,
+    high,
   };
 }
 
@@ -609,6 +843,46 @@ export function normalizeTrafficSpectrumColors(val: unknown): TrafficSpectrumCol
     high: isValidHexColor(raw.high) ? raw.high.toLowerCase() : defaults.high,
     end: isValidHexColor(raw.end) ? raw.end.toLowerCase() : defaults.end,
   };
+}
+
+export function normalizeCardMetricColors(val: unknown): Record<MetricColorKey, string> {
+  const defaults = DEFAULT_CARD_METRIC_COLORS;
+  if (!val || typeof val !== "object") return { ...defaults };
+  const raw = val as Record<string, unknown>;
+  const out = { ...defaults };
+  for (const k of Object.keys(defaults) as MetricColorKey[]) {
+    if (isValidHexColor(raw[k])) {
+      out[k] = (raw[k] as string).toLowerCase();
+    }
+  }
+  // 平滑升级：云雾抹茶卡片硬件指标统一使用经典抹茶绿 #82dd2d，保证指标视觉高度凝聚一致
+  if (
+    out.cpu === "#82dd2d" &&
+    (out.memory === "#68bb1e" ||
+      out.disk === "#4f8f1c" ||
+      out.load === "#b4f475" ||
+      out.load === "#58a021" ||
+      out.swap === "#386c14")
+  ) {
+    out.memory = "#82dd2d";
+    out.disk = "#82dd2d";
+    out.load = "#82dd2d";
+    out.swap = "#82dd2d";
+  }
+  // 平滑升级：命运石之门卡片硬件指标统一使用经典辉光暖橙 #ff7700，保证指标视觉高度凝聚一致
+  if (
+    out.cpu === "#ff7700" &&
+    (out.memory === "#ea580c" ||
+      out.disk === "#c2410c" ||
+      out.load === "#facc15" ||
+      out.swap === "#9a3412")
+  ) {
+    out.memory = "#ff7700";
+    out.disk = "#ff7700";
+    out.load = "#ff7700";
+    out.swap = "#ff7700";
+  }
+  return out;
 }
 
 export function normalizeCostCurrency(
@@ -645,6 +919,30 @@ export function normalizeThemeSettings(
       : fallbackIndependentIds.length > 0
         ? fallbackIndependentIds
         : [...DEFAULT_HOMEPAGE_MULTI_PING_TASK_IDS];
+  const matrixColorTheme = normalizeMatrixColorTheme(settings?.matrixColorTheme);
+  const rawLoss = settings?.pingLossColors as Record<string, unknown> | undefined;
+  const pingLossColors = normalizePingLossColors(settings?.pingLossColors, matrixColorTheme);
+  const isThemeHatch =
+    matrixColorTheme === "aurora" ||
+    matrixColorTheme === "divergence" ||
+    matrixColorTheme === "eva" ||
+    pingLossColors.loss === "#dce5da" ||
+    pingLossColors.loss === "#facc15" ||
+    pingLossColors.loss === "#f58d39" ||
+    rawLoss?.loss === "#dce5da" ||
+    rawLoss?.low === "#dce5da" ||
+    rawLoss?.high === "#dce5da" ||
+    rawLoss?.loss === "#facc15" ||
+    rawLoss?.low === "#facc15" ||
+    rawLoss?.high === "#facc15" ||
+    rawLoss?.loss === "#f58d39" ||
+    rawLoss?.low === "#f58d39" ||
+    rawLoss?.high === "#f58d39";
+  const enablePingLossHatch =
+    typeof settings?.enablePingLossHatch === "boolean"
+      ? settings.enablePingLossHatch
+      : Boolean(isThemeHatch);
+
   return {
     defaultAppearance: normalizeAppearance(settings?.defaultAppearance),
     desktopNodeViewMode: normalizeNodeViewMode(
@@ -660,7 +958,8 @@ export function normalizeThemeSettings(
       DEFAULT_THEME_SETTINGS.serverCardTemplate,
     ),
     clusterOverviewMode: normalizeClusterOverviewMode(settings?.clusterOverviewMode),
-    matrixColorTheme: normalizeMatrixColorTheme(settings?.matrixColorTheme),
+    enableClusterFlip: enabledUnlessFalse(settings?.enableClusterFlip),
+    matrixColorTheme,
     matrixMockFill: normalizeMatrixMockFill(settings?.matrixMockFill),
     matrixBootAnimation: normalizeMatrixBootAnimation(settings?.matrixBootAnimation),
     matrixBootEffect: normalizeMatrixBootEffect(settings?.matrixBootEffect),
@@ -677,8 +976,10 @@ export function normalizeThemeSettings(
     pingLatencyThresholds: normalizePingLatencyThresholds(settings?.pingLatencyThresholds),
     pingLatencyColors: normalizePingLatencyColors(settings?.pingLatencyColors),
     pingLossThresholds: normalizePingLossThresholds(settings?.pingLossThresholds),
-    pingLossColors: normalizePingLossColors(settings?.pingLossColors),
+    pingLossColors,
+    enablePingLossHatch,
     trafficSpectrumColors: normalizeTrafficSpectrumColors(settings?.trafficSpectrumColors),
+    metricColors: normalizeCardMetricColors(settings?.metricColors),
     showHomeOverview: enabledUnlessFalse(settings?.showHomeOverview),
     overviewCards: normalizeOverviewCards(settings?.overviewCards ?? settings?.overviewCardOrder),
     overviewCardOrder: normalizeOverviewCards(settings?.overviewCards ?? settings?.overviewCardOrder),
@@ -692,6 +993,11 @@ export function normalizeThemeSettings(
     homeGroupOrder: normalizeHomeGroupOrder(settings?.homeGroupOrder),
     enableHomeSort: enabledUnlessFalse(settings?.enableHomeSort),
     ...normalizeHomeSortDefault(settings?.homeSortField, settings?.homeSortDirection),
+    enableSeasonalSnow: settings?.enableSeasonalSnow === true,
+    siteBrandIcon: isSiteBrandIconId(settings?.siteBrandIcon)
+      ? settings.siteBrandIcon
+      : DEFAULT_SITE_BRAND_ICON,
+    enableDarkBrandColor: enabledUnlessFalse(settings?.enableDarkBrandColor),
     showTrafficPageButton: enabledUnlessFalse(settings?.showTrafficPageButton),
     // 默认关闭(向访客保密入口):关闭时未登录访客隐藏今日流量右上角图表按钮，保持卡片无图标统一纯净。
     showTrafficPageForGuests: settings?.showTrafficPageForGuests === true,

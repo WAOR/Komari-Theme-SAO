@@ -135,6 +135,7 @@ function CompactTrafficPulse({
   up: TrafficTrendSample[];
   down: TrafficTrendSample[];
 }) {
+  const { metricColors } = useThemeSettings();
   const upSelected = up.slice(-TRAFFIC_DOT_COUNT);
   const downSelected = down.slice(-TRAFFIC_DOT_COUNT);
   const upPadding = Math.max(0, TRAFFIC_DOT_COUNT - upSelected.length);
@@ -153,7 +154,7 @@ function CompactTrafficPulse({
         // 仅活跃点计算颜色,空闲点直接用中性色,省掉无谓的 formatByteRate。
         const style = {
           "--compact-traffic-dot-color": active
-            ? speedRateColorFromBytes(Math.max(upValue, downValue))
+            ? speedRateColorFromBytes(Math.max(upValue, downValue), metricColors)
             : "var(--progress-bg)",
           "--compact-traffic-dot-scale": active ? `${0.68 + level * 0.62}` : "0.48",
           opacity: active ? 0.5 + level * 0.42 : 0.38,
@@ -304,14 +305,14 @@ function CompactHealthItem({
   label,
   value,
   unit,
-  color,
+  color: _color,
   children,
 }: {
   icon: ReactNode;
   label: string;
   value: string;
   unit?: string;
-  color: string;
+  color?: string;
   children: ReactNode;
 }) {
   return (
@@ -321,7 +322,8 @@ function CompactHealthItem({
           {icon}
           {label}
         </span>
-        <strong className="compact-node-health-value tabular" style={{ color }}>
+        {/* 架构设计规范：网络延迟与丢包数值文本严格统一使用中性次级色（var(--text-secondary)），与左侧标签保持一致。状态与严重度完全由下方的光柱表达，严禁在数值文本上染色。 */}
+        <strong className="compact-node-health-value tabular">
           {value}
           {unit && <small>{unit}</small>}
         </strong>
@@ -419,6 +421,7 @@ function CompactNodeVitals({
   node: CompactNode;
   loadFraction: number;
 }) {
+  const { metricColors } = useThemeSettings();
   return (
     <div className="compact-node-vitals">
       <CompactGauge
@@ -427,7 +430,7 @@ function CompactNodeVitals({
         value={formatCompactPercent(node.cpuPct)}
         detail={`${node.cpu_cores || 0} 核`}
         fraction={node.cpuPct / 100}
-        color="var(--progress-cpu)"
+        color={metricColors.cpu}
       />
       <CompactGauge
         icon={<MemoryStick size={12} />}
@@ -435,7 +438,7 @@ function CompactNodeVitals({
         value={formatCompactPercent(node.ramPct)}
         detail={`${formatBytes(node.ramUsed)} / ${formatBytes(node.ramTotal)}`}
         fraction={node.ramPct / 100}
-        color="var(--progress-memory)"
+        color={metricColors.memory}
       />
       <CompactGauge
         icon={<HardDrive size={12} />}
@@ -443,7 +446,7 @@ function CompactNodeVitals({
         value={formatCompactPercent(node.diskPct)}
         detail={`${formatBytes(node.diskUsed)} / ${formatBytes(node.diskTotal)}`}
         fraction={node.diskPct / 100}
-        color="var(--progress-disk)"
+        color={metricColors.disk}
       />
       <CompactGauge
         icon={<Gauge size={12} />}
@@ -451,7 +454,7 @@ function CompactNodeVitals({
         value={node.load1.toFixed(2)}
         detail={`${node.load5.toFixed(2)} / ${node.load15.toFixed(2)}`}
         fraction={loadFraction}
-        color="var(--progress-load)"
+        color={metricColors.load}
       />
     </div>
   );
@@ -482,6 +485,7 @@ function CompactNodeInfoStrip({
   renewalPrice: string | null;
   isPriceVisible?: boolean;
 }) {
+  const { metricColors } = useThemeSettings();
   const infoTileCount =
     1 + (showTrafficTotal ? 1 : 0) + (showBilling ? 1 : 0) + (showConnections ? 1 : 0);
 
@@ -492,19 +496,19 @@ function CompactNodeInfoStrip({
     >
       <CompactInfoTile
         label="实时速率"
-        color="var(--progress-cpu)"
+        color={metricColors.cpu}
       >
         <CompactInfoRow
           icon={<ArrowUp size={12} strokeWidth={2.3} />}
           value={upRate.value}
           unit={upRate.unit}
-          color={speedRateColor(upRate.unit)}
+          color={speedRateColor(upRate.unit, metricColors)}
         />
         <CompactInfoRow
           icon={<ArrowDown size={12} strokeWidth={2.3} />}
           value={downRate.value}
           unit={downRate.unit}
-          color={speedRateColor(downRate.unit)}
+          color={speedRateColor(downRate.unit, metricColors)}
         />
         <CompactTrafficPulse up={trafficTrend.up} down={trafficTrend.down} />
       </CompactInfoTile>

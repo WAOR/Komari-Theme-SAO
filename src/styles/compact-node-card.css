@@ -199,7 +199,6 @@
 }
 
 .compact-node-gauge-label svg {
-  color: var(--compact-gauge-color);
   flex: 0 0 auto;
 }
 
@@ -339,7 +338,6 @@
 
 .compact-node-traffic-label svg {
   flex: 0 0 auto;
-  color: var(--compact-gauge-color);
 }
 
 .compact-node-traffic-body.has-uptime > .compact-node-traffic-label {
@@ -516,6 +514,7 @@
 .compact-node-health-value {
   min-width: 0;
   overflow: hidden;
+  color: var(--text-secondary);
   font-size: 13px;
   font-weight: 720;
   letter-spacing: -0.02em;

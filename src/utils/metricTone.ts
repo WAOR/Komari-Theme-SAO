@@ -11,7 +11,6 @@ import {
   DEFAULT_PING_LATENCY_COLORS,
   DEFAULT_PING_LATENCY_THRESHOLDS,
   DEFAULT_PING_LOSS_COLORS,
-  DEFAULT_PING_LOSS_THRESHOLDS,
   DEFAULT_TRAFFIC_SPECTRUM_COLORS,
 } from "@/utils/themeSettings";
 
@@ -190,12 +189,27 @@ const SPEED_RATE_COLOR: Record<string, string> = {
   "PB/s": "var(--speed-max)",
 };
 
-export function speedRateColor(unit: string): string {
+type SpeedMetricColors = Partial<
+  Record<"speedIdle" | "speedLow" | "speedHigh" | "speedMax", string>
+>;
+
+export function speedRateColor(unit: string, metricColors?: SpeedMetricColors): string {
+  if (metricColors) {
+    if (unit === "B/s" && metricColors.speedIdle) return metricColors.speedIdle;
+    if (unit === "KB/s" && metricColors.speedLow) return metricColors.speedLow;
+    if (unit === "MB/s" && metricColors.speedHigh) return metricColors.speedHigh;
+    if ((unit === "GB/s" || unit === "TB/s" || unit === "PB/s") && metricColors.speedMax) {
+      return metricColors.speedMax;
+    }
+  }
   return SPEED_RATE_COLOR[unit] ?? "var(--text-tertiary)";
 }
 
-export function speedRateColorFromBytes(bytesPerSec: number): string {
-  return speedRateColor(formatByteRate(bytesPerSec).unit);
+export function speedRateColorFromBytes(
+  bytesPerSec: number,
+  metricColors?: SpeedMetricColors,
+): string {
+  return speedRateColor(formatByteRate(bytesPerSec).unit, metricColors);
 }
 
 export function resolveCustomLossColor(
@@ -206,12 +220,23 @@ export function resolveCustomLossColor(
   if (pct == null || !Number.isFinite(pct) || pct < 0) {
     return "var(--text-tertiary)";
   }
-  const t = thresholds ?? DEFAULT_PING_LOSS_THRESHOLDS;
   const c = colors ?? DEFAULT_PING_LOSS_COLORS;
   if (pct === 0) return c.zero;
-  if (pct <= t.low) return c.low;
-  if (pct <= t.medium) return c.medium;
-  return c.high;
+  if (c.loss) return c.loss;
+  // 兼容未提供 loss 的旧阈值测试或配置对象
+  if (thresholds && c.low && c.medium && c.high && (c.low !== c.high || c.medium !== c.high)) {
+    if (pct <= thresholds.low) return c.low;
+    if (pct <= thresholds.medium) return c.medium;
+    return c.high;
+  }
+  return (
+    c.loss ??
+    c.low ??
+    c.high ??
+    DEFAULT_PING_LOSS_COLORS.loss ??
+    DEFAULT_PING_LOSS_COLORS.high ??
+    "#ef4444"
+  );
 }
 
 export function lossHeatColor(pct: number | null | undefined): string {

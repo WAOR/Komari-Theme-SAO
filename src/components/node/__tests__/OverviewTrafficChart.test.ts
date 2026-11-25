@@ -13,7 +13,7 @@ describe("OverviewTrafficChart theme styles", () => {
     expect(lightStyles.down.color).toBe("#22c55e");
   });
 
-  it("adapts to EVA Unit-01 palette (purple up, neon energy green down)", () => {
+  it("adapts to EVA palette (purple up, neon energy green down)", () => {
     const darkStyles = getTrafficChartThemeStyles("eva", true);
     expect(darkStyles.up.color).toBe("#8b5cf6");
     expect(darkStyles.down.color).toBe("#00ff66");
@@ -33,6 +33,16 @@ describe("OverviewTrafficChart theme styles", () => {
     expect(lightStyles.down.color).toBe("#ea580c");
   });
 
+  it("adapts to Aurora Glow palette (matrix medium green up, matrix high emerald green down)", () => {
+    const darkStyles = getTrafficChartThemeStyles("aurora", true);
+    expect(darkStyles.up.color).toBe("#5b9528");
+    expect(darkStyles.down.color).toBe("#89c852");
+
+    const lightStyles = getTrafficChartThemeStyles("aurora", false);
+    expect(lightStyles.up.color).toBe("#72c627");
+    expect(lightStyles.down.color).toBe("#58a021");
+  });
+
   it("includes css overrides for online status bar under eva and divergence palettes", () => {
     const homeCss = readFileSync(
       new URL("../../../styles/home.css", import.meta.url),
@@ -42,5 +52,7 @@ describe("OverviewTrafficChart theme styles", () => {
     expect(homeCss).toContain('.mao-progress-container[data-palette="eva"] .mao-seamless-segment.is-online');
     expect(homeCss).toContain('.mao-progress-container[data-palette="divergence"] .mao-node-block.is-online');
     expect(homeCss).toContain('.mao-progress-container[data-palette="divergence"] .mao-seamless-segment.is-online');
+    expect(homeCss).toContain('.mao-progress-container[data-palette="default"] .mao-node-block.is-offline');
+    expect(homeCss).toContain('.mao-progress-container[data-palette="default"] .mao-seamless-segment.is-offline');
   });
 });

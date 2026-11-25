@@ -30,6 +30,7 @@ function node(partial: Partial<HomeNodeSummary> & Pick<HomeNodeSummary, "uuid">)
     load1: 0,
     load5: 0,
     load15: 0,
+    uptime: 0,
     ...partial,
   };
 }

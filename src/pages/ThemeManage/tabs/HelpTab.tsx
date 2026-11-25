@@ -59,7 +59,7 @@ export function HelpTab({
       keywords: ["开源", "修改", "发布", "授权", "协议", "版权", "二次开发"],
       renderAnswer: () => (
         <div className="mt-2.5 pt-2.5 border-t border-(--hairline) text-xs text-(--text-secondary) leading-relaxed">
-                      非常欢迎你基于本项目修改或开发满足自己需要的分支。如果你的修改版本和原版 SAO 风格高度相似，为了避免给其他用户带来辨认和混淆困扰，建议不要将高相似度的衍生主题直接上架到官方市场；当然这只是一条友好的建议，并不构成硬性限制。
+                      欢迎基于本项目修改或开发满足自己需要的分支。但当您的衍生分支在外观设计上与 SAO 十分相似时，为避免给其他用户带来辨识和认知混淆困扰，请不要直接将其提交至探针主题市场。
                     </div>
       ),
     },
@@ -388,7 +388,7 @@ export function HelpTab({
                 3. 副标与微图：三网独立均值对比 (CT / CU / CM)
               </div>
               <p className="text-(--text-secondary) leading-relaxed">
-                底部副标分别呈现 <code>CT % · CU % · CM %</code> 三网独立算术平均丢包率；右侧的 3 根彩色能量柱（或微图）亦分别与三大运营商对应，柱高与颜色动态映射当前线路质量（健康绿 / 预警黄 / 告警红）。
+                底部副标分别呈现 <code>CT % · CU % · CM %</code> 三网独立算术平均丢包率；右侧的 3 根彩色能量柱（或微图）亦分别与三大运营商对应，柱高与颜色动态映射当前线路质量。
               </p>
             </div>
           </div>
@@ -492,7 +492,7 @@ export function HelpTab({
       keywords: ["大盘", "双曲线", "方块矩阵", "开屏动效", "切换", "矩阵"],
       renderAnswer: () => (
         <div className="mt-2.5 pt-2.5 border-t border-(--hairline) text-xs text-(--text-secondary) leading-relaxed">
-                      在设置菜单切换到「总览」，找到「SAO 集群状态模块」区域，直接点击即可一键切换：「SAO 趋势大盘」适合看整体网络流速与在线率趋势，「SAO 方格矩阵」适合快速扫视每台机器是否正常。
+                      在设置菜单切换到「总览」，找到「集群状态大盘」区域，可设置集群状态默认展示形态；同时主题默认开启3D翻转交互组件，在首页点击集群状态大盘卡片空白区域即可3D临时翻转切换。
                     </div>
       ),
     },

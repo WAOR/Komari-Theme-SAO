@@ -47,8 +47,8 @@ describe("home responsive layout contracts", () => {
     }
   });
 
-  it("resets child panels on collapse and keeps home-only routing out of controls", () => {
-    expect(controlsSource).toContain("if (nextCollapsed) setColorsOpen(false)");
+  it("keeps color picker out of frontend floating controls and keeps home-only routing out of controls", () => {
+    expect(controlsSource).not.toContain("MetricColorPicker");
     expect(controlsSource).not.toContain("useLocation");
     expect(controlsSource).not.toContain("useSearchParams");
     expect(controlsSource).not.toContain("usePublicConfig");

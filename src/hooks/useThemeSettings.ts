@@ -1,6 +1,19 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { usePublicConfig } from "@/hooks/usePublicConfig";
-import { normalizeThemeSettings, type ResolvedThemeSettings } from "@/utils/themeSettings";
+import {
+  normalizeThemeSettings,
+  readStoredPalette,
+  persistPalette,
+  readStoredDarkBrandColor,
+  persistDarkBrandColor,
+  isMatrixColorTheme,
+  type ResolvedThemeSettings,
+} from "@/utils/themeSettings";
+import {
+  readStoredSiteBrandIcon,
+  persistSiteBrandIcon,
+  isSiteBrandIconId,
+} from "@/components/brand-icons";
 
 type RawThemeSettings = Parameters<typeof normalizeThemeSettings>[0];
 
@@ -27,7 +40,22 @@ function getCachedResolvedThemeSettings(raw: RawThemeSettings): ResolvedThemeSet
     return cachedResolvedThemeSettings;
   }
   cachedRawThemeSettings = raw;
-  cachedResolvedThemeSettings = normalizeThemeSettings(raw);
+  const resolved = normalizeThemeSettings(raw);
+  if (!raw && typeof window !== "undefined") {
+    const cachedPalette = readStoredPalette();
+    if (cachedPalette) {
+      resolved.matrixColorTheme = cachedPalette;
+    }
+    const cachedDarkBrandColor = readStoredDarkBrandColor();
+    if (cachedDarkBrandColor !== null) {
+      resolved.enableDarkBrandColor = cachedDarkBrandColor;
+    }
+    const cachedBrandIcon = readStoredSiteBrandIcon();
+    if (cachedBrandIcon) {
+      resolved.siteBrandIcon = cachedBrandIcon;
+    }
+  }
+  cachedResolvedThemeSettings = resolved;
   return cachedResolvedThemeSettings;
 }
 
@@ -45,10 +73,35 @@ export function useThemeSettings(): ThemeSettingsState {
   const { data: config, isError, isLoading } = usePublicConfig();
   const hasConfig = config != null;
   const isReady = hasConfig || isError;
+  const rawThemePalette = config?.theme_settings?.matrixColorTheme;
+
+  useEffect(() => {
+    if (rawThemePalette && isMatrixColorTheme(rawThemePalette)) {
+      persistPalette(rawThemePalette);
+      if (typeof document !== "undefined") {
+        document.documentElement.dataset.palette = rawThemePalette;
+      }
+    }
+  }, [rawThemePalette]);
+
+  const rawDarkBrandColor = config?.theme_settings?.enableDarkBrandColor;
+  useEffect(() => {
+    if (typeof rawDarkBrandColor === "boolean") {
+      persistDarkBrandColor(rawDarkBrandColor);
+    }
+  }, [rawDarkBrandColor]);
+
+  const rawBrandIcon = config?.theme_settings?.siteBrandIcon;
+  useEffect(() => {
+    if (isSiteBrandIconId(rawBrandIcon)) {
+      persistSiteBrandIcon(rawBrandIcon);
+    }
+  }, [rawBrandIcon]);
   return useMemo(() => {
     const base = getCachedResolvedThemeSettings(config?.theme_settings);
     let overrideClusterMode: "classic" | "nodes" | undefined;
-    let overridePalette: "default" | "eva" | "divergence" | undefined;
+    let overrideClusterFlip: boolean | undefined;
+    let overridePalette: "default" | "eva" | "divergence" | "aurora" | undefined;
     let overrideVisualMode: "adaptive" | "visual" | "text" | undefined;
     let overrideMicroVisual: "dynamic" | "static" | undefined;
     if (typeof window !== "undefined") {
@@ -61,8 +114,15 @@ export function useThemeSettings(): ThemeSettingsState {
         overrideClusterMode = "classic";
       }
 
+      const flipParam = searchParams.get("flip");
+      if (flipParam === "0" || flipParam === "false") {
+        overrideClusterFlip = false;
+      } else if (flipParam === "1" || flipParam === "true") {
+        overrideClusterFlip = true;
+      }
+
       const paletteParam = searchParams.get("palette");
-      if (paletteParam === "divergence" || paletteParam === "eva" || paletteParam === "default") {
+      if (paletteParam === "divergence" || paletteParam === "eva" || paletteParam === "default" || paletteParam === "aurora") {
         overridePalette = paletteParam;
       }
 
@@ -79,6 +139,7 @@ export function useThemeSettings(): ThemeSettingsState {
     return {
       ...base,
       ...(overrideClusterMode ? { clusterOverviewMode: overrideClusterMode } : {}),
+      ...(overrideClusterFlip !== undefined ? { enableClusterFlip: overrideClusterFlip } : {}),
       ...(overridePalette ? { matrixColorTheme: overridePalette } : {}),
       ...(overrideVisualMode ? { overviewCardVisualMode: overrideVisualMode } : {}),
       ...(overrideMicroVisual ? { overviewMicroVisualMode: overrideMicroVisual } : {}),

@@ -186,8 +186,9 @@ describe("parseTags", () => {
 
   it("infers colors for plain tags by known keywords", () => {
     expect(parseTags("CN2GIA")).toEqual([{ label: "CN2GIA", color: "blue" }]);
+    expect(parseTags("CN2-GIA")).toEqual([{ label: "CN2-GIA", color: "blue" }]);
     expect(parseTags("4837")).toEqual([{ label: "4837", color: "green" }]);
-    expect(parseTags("Random")).toEqual([{ label: "Random", color: "violet" }]);
+    expect(parseTags("Random")).toEqual([{ label: "Random", color: "gray" }]);
   });
 });
 

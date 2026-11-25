@@ -211,8 +211,11 @@ export function ThemeManage() {
     resetPingLatency,
     patchPingLossThreshold,
     patchPingLossColor,
+    resetPingLossTier,
     resetPingLoss,
     patchTrafficSpectrumColor,
+    patchMetricColor,
+    resetMetricColors,
     applyStatusBarPreset,
     resetTrafficSpectrum,
     patchMultiPingTask,
@@ -836,6 +839,7 @@ function calculateSimulatedCarrierLoss(
               todayTrafficPending={todayTrafficTotal === null && todayTrafficQuery.isPending}
               allNodes={allMeta}
               exchangeRates={premiumRateQuery.data?.rates}
+              applyStatusBarPreset={applyStatusBarPreset}
             />
           )}
 
@@ -849,8 +853,11 @@ function calculateSimulatedCarrierLoss(
               resetPingLatency={resetPingLatency}
               patchPingLossThreshold={patchPingLossThreshold}
               patchPingLossColor={patchPingLossColor}
+              resetPingLossTier={resetPingLossTier}
               resetPingLoss={resetPingLoss}
               patchTrafficSpectrumColor={patchTrafficSpectrumColor}
+              patchMetricColor={patchMetricColor}
+              resetMetricColors={resetMetricColors}
               applyStatusBarPreset={applyStatusBarPreset}
               resetTrafficSpectrum={resetTrafficSpectrum}
               sortedTasks={sortedTasks}

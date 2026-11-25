@@ -798,19 +798,41 @@ function loadPublicPingTasks() {
     .then((tasks) => {
       const parsed = tasks as PingTask[];
       if (parsed.length > 0) {
-        publicPingTasksCache = parsed;
+        // 健康合流：若新列表相比已知缓存缺少部分线路（例如偶发返回单线），按 ID 智能合流保留历史已知任务
+        if (publicPingTasksCache && publicPingTasksCache.length > parsed.length) {
+          const newMap = new Map(parsed.map((t) => [t.id, t]));
+          const merged = publicPingTasksCache.map((oldTask) => newMap.get(oldTask.id) ?? oldTask);
+          for (const newTask of parsed) {
+            if (!publicPingTasksCache.some((t) => t.id === newTask.id)) {
+              merged.push(newTask);
+            }
+          }
+          publicPingTasksCache = merged;
+        } else {
+          publicPingTasksCache = parsed;
+        }
         publicPingTasksCachedAt = Date.now();
         try {
           window.localStorage.setItem(
             PUBLIC_PING_TASKS_STORAGE_KEY,
-            JSON.stringify({ savedAt: Date.now(), tasks: parsed }),
+            JSON.stringify({ savedAt: Date.now(), tasks: publicPingTasksCache }),
           );
         } catch {}
       } else {
-        publicPingTasksCache = null;
-        publicPingTasksCachedAt = 0;
+        // 若后端返回空列表，只要原本已有有效缓存，继续保留既有缓存，不盲目覆写为空
+        if (!publicPingTasksCache) {
+          publicPingTasksCache = null;
+          publicPingTasksCachedAt = 0;
+        }
       }
-      return parsed;
+      return publicPingTasksCache ?? parsed;
+    })
+    .catch((err) => {
+      // 接口失败时若本地已有缓存，优雅回退到既有有效缓存
+      if (publicPingTasksCache && publicPingTasksCache.length > 0) {
+        return publicPingTasksCache;
+      }
+      throw err;
     })
     .finally(() => {
       publicPingTasksRequest = null;

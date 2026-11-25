@@ -114,7 +114,8 @@ export interface NodeMetrics {
 export type MatrixColorTheme =
   | "default"
   | "eva"
-  | "divergence";
+  | "divergence"
+  | "aurora";
 
 /** 方格矩阵开屏动效形式：laser-scan (激光横扫)、digital-rain (数码流雨) */
 export type MatrixBootEffect =
@@ -122,6 +123,19 @@ export type MatrixBootEffect =
   | "digital-rain"
   | "cyber-glitch"
   | "divergence-flux";
+
+/** 站点左上角品牌图标标识 */
+export type SiteBrandIconId =
+  | "sao-radar"
+  | "heartbeat"
+  | "skull"
+  | "broadcast"
+  | "clover"
+  | "ghost-3"
+  | "brand-google-podcasts"
+  | "diaper"
+  | "brand-soundcloud"
+  | "hand-little-finger";
 
 
 /** 用户自定义点阵预设（云端存储） */
@@ -154,9 +168,10 @@ export interface PingLossThresholds {
 
 export interface PingLossColors {
   zero: string;
-  low: string;
-  medium: string;
-  high: string;
+  loss?: string;
+  low?: string;
+  medium?: string;
+  high?: string;
 }
 
 export interface TrafficSpectrumColors {
@@ -190,6 +205,19 @@ export type OverviewMicroVisualMode = "dynamic" | "static";
 
 export type ServerCardTemplate = "classic" | "layered";
 
+export type MetricColorKey =
+  | "cpu"
+  | "memory"
+  | "disk"
+  | "load"
+  | "swap"
+  | "speedIdle"
+  | "speedLow"
+  | "speedHigh"
+  | "speedMax"
+  | "trafficUp"
+  | "trafficDown";
+
 export interface ThemeSettings {
   [key: string]: unknown;
   defaultAppearance?: "system" | "light" | "dark";
@@ -206,7 +234,10 @@ export interface ThemeSettings {
   pingLatencyColors?: Partial<PingLatencyColors>;
   pingLossThresholds?: Partial<PingLossThresholds>;
   pingLossColors?: Partial<PingLossColors>;
+  /** 发生丢包时是否使用科技斜条纹呈现（云雾抹茶与命运石之门默认开启以维护纯色一体性） */
+  enablePingLossHatch?: boolean;
   trafficSpectrumColors?: Partial<TrafficSpectrumColors>;
+  metricColors?: Partial<Record<MetricColorKey, string>>;
   showHomeOverview?: boolean;
   /** 首页顶部总览左侧小卡片列表（固定 6 个槽位，不多不少） */
   overviewCards?: OverviewCardId[];
@@ -221,6 +252,8 @@ export interface ThemeSettings {
   showCardGroup?: boolean;
   /** 首页右侧集群状态卡片的展示模式：经典上下双层（classic）、机架方格矩阵（nodes）。 */
   clusterOverviewMode?: "classic" | "nodes";
+  /** 是否允许点击集群状态卡片在趋势大盘与方格矩阵之间 3D 双面翻转（默认开启） */
+  enableClusterFlip?: boolean;
   /** 机架方格矩阵配色风格。 */
   matrixColorTheme?: MatrixColorTheme;
   /** 模拟数据填充空闲机位插槽。 */
@@ -235,8 +268,14 @@ export interface ThemeSettings {
   matrixUserPresets?: UserMatrixPreset[];
   homeGroupOrder?: string[];
   enableHomeSort?: boolean;
-  homeSortField?: "default" | "name" | "speed" | "traffic" | "price";
+  homeSortField?: "default" | "name" | "uptime" | "speed" | "traffic" | "price";
   homeSortDirection?: "asc" | "desc";
+  /** 季节限定开关：开启后全站飘落点阵雪花动效。 */
+  enableSeasonalSnow?: boolean;
+  /** 站点左上角品牌图标 */
+  siteBrandIcon?: SiteBrandIconId;
+  /** 深色模式彩色 LOGO 与站点名称开关（默认开启） */
+  enableDarkBrandColor?: boolean;
   showTrafficPageButton?: boolean;
   showTrafficPageForGuests?: boolean;
   showCostSummary?: boolean;

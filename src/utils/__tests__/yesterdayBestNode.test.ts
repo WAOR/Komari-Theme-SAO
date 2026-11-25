@@ -255,7 +255,7 @@ describe("yesterdayBestNode utils", () => {
       { id: 1, name: "电信 CT", interval: 60, clients: ["node-1", "node-2"] },
       { id: 2, name: "联通 CU", interval: 60, clients: ["node-1", "node-2"] },
       { id: 3, name: "移动 CM", interval: 60, clients: ["node-1", "node-2"] },
-    ] as any);
+    ] as unknown as Awaited<ReturnType<typeof api.getPublicPingTasks>>);
     vi.mocked(api.getPingOverviewStats).mockResolvedValueOnce([
       { client: "node-1", taskId: 1, avg: 20, loss: 0, stddev: 1, p50: 20, p99: 22, valid: 1440, total: 1440 },
       { client: "node-1", taskId: 2, avg: 22, loss: 0, stddev: 1, p50: 22, p99: 24, valid: 1440, total: 1440 },
@@ -263,7 +263,7 @@ describe("yesterdayBestNode utils", () => {
       { client: "node-2", taskId: 1, avg: 30, loss: 0, stddev: 2, p50: 30, p99: 35, valid: 1440, total: 1440 },
       { client: "node-2", taskId: 2, avg: 32, loss: 0, stddev: 2, p50: 32, p99: 36, valid: 1440, total: 1440 },
       { client: "node-2", taskId: 3, avg: 35, loss: 0, stddev: 2, p50: 35, p99: 40, valid: 1440, total: 1440 },
-    ] as any);
+    ] as unknown as Awaited<ReturnType<typeof api.getPingOverviewStats>>);
 
     const initialResult = await calculateYesterdayBestLeaderboard(["node-1", "node-2"], {
       now: mockNow,
@@ -278,11 +278,11 @@ describe("yesterdayBestNode utils", () => {
 
     vi.mocked(api.getPublicPingTasks).mockResolvedValueOnce([
       { id: 1, name: "电信 CT", interval: 60, clients: ["node-1", "node-2"] },
-    ] as any);
+    ] as unknown as Awaited<ReturnType<typeof api.getPublicPingTasks>>);
     vi.mocked(api.getPingOverviewStats).mockResolvedValueOnce([
       { client: "node-1", taskId: 1, avg: 20, loss: 0, stddev: 1, p50: 20, p99: 22, valid: 1440, total: 1440 },
       { client: "node-2", taskId: 1, avg: 30, loss: 0, stddev: 2, p50: 30, p99: 35, valid: 1440, total: 1440 },
-    ] as any);
+    ] as unknown as Awaited<ReturnType<typeof api.getPingOverviewStats>>);
 
     const fallbackResult = await calculateYesterdayBestLeaderboard(["node-1", "node-2"], {
       now: laterNow,
@@ -302,11 +302,11 @@ describe("yesterdayBestNode utils", () => {
 
     vi.mocked(api.getPublicPingTasks).mockResolvedValueOnce([
       { id: 1, name: "电信 CT", interval: 60, clients: ["node-1", "node-2"] },
-    ] as any);
+    ] as unknown as Awaited<ReturnType<typeof api.getPublicPingTasks>>);
     vi.mocked(api.getPingOverviewStats).mockResolvedValueOnce([
       { client: "node-1", taskId: 1, avg: 20, loss: 0, stddev: 1, p50: 20, p99: 22, valid: 1440, total: 1440 },
       { client: "node-2", taskId: 1, avg: 30, loss: 0, stddev: 2, p50: 30, p99: 35, valid: 1440, total: 1440 },
-    ] as any);
+    ] as unknown as Awaited<ReturnType<typeof api.getPingOverviewStats>>);
 
     const coldFallbackResult = await calculateYesterdayBestLeaderboard(["node-1", "node-2"], {
       now: laterNow + 5000,
@@ -324,10 +324,10 @@ describe("yesterdayBestNode utils", () => {
     // 单线电信模式下，仅有电信数据是完全合规的
     vi.mocked(api.getPublicPingTasks).mockResolvedValueOnce([
       { id: 1, name: "电信 CT", interval: 60, clients: ["node-1"] },
-    ] as any);
+    ] as unknown as Awaited<ReturnType<typeof api.getPublicPingTasks>>);
     vi.mocked(api.getPingOverviewStats).mockResolvedValueOnce([
       { client: "node-1", taskId: 1, avg: 20, loss: 0, stddev: 1, p50: 20, p99: 22, valid: 1440, total: 1440 },
-    ] as any);
+    ] as unknown as Awaited<ReturnType<typeof api.getPingOverviewStats>>);
 
     const result = await calculateYesterdayBestLeaderboard(["node-1"], {
       now: mockNow,
